@@ -1,19 +1,18 @@
 package arango
 
 import (
-	"errors"
+	"crypto/tls"
 	"fmt"
 	na "github.com/jmcvetta/napping"
+	"net/http"
 	"net/url"
-    "net/http"
-    "crypto/tls"
 )
 
 var (
-    //AllowBadSslCerts is to be used for development to allow self signed certs
-    //This will not affect connections that have already been made, only 
-    //new connections that are created will be affected by this.
-    AllowBadSslCerts = false
+	//AllowBadSslCerts is to be used for development to allow self signed certs
+	//This will not affect connections that have already been made, only
+	//new connections that are created will be affected by this.
+	AllowBadSslCerts = false
 )
 
 //Conn returns a new database connection to an arango server.
@@ -54,7 +53,7 @@ func ConnDb(host, db string) (*Database, error) {
 func ConnDbUserPassword(host, dbName, user, password string) (*Database, error) {
 
 	if dbName == "" {
-		return nil, errors.New("A blank database was specified but that is not allowed.")
+		return nil, ArangoError{IsError: true, ErrorMessage: "A blank database was specified but that is not allowed."}
 	}
 
 	parsedUrl, err := url.Parse(host)
@@ -70,47 +69,53 @@ func ConnDbUserPassword(host, dbName, user, password string) (*Database, error) 
 	switch parsedUrl.Scheme {
 	case "http", "https":
 	case "unix":
-		return nil, fmt.Errorf("The %s scheme is not supported yet.", parsedUrl.Scheme)
+		return nil, ArangoError{
+			IsError:      true,
+			ErrorMessage: fmt.Sprintf("The %s scheme is not supported yet.", parsedUrl.Scheme),
+		}
 	default:
-		return nil, fmt.Errorf("The %s scheme is not supported yet.", parsedUrl.Scheme)
+		return nil, ArangoError{
+			IsError:      true,
+			ErrorMessage: fmt.Sprintf("The %s scheme is not supported yet.", parsedUrl.Scheme),
+		}
 	}
 
 	parsedUrl.Path = "/_db/" + dbName + "/_api"
 
 	var db = new(Database)
-	db.json = new(databaseJsonResult)
+	db.json = new(connectToDatabaseResult)
 	db.serverUrl = parsedUrl
-    db.session = new( na.Session )
+	db.session = new(na.Session)
 
-    //Create transport that will allow
-    //bad ssl certs
-    if AllowBadSslCerts {
-        db.session.Client = &http.Client{
-            Transport : &http.Transport{
-                TLSClientConfig : &tls.Config{
-                    InsecureSkipVerify : true,
-                },
-            },
-        }
-    }
+	//Create transport that will allow
+	//bad ssl certs
+	if AllowBadSslCerts {
+		db.session.Client = &http.Client{
+			Transport: &http.Transport{
+				TLSClientConfig: &tls.Config{
+					InsecureSkipVerify: true,
+				},
+			},
+		}
+	}
 
 	var eMsg interface{}
 	response, err := db.session.Get(db.serverUrl.String()+"/database/current", nil, db.json, &eMsg)
 
-    if err != nil {
-        return nil, err
-    }
+	if err != nil {
+		return nil, err
+	}
 
 	switch response.Status() {
 	case 200:
 		//The HTTP response is fine but arango returned an error
-		if db.json.Error {
-			return nil, errors.New(db.json.ErrorMessage)
+		if db.json.IsError {
+			return nil, db.json
 		}
 
 	//The HTTP reponse itself is a 401
 	case 401:
-		return nil, errors.New("401 Unauthorized: check user password.")
+		return nil, ArangoError{IsError: true, ErrorMessage: "401 Unauthorized: check user password."}
 	}
 
 	return db, nil
