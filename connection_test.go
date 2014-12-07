@@ -8,7 +8,7 @@ func TestConnectionSuccessful( t *testing.T ){
     db, err := Conn( "http://root@localhost:8529" )
 
     if err != nil {
-        t.Error( err )
+        t.Fatal( err )
     }
 
     if db.Name() != "_system" {
@@ -34,7 +34,7 @@ func TestSslConnectionSuccessful( t *testing.T ){
     _, err := Conn( "https://root@localhost:8530" )
     AllowBadSslCerts = false
     if err != nil {
-        t.Error( err )
+        t.Fatal( err )
     }
 }
 
@@ -42,6 +42,22 @@ func TestConnectionFailure( t *testing.T ){
     _, err := Conn( "http://root@localhost:9999" )
 
     if err == nil {
-        t.Error( "Expected error when connectiong to http://localhost:9999" )
+        t.Fatal( "Expected error when connectiong to http://localhost:9999" )
+    }
+
+    if _, ok := err.(ArangoError); !ok {
+        t.Fatalf( "Expected ArangoError but got something else (%T, %v)", err )
+    }
+}
+
+func TestBadUser( t *testing.T ){
+    _, err := Conn( "http://roo@localhost:8529" )
+
+    if err == nil {
+        t.Fatal( "Expected error when connectiong to http://localhost:9999" )
+    }
+
+    if _, ok := err.(ArangoError); !ok {
+        t.Fatalf( "Expected ArangoError but got something else (%T, %v)", err )
     }
 }

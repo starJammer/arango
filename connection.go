@@ -69,15 +69,9 @@ func ConnDbUserPassword(host, dbName, user, password string) (*Database, error) 
 	switch parsedUrl.Scheme {
 	case "http", "https":
 	case "unix":
-		return nil, ArangoError{
-			IsError:      true,
-			ErrorMessage: fmt.Sprintf("The %s scheme is not supported yet.", parsedUrl.Scheme),
-		}
+		return nil, newError( fmt.Sprintf("The %s scheme is not supported yet.", parsedUrl.Scheme) )
 	default:
-		return nil, ArangoError{
-			IsError:      true,
-			ErrorMessage: fmt.Sprintf("The %s scheme is not supported yet.", parsedUrl.Scheme),
-		}
+		return nil, newError( fmt.Sprintf("The %s scheme is not supported yet.", parsedUrl.Scheme) )
 	}
 
 	parsedUrl.Path = "/_db/" + dbName + "/_api"
@@ -88,7 +82,7 @@ func ConnDbUserPassword(host, dbName, user, password string) (*Database, error) 
 	db.session = new(na.Session)
 
 	//Create transport that will allow
-	//bad ssl certs
+	//bad ssl certs if we allow it
 	if AllowBadSslCerts {
 		db.session.Client = &http.Client{
 			Transport: &http.Transport{
@@ -99,23 +93,17 @@ func ConnDbUserPassword(host, dbName, user, password string) (*Database, error) 
 		}
 	}
 
-	var eMsg interface{}
-	response, err := db.session.Get(db.serverUrl.String()+"/database/current", nil, db.json, &eMsg)
+	var e ArangoError
+	response, err := db.session.Get(db.serverUrl.String()+"/database/current", nil, db.json, &e)
 
 	if err != nil {
-		return nil, err
+		return nil, newError( err.Error() )
 	}
 
 	switch response.Status() {
 	case 200:
-		//The HTTP response is fine but arango returned an error
-		if db.json.IsError {
-			return nil, db.json
-		}
-
-	//The HTTP reponse itself is a 401
 	case 401:
-		return nil, ArangoError{IsError: true, ErrorMessage: "401 Unauthorized: check user password."}
+		return nil, newError( "401 Unauthorized: check user password." )
 	}
 
 	return db, nil

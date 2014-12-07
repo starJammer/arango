@@ -1,8 +1,8 @@
 package arango
 
 import (
-	"errors"
 	na "github.com/jmcvetta/napping"
+    //"log"
 	"net/url"
 )
 
@@ -60,31 +60,13 @@ func (d *Database) IsSystem() bool {
 //UseDatabase will switch databases as if
 //you called db._useDatabase in arangosh
 //No error if successful, otherwise an erro
-//if something happened during the switch
-func (db *Database) UseDatabase(dbName string) error {
-
-	db.serverUrl.Path = "/_db/" + dbName + "/_api"
-	var eMsg interface{}
-	response, err := db.session.Get(db.serverUrl.String()+"/database/current", nil, db.json, &eMsg)
-
-	if err != nil {
-		return err
-	}
-
-	switch response.Status() {
-	case 200:
-		//The HTTP response is fine but arango returned an error
-		if db.json.IsError {
-			return errors.New(db.json.ErrorMessage)
-		}
-
-	//The HTTP reponse itself is a 401
-	case 401:
-		return errors.New("401 Unauthorized: check user password.")
-	}
-
-	return nil
+func (db *Database) UseDatabase(dbName string) (*Database, error) {
+	//create a new connection instead of re-using the old
+	//object because re-use will cause collections
+	//that used the old object to break
+	return ConnDb(db.serverUrl.String(), dbName)
 }
+
 //Used while creating a database
 type createDatabase struct {
 	Name  string `json:"name"`
@@ -92,60 +74,53 @@ type createDatabase struct {
 }
 
 type createDatabaseResult struct {
-	Result       bool
-    basicJsonResult
-}
-
-type basicJsonResult struct {
-    IsError        bool `json:"error"`
-	Code         int
-	ErrorNum     int
-	ErrorMessage string
-}
-
-func (b *basicJsonResult) Error() string {
-    return b.ErrorMessage
+	Result bool
+	ArangoError
 }
 
 //CreateDatabase creates a new database and is modeled after db._createDatabase
 func (db *Database) CreateDatabase(name string, options *DatabaseOptions, users []User) error {
 
-	var result *createDatabaseResult = new(createDatabaseResult)
-	var eMsg interface{}
+	var result createDatabaseResult
+    var e ArangoError
 
-	response, err := db.session.Post(db.serverUrl.String()+"/database", &createDatabase{Name: name, Users: users}, result, &eMsg)
+	response, err := db.session.Post(db.serverUrl.String()+"/database", &createDatabase{Name: name, Users: users}, &result, &e)
 
 	if err != nil {
-        return ArangoError{ IsError : true, ErrorMessage : err.Error() }
+		return newError( err.Error() )
 	}
 
 	switch response.Status() {
 	case 201:
 		return nil
-    default:
-        return result
+	default:
+		return e
 	}
 
 	return nil
 }
 
-func (db *Database) DropDatabase( name string ) error {
+type dropDatabaseResult struct {
+    Result bool
+    ArangoError
+}
 
-    var result *ArangoError = new(ArangoError)
-    var eMsg interface{}
+func (db *Database) DropDatabase(name string) error {
 
-	response, err := db.session.Delete(db.serverUrl.String()+"/database/" + name, result, &eMsg)
+    var result dropDatabaseResult
+	var e ArangoError
 
-    if err != nil {
-        return ArangoError{ IsError : true, ErrorMessage : err.Error() }
-    }
+	response, err := db.session.Delete(db.serverUrl.String()+"/database/"+name, &result, &e)
 
-	switch response.Status() {
-	case 201:
-		return nil
-    default:
-        return result
+	if err != nil {
+		return newError( err.Error() )
 	}
 
-    return nil
+	switch response.Status() {
+	case 200:
+		return nil
+	default:
+		return e
+	}
+
 }

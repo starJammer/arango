@@ -18,3 +18,12 @@ func (a ArangoError) Error() string {
     b, _ := json.Marshal( a )
 	return string( b )
 }
+
+func newError( msg string ) ArangoError{
+    return ArangoError{
+        IsError : true,
+        Code : -1,
+        ErrorNum : -1,
+        ErrorMessage : msg,
+    }
+}
