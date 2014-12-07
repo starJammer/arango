@@ -22,7 +22,12 @@ func TestDatabaseCreateUseDropMethods( t *testing.T ) {
         }
     }
 
-    err = db.CreateDatabase( "testing", nil, nil )
+    err = db.CreateDatabase( "testing", nil, []User{ 
+        User{ Username : "alice", Passwd : "hi", Active : true, Extra : struct{}{}  },
+        User{ Username : "bob", Passwd : "hi", Active : false, Extra : struct{}{}  },
+        User{ Username : "charlie", Passwd : "hi", Active : true, Extra : struct{ Extra string }{ Extra : "hi"}  },
+        User{ Username : "root", Passwd : "", Active : true, Extra : struct{ Extra string }{ Extra : "hi"}  },
+    } )
 
     if err != nil { 
         t.Fatal( err )
@@ -66,5 +71,7 @@ func TestDatabaseCreateUseDropMethods( t *testing.T ) {
         t.Error( err )
         t.Fatal( "Dropping the database we are in should fail. Drop can only be called from _system" )
     }
+
+
 
 }

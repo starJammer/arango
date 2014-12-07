@@ -124,3 +124,15 @@ func (db *Database) DropDatabase(name string) error {
 	}
 
 }
+
+func (db *Database) Create( collectionName string ) error {
+
+}
+
+func (db *Database) CreateDocumentCollection( ) error {
+
+}
+
+func (db *Database) CreateEdgeCollection( ) error {
+
+}
