@@ -35,12 +35,12 @@ func Conn(host string) (*Database, error) {
 //ConnDb returns a new database connection to an arango server.
 //This function will connect to the given database using the
 //default root user with a blank password.
-func ConnDb(host, db string) (*Database, error) {
+func ConnDb(host, databaseName string) (*Database, error) {
 
 	user := ""
 	password := ""
 
-	return ConnDbUserPassword(host, db, user, password)
+	return ConnDbUserPassword(host, databaseName, user, password)
 }
 
 //ConnDbUserPassword returns a new database to an arango server.
@@ -50,9 +50,9 @@ func ConnDb(host, db string) (*Database, error) {
 //host from the user name. So you can make host=http://localhost:1324
 //and specify the user and password separately. Otherwise, you can
 //just use ConnDb and specify the user info in the host string
-func ConnDbUserPassword(host, dbName, user, password string) (*Database, error) {
+func ConnDbUserPassword(host, databaseName, user, password string) (*Database, error) {
 
-	if dbName == "" {
+	if databaseName == "" {
 		return nil, ArangoError{IsError: true, ErrorMessage: "A blank database was specified but that is not allowed."}
 	}
 
@@ -74,10 +74,10 @@ func ConnDbUserPassword(host, dbName, user, password string) (*Database, error) 
 		return nil, newError( fmt.Sprintf("The %s scheme is not supported yet.", parsedUrl.Scheme) )
 	}
 
-	parsedUrl.Path = "/_db/" + dbName + "/_api"
+	parsedUrl.Path = "/_db/" + databaseName + "/_api"
 
 	var db = new(Database)
-	db.json = new(connectToDatabaseResult)
+	db.json = new(databaseResult)
 	db.serverUrl = parsedUrl
 	db.session = new(na.Session)
 
