@@ -97,22 +97,38 @@ func DefaultCollectionOptions() CollectionCreationOptions {
 	}
 }
 
+//Id returns the id of the collection.
 func (c *Collection) Id() string {
 	return c.json.Id
 }
 
+//Name returns the name of the collection.
 func (c *Collection) Name() string {
 	return c.json.Name
 }
 
+//Status returns the status of the collection.
+//The result is cached. Call Properties() to refresh.
+//The status can be any of the constants defined above.
+//const (
+	//NEW_BORN_STATUS       = 1
+	//UNLOADED_STATUS       = 2
+	//LOADED_STATUS         = 3
+	//BEING_UNLOADED_STATUS = 4
+	//DELETED_STATUS        = 5
+//)
 func (c *Collection) Status() int {
 	return c.json.Status
 }
 
+//Type returns the type of the collection.
+//Either it is a document or an edge collection
 func (c *Collection) Type() int {
 	return c.json.Type
 }
 
+//IsSystem returns whether the collection is a system collection or not.
+//System collections typically start with an underscore like _system
 func (c *Collection) IsSystem() bool {
 	return c.json.IsSystem
 }
@@ -157,6 +173,8 @@ func (c *Collection) KeyOptions() *KeyOptions {
 //It queries the /_api/collection/{collection-name}/properties
 //endpoint and causes the collection to switch to the loaded
 //state if it was unloaded before.
+//Use this especially if you want to update some of the properties
+//like the Status().
 func (c *Collection) Properties() error {
 
 	db := c.db
@@ -178,4 +196,12 @@ func (c *Collection) Properties() error {
 		return e
 	}
 
+}
+
+//Drop deletes the collection from the database
+//DO NOT expect the collection to work after dropping it.
+//Calling any further methods on it will result in 
+//unexpected behavior
+func (c *Collection) Drop() error {
+    return c.db.DropCollection( c.Name() )
 }

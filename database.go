@@ -3,6 +3,7 @@ package arango
 import (
 	na "github.com/jmcvetta/napping"
 	//"log"
+	"fmt"
 	"net/url"
 )
 
@@ -126,7 +127,7 @@ func (db *Database) DropDatabase(name string) error {
 
 }
 
-//Shortcut method for CreateDocumentCollection
+//Shortcut method for CreateCollection
 //that will use default options to create the document
 //collection.
 //Similar to db._create( 'collection-name' ) in arangosh
@@ -149,7 +150,14 @@ func (db *Database) CreateCollection(collectionName string, options CollectionCr
 	options.Name = collectionName
 	var e ArangoError
 
-	response, err := db.session.Post(db.serverUrl.String()+"/collection", options, nil, e)
+	endpoint := fmt.Sprintf("%s/collection", db.serverUrl.String())
+
+	response, err := db.session.Post(endpoint, options, nil, &e)
+
+	//fmt.Printf( "( %T, %+v )\n( %T, %+v )\n ( %T, %+v )\n",
+	//response,response,
+	//err, err,
+	//e, e )
 
 	if err != nil {
 		return newError(err.Error())
@@ -177,7 +185,8 @@ func (db *Database) Collection(collectionName string) (*Collection, error) {
 
 	var e ArangoError
 
-	response, err := db.session.Get(db.serverUrl.String()+"/collection/"+collectionName,
+	endpoint := fmt.Sprintf("%s/collection/%s", db.serverUrl.String(), collectionName)
+	response, err := db.session.Get(endpoint,
 		nil,
 		c.json,
 		e,
@@ -195,4 +204,31 @@ func (db *Database) Collection(collectionName string) (*Collection, error) {
 	}
 
 	return nil, nil
+}
+
+type dropCollectionResult struct {
+	Id string
+	ArangoError
+}
+
+func (db *Database) DropCollection(collectionName string) error {
+
+	var result dropCollectionResult
+	var e ArangoError
+
+	endpoint := fmt.Sprintf("%s/collection/%s", db.serverUrl.String(), collectionName)
+	response, err := db.session.Delete(endpoint, &result, &e)
+
+	if err != nil {
+		return newError(err.Error())
+	}
+
+	switch response.Status() {
+	case 200:
+		return nil
+	default:
+		return e
+	}
+
+	return nil
 }
