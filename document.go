@@ -75,6 +75,41 @@ type SaveOptions struct {
 }
 
 type ReplaceOptions struct {
+	WaitForSync bool
+	Rev         string
+	Policy      string
+	IfMatch     string
 }
 
-type UpdateOptions ReplaceOptions
+//DefaultReplaceOptions returns options with default values according to arango
+func DefaultReplaceOptions() *ReplaceOptions {
+	return &ReplaceOptions{
+		WaitForSync: false,
+		Rev:         "",
+		Policy:      "error",
+		IfMatch:     "",
+	}
+}
+
+type UpdateOptions struct {
+	KeepNull    bool
+	MergeArrays bool
+
+	WaitForSync bool
+	Rev         string
+	Policy      string
+	IfMatch     string
+}
+
+//DefaultUpdateOptions returns options with default values according to arango
+func DefaultUpdateOptions() *UpdateOptions {
+
+	return &UpdateOptions{
+		KeepNull:    true,
+		MergeArrays: true,
+		WaitForSync: false,
+		Rev:         "",
+		Policy:      "error",
+		IfMatch:     "",
+	}
+}

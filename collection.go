@@ -255,9 +255,83 @@ func (c *Collection) DocumentWithOptions(documentHandle interface{},
 			return c.db.DocumentWithOptions(c.Name()+"/"+idParts[0], document, options)
 		} else if len(idParts) == 2 {
 			if idParts[0] != c.Name() {
-				return newError(fmt.Sprintf("The id %s won't be found in the collection named %s.", id, c.Name()))
+				return newError(fmt.Sprintf("Cross collection requests are not permitted.", id, c.Name()))
 			}
 		}
+	case HasArangoId:
+		idParts := strings.Split(id.Id(), "/")
+		if len(idParts) == 2 {
+			if idParts[0] != c.Name() {
+				return newError(fmt.Sprintf("Cross collection requests are not permitted.", id, c.Name()))
+			}
+		}
+    case HasArangoKey:
+        return c.db.DocumentWithOptions(c.Name()+"/"+id.Key(), document, options)
 	}
+
 	return c.db.DocumentWithOptions(documentHandle, document, options)
+}
+
+func (c *Collection) Replace(documentHandle interface{},
+	document interface{}) error {
+	return c.ReplaceWithOptions(documentHandle, document, nil)
+}
+
+func (c *Collection) ReplaceWithOptions(documentHandle interface{},
+	document interface{},
+	options *ReplaceOptions) error {
+	switch id := documentHandle.(type) {
+	case string:
+		idParts := strings.Split(id, "/")
+		if len(idParts) == 1 {
+			return c.db.ReplaceDocumentWithOptions(c.Name()+"/"+idParts[0], document, options)
+		} else if len(idParts) == 2 {
+			if idParts[0] != c.Name() {
+				return newError(fmt.Sprintf("Cross collection requests are not permitted.", id, c.Name()))
+			}
+		}
+	case HasArangoId:
+		idParts := strings.Split(id.Id(), "/")
+		if len(idParts) == 2 {
+			if idParts[0] != c.Name() {
+				return newError(fmt.Sprintf("Cross collection requests are not permitted.", id, c.Name()))
+			}
+		}
+    case HasArangoKey:
+        return c.db.ReplaceDocumentWithOptions(c.Name()+"/"+id.Key(), document, options)
+	}
+
+	return c.db.ReplaceDocumentWithOptions(documentHandle, document, options)
+}
+
+func (c *Collection) Update(documentHandle interface{},
+	document interface{}) error {
+	return c.UpdateWithOptions(documentHandle, document, nil)
+}
+
+func (c *Collection) UpdateWithOptions(documentHandle interface{},
+	document interface{},
+	options *UpdateOptions) error {
+	switch id := documentHandle.(type) {
+	case string:
+		idParts := strings.Split(id, "/")
+		if len(idParts) == 1 {
+			return c.db.UpdateDocumentWithOptions(c.Name()+"/"+idParts[0], document, options)
+		} else if len(idParts) == 2 {
+			if idParts[0] != c.Name() {
+				return newError(fmt.Sprintf("Cross collection requests are not permitted.", id, c.Name()))
+			}
+		}
+	case HasArangoId:
+		idParts := strings.Split(id.Id(), "/")
+		if len(idParts) == 2 {
+			if idParts[0] != c.Name() {
+				return newError(fmt.Sprintf("Cross collection requests are not permitted.", id, c.Name()))
+			}
+		}
+    case HasArangoKey:
+        return c.db.UpdateDocumentWithOptions(c.Name()+"/"+id.Key(), document, options)
+	}
+
+	return c.db.UpdateDocumentWithOptions(documentHandle, document, options)
 }
