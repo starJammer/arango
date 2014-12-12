@@ -23,9 +23,9 @@ type ArangoError struct {
     //the id, rev, or key of the document.
     //For example, /_api/document/{doc-handle} when it
     //return a 412 error
-    Id string `json:"_id"`
-    Rev string `json:"_rev"`
-    Key string `json:"_key"`
+    Id string `json:"_id,omitempty"`
+    Rev string `json:"_rev,omitempty"`
+    Key string `json:"_key,omitempty"`
 }
 
 func (a ArangoError) Error() string {

@@ -245,6 +245,40 @@ func (db *Database) DropCollection(collectionName string) error {
 	return nil
 }
 
+//Saves a document using the POST /_api/document endpoint.
+//Look at arango api docs for more info.
+func (db *Database) SaveDocumentWithOptions(document interface{}, options *SaveOptions) error {
+
+	if options == nil {
+		return newError("You must provide save options when using the database.SaveWithOptions method.")
+	}
+
+	if options.Collection == "" {
+		return newError("You must provide save options when using the database.SaveWithOptions method.")
+	}
+
+	var e ArangoError
+
+	endpoint := fmt.Sprintf("%s/document?collection=%s&createCollection=%v&waitForSync=%v",
+		db.serverUrl.String(),
+		options.Collection,
+		options.CreateCollection,
+		options.WaitForSync,
+	)
+
+	response, err := db.session.Post(endpoint, document, document, &e)
+
+	if err != nil {
+		return newError(err.Error())
+	}
+
+	switch response.Status() {
+	case 200, 201, 202:
+		return nil
+	default:
+		return e
+	}
+}
 
 //Document looks for a document in the database
 func (db *Database) Document(documentHandle interface{}, document interface{}) error {
@@ -295,41 +329,6 @@ func (db *Database) DocumentWithOptions(documentHandle interface{}, document int
 
 	switch response.Status() {
 	case 200, 304:
-		return nil
-	default:
-		return e
-	}
-}
-
-//Saves a document using the POST /_api/document endpoint.
-//Look at arango api docs for more info.
-func (db *Database) SaveDocumentWithOptions(document interface{}, options *SaveOptions) error {
-
-	if options == nil {
-		return newError("You must provide save options when using the database.SaveWithOptions method.")
-	}
-
-	if options.Collection == "" {
-		return newError("You must provide save options when using the database.SaveWithOptions method.")
-	}
-
-	var e ArangoError
-
-	endpoint := fmt.Sprintf("%s/document?collection=%s&createCollection=%v&waitForSync=%v",
-		db.serverUrl.String(),
-		options.Collection,
-		options.CreateCollection,
-		options.WaitForSync,
-	)
-
-	response, err := db.session.Post(endpoint, document, document, &e)
-
-	if err != nil {
-		return newError(err.Error())
-	}
-
-	switch response.Status() {
-	case 200, 201, 202:
 		return nil
 	default:
 		return e
