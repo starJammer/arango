@@ -252,7 +252,7 @@ func (db *Database) Document(documentHandle interface{}, document interface{}) e
 }
 
 //DocumentWithOptions looks for a document in the database
-func (db *Database) DocumentWithOptions(documentHandle interface{}, document interface{}, options *GetDocumentOptions) error {
+func (db *Database) DocumentWithOptions(documentHandle interface{}, document interface{}, options *GetOptions) error {
 	var id string
 	switch dh := documentHandle.(type) {
 	case string:
@@ -315,7 +315,7 @@ func (db *Database) SaveDocumentWithOptions(document interface{}, options *SaveO
 
 	var e ArangoError
 
-	endpoint := fmt.Sprintf("%s/document?collection=%s&createCollection=%s&waitForSync=%s",
+	endpoint := fmt.Sprintf("%s/document?collection=%s&createCollection=%v&waitForSync=%v",
 		db.serverUrl.String(),
 		options.Collection,
 		options.CreateCollection,
@@ -334,4 +334,15 @@ func (db *Database) SaveDocumentWithOptions(document interface{}, options *SaveO
 	default:
 		return e
 	}
+}
+
+func (db *Database) ReplaceDocumentWithOptions( document interface{}, options *ReplaceOptions) error {
+
+    return nil
+}
+
+func (db *Database) UpdateDocumentWithOptions( document interface{}, options *UpdateOptions) error {
+
+
+    return nil
 }

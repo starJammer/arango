@@ -218,3 +218,42 @@ func TestDatabaseCollectionMethods( t *testing.T ) {
     }
 
 }
+
+func TestDatabaseDocumentMethods( t *testing.T ) {
+
+    setup()
+    defer teardown()
+
+    db := db
+
+
+    a := &struct{ Hi string }{ Hi : "hey" }
+    err := db.SaveDocumentWithOptions( a, &SaveOptions{} )
+
+    if err == nil {
+        t.Fatal( "Expected an error because no collection was specified.")
+    }
+
+    err = db.SaveDocumentWithOptions( a, &SaveOptions{ Collection : "testing" } )
+
+    if err == nil {
+        t.Fatal( "Expected an error because the collection didn't exist.")
+    }
+
+    err = db.SaveDocumentWithOptions( a, &SaveOptions{ Collection : "testing", CreateCollection : true } )
+
+    if err != nil {
+        t.Fatal( "Did not expect error when saving to collection:", err)
+    }
+
+    err = db.SaveDocumentWithOptions( a, &SaveOptions{ Collection : "testing", WaitForSync : true } )
+
+    if err != nil {
+        t.Fatal( "Did not expect error when saving to collection:", err)
+    }
+
+    //Clean up
+    db.UseDatabase( "_system" )
+    db.DropDatabase( "testing" )
+
+}

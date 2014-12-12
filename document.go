@@ -2,62 +2,61 @@ package arango
 
 //Document represents an Arango document.
 type FullDocument interface {
-    HasArangoId
-    HasArangoRev
-    HasArangoKey
+	HasArangoId
+	HasArangoRev
+	HasArangoKey
 }
 
 type HasArangoId interface {
-    Id() string
-    SetId( string )
+	Id() string
+	SetId(string)
 }
 
 type HasArangoRev interface {
-    Rev() string
-    SetRev( string )
+	Rev() string
+	SetRev(string)
 }
 
 type HasArangoKey interface {
-    Key() string
-    SetKey( string)
+	Key() string
+	SetKey(string)
 }
 
 //DocumentImplementation is an embeddable type that
 //you can use that already implements the Document interface.
 type DocumentImplementation struct {
-    ArangoId string `json:"_id,omitempty"`
-    ArangoRev string `json:"_rev,omitempty"`
-    ArangoKey string `json:"_key,omitempty"`
+	ArangoId  string `json:"_id,omitempty"`
+	ArangoRev string `json:"_rev,omitempty"`
+	ArangoKey string `json:"_key,omitempty"`
 }
 
 func (d *DocumentImplementation) Id() string {
-    return d.ArangoId
+	return d.ArangoId
 }
 
-func (d *DocumentImplementation) SetId( id string ) {
-    d.ArangoId = id
+func (d *DocumentImplementation) SetId(id string) {
+	d.ArangoId = id
 }
 
 func (d *DocumentImplementation) Rev() string {
-    return d.ArangoRev
+	return d.ArangoRev
 }
 
-
-func (d *DocumentImplementation) SetRev( rev string ) {
-    d.ArangoRev = rev
+func (d *DocumentImplementation) SetRev(rev string) {
+	d.ArangoRev = rev
 }
 
 func (d *DocumentImplementation) Key() string {
-    return d.ArangoKey
+	return d.ArangoKey
 }
 
-func (d *DocumentImplementation) SetKey( key string ) {
-    d.ArangoKey = key
+func (d *DocumentImplementation) SetKey(key string) {
+	d.ArangoKey = key
 }
 
-//FetchDocumentOptions are used when fetching documents
+//GetOptions are used when fetching documents
 //Read the GET /_api/document/{document-handle} info
-type GetDocumentOptions struct {
+type GetOptions struct {
 	IfNoneMatch string
 	IfMatch     string
 }
@@ -74,3 +73,8 @@ type SaveOptions struct {
 	//Wait until document has been synced to disk.
 	WaitForSync bool
 }
+
+type ReplaceOptions struct {
+}
+
+type UpdateOptions ReplaceOptions
