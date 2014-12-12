@@ -247,7 +247,7 @@ func (c *Collection) Document(documentHandle interface{},
 
 func (c *Collection) DocumentWithOptions(documentHandle interface{},
 	document interface{},
-	options *FetchDocumentOptions) error {
+	options *GetDocumentOptions) error {
 	switch id := documentHandle.(type) {
 	case string:
 		idParts := strings.Split(id, "/")

@@ -252,7 +252,7 @@ func (db *Database) Document(documentHandle interface{}, document interface{}) e
 }
 
 //DocumentWithOptions looks for a document in the database
-func (db *Database) DocumentWithOptions(documentHandle interface{}, document interface{}, options *FetchDocumentOptions) error {
+func (db *Database) DocumentWithOptions(documentHandle interface{}, document interface{}, options *GetDocumentOptions) error {
 	var id string
 	switch dh := documentHandle.(type) {
 	case string:

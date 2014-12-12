@@ -57,7 +57,7 @@ func (d *DocumentImplementation) SetKey( key string ) {
 
 //FetchDocumentOptions are used when fetching documents
 //Read the GET /_api/document/{document-handle} info
-type FetchDocumentOptions struct {
+type GetDocumentOptions struct {
 	IfNoneMatch string
 	IfMatch     string
 }
