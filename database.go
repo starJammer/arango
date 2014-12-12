@@ -4,6 +4,7 @@ import (
 	na "github.com/jmcvetta/napping"
 	//"log"
 	"fmt"
+	"net/http"
 	"net/url"
 )
 
@@ -59,8 +60,11 @@ func (db *Database) IsSystem() bool {
 }
 
 //UseDatabase will switch databases as if
-//you called db._useDatabase in arangosh
-//No error if successful, otherwise an erro
+//you called db._useDatabase in arangosh.
+//No error if successful, otherwise an error.
+//Under the hood it just makes another call to ConnDb
+//Using the same credentials used for the original database
+//and returns the results.
 func (db *Database) UseDatabase(databaseName string) (*Database, error) {
 	//create a new connection instead of re-using the old
 	//object because re-use will cause collections
@@ -112,7 +116,9 @@ func (db *Database) DropDatabase(name string) error {
 	var result dropDatabaseResult
 	var e ArangoError
 
-	response, err := db.session.Delete(db.serverUrl.String()+"/database/"+name, &result, &e)
+	endpoint := fmt.Sprintf("%s/database/%s", db.serverUrl.String(), name)
+
+	response, err := db.session.Delete(endpoint, &result, &e)
 
 	if err != nil {
 		return newError(err.Error())
@@ -130,14 +136,13 @@ func (db *Database) DropDatabase(name string) error {
 //Shortcut method for CreateCollection
 //that will use default options to create the document
 //collection.
-//Similar to db._create( 'collection-name' ) in arangosh
-func (db *Database) CreateDocumentCollection(collectionName string) error {
+func (db *Database) CreateDocumentCollection(collectionName string) (*Collection, error) {
 	return db.CreateCollection(collectionName, DefaultCollectionOptions())
 }
 
 //Shortcut method for CreateCollection that will
 //use default options to create the edge collection
-func (db *Database) CreateEdgeCollection(collectionName string) error {
+func (db *Database) CreateEdgeCollection(collectionName string) (*Collection, error) {
 	options := DefaultCollectionOptions()
 	options.Type = EDGE_COLLECTION
 	return db.CreateCollection(collectionName, options)
@@ -145,14 +150,21 @@ func (db *Database) CreateEdgeCollection(collectionName string) error {
 
 //CreateCollection is the generic collection creating method. Use it for more control.
 //It allows you finer control by using the CollectionCreationOptions
-func (db *Database) CreateCollection(collectionName string, options CollectionCreationOptions) error {
+//An error is returned if there was an issue. Otherwise, it was a success
+//and you can use db.Collection( collectionName ) to get the collection
+//you just created and work with it.
+func (db *Database) CreateCollection(collectionName string, options CollectionCreationOptions) (*Collection, error) {
 
 	options.Name = collectionName
 	var e ArangoError
 
+	var c *Collection = new(Collection)
+	c.db = db
+	c.json = new(collectionResult)
+
 	endpoint := fmt.Sprintf("%s/collection", db.serverUrl.String())
 
-	response, err := db.session.Post(endpoint, options, nil, &e)
+	response, err := db.session.Post(endpoint, options, c.json, &e)
 
 	//fmt.Printf( "( %T, %+v )\n( %T, %+v )\n ( %T, %+v )\n",
 	//response,response,
@@ -160,16 +172,15 @@ func (db *Database) CreateCollection(collectionName string, options CollectionCr
 	//e, e )
 
 	if err != nil {
-		return newError(err.Error())
+		return nil, newError(err.Error())
 	}
 
 	switch response.Status() {
 	case 200, 201:
-		return nil
+		return c, nil
 	default:
-		return e
+		return nil, e
 	}
-	return nil
 }
 
 //Collection gets a collection by name from the database.
@@ -211,6 +222,7 @@ type dropCollectionResult struct {
 	ArangoError
 }
 
+//DropCollection drops the collection in the database by name.
 func (db *Database) DropCollection(collectionName string) error {
 
 	var result dropCollectionResult
@@ -231,4 +243,95 @@ func (db *Database) DropCollection(collectionName string) error {
 	}
 
 	return nil
+}
+
+
+//Document looks for a document in the database
+func (db *Database) Document(documentHandle interface{}, document interface{}) error {
+	return db.DocumentWithOptions(documentHandle, document, nil)
+}
+
+//DocumentWithOptions looks for a document in the database
+func (db *Database) DocumentWithOptions(documentHandle interface{}, document interface{}, options *FetchDocumentOptions) error {
+	var id string
+	switch dh := documentHandle.(type) {
+	case string:
+		id = dh
+	case HasArangoId:
+		id = dh.Id()
+	default:
+		return newError("The document handle you passed in is not valid.")
+	}
+
+	if id == "" {
+		return newError("You must specify a documentHandle when fetching a document.")
+	}
+
+	if options != nil {
+		if db.session.Header == nil {
+			db.session.Header = &http.Header{}
+			defer func() { db.session.Header = nil }()
+		}
+
+		if options.IfNoneMatch != "" {
+			db.session.Header.Add("If-None-Match", options.IfNoneMatch)
+			defer func() { db.session.Header.Del("If-None-Match") }()
+		}
+		if options.IfMatch != "" {
+			db.session.Header.Add("If-Match", options.IfMatch)
+			defer func() { db.session.Header.Del("If-Match") }()
+		}
+	}
+
+	var e ArangoError
+
+	endpoint := fmt.Sprintf("%s/document/%s", db.serverUrl.String(), id)
+
+	response, err := db.session.Get(endpoint, nil, document, &e)
+
+	if err != nil {
+		return newError(err.Error())
+	}
+
+	switch response.Status() {
+	case 200, 304:
+		return nil
+	default:
+		return e
+	}
+}
+
+//Saves a document using the POST /_api/document endpoint.
+//Look at arango api docs for more info.
+func (db *Database) SaveDocumentWithOptions(document interface{}, options *SaveOptions) error {
+
+	if options == nil {
+		return newError("You must provide save options when using the database.SaveWithOptions method.")
+	}
+
+	if options.Collection == "" {
+		return newError("You must provide save options when using the database.SaveWithOptions method.")
+	}
+
+	var e ArangoError
+
+	endpoint := fmt.Sprintf("%s/document?collection=%s&createCollection=%s&waitForSync=%s",
+		db.serverUrl.String(),
+		options.Collection,
+		options.CreateCollection,
+		options.WaitForSync,
+	)
+
+	response, err := db.session.Post(endpoint, document, document, &e)
+
+	if err != nil {
+		return newError(err.Error())
+	}
+
+	switch response.Status() {
+	case 200, 201, 202:
+		return nil
+	default:
+		return e
+	}
 }

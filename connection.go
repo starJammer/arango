@@ -101,11 +101,12 @@ func ConnDbUserPassword(host, databaseName, user, password string) (*Database, e
 	}
 
 	switch response.Status() {
-	case 200:
+    case 200:
+        return db, nil
 	case 401:
 		return nil, newError( "401 Unauthorized: check user password." )
+    default:
+        return nil, e
 	}
-
-	return db, nil
 
 }

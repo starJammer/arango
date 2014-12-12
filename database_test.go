@@ -76,12 +76,19 @@ func TestDatabaseCreateUseDropMethods( t *testing.T ) {
         t.Fatal( "Dropping the database we are in should fail. Drop can only be called from _system" )
     }
 
-    //Clean up everything
     db, err = db.UseDatabase( "_system" )
+    err = db.DropDatabase( "testing" )
 
     if err != nil {
-        t.Fatal( "Dropping the database should work from the _system database." )
+        t.Fatal( "Dropping the database should work from the _system database.", err )
     }
+
+    db, err = db.UseDatabase( "testing" )
+
+    if err == nil {
+        t.Fatal( "Expected to get an error for using a database that doesn't exist." )
+    }
+
 }
 
 func TestDatabaseCollectionMethods( t *testing.T ) {
@@ -104,7 +111,7 @@ func TestDatabaseCollectionMethods( t *testing.T ) {
 
     db, err = db.UseDatabase( "testing" )
 
-    err = db.CreateDocumentCollection( "testing" )
+    c, err := db.CreateDocumentCollection( "testing" )
 
     if err != nil {
         t.Fatalf( "Was not expecting an error when creating testing collection:%s", err)
@@ -117,7 +124,32 @@ func TestDatabaseCollectionMethods( t *testing.T ) {
         t.Fatal( "Expecting an error because the collection didn't exist." )
     }
 
-    c, err := db.Collection( "testing" )
+    if c == nil {
+        t.Fatal( "Expecting the collection returned to not be nil.")
+    }
+
+    if c.Id() == "" {
+        t.Fatal( "Collection should have an Id associated with it." )
+    }
+
+    if c.Status() == 0 {
+        t.Fatal( "Collection should have a status other than 0 after creation." )
+    }
+
+    if c.Name() != "testing" {
+        t.Fatal( "Collection doesn't have expected name.")
+    }
+
+    if c.Type() != DOCUMENT_COLLECTION {
+        t.Fatalf( "Collection should be document (%d) type but got something else (%d).", DOCUMENT_COLLECTION, c.Type() )
+    }
+
+    if c.IsSystem() {
+        t.Fatal( "Collection should not be a system collection." )
+    }
+
+    //Fetch the database using the Collection method
+    c, err = db.Collection( "testing" )
 
     if err != nil {
         t.Fatal( "Got an unexpected error when getting the testing collection.")
@@ -168,17 +200,18 @@ func TestDatabaseCollectionMethods( t *testing.T ) {
     err = db.DropCollection( "testing_no_exist" )
 
     if err == nil {
-        t.Fatalf( "Expected an error when dropping a non-existent database.")
+        t.Fatalf( "Expected an error when dropping a non-existent collection.")
     }
 
     err = db.DropCollection( c.Name() )
 
     if err != nil {
-        t.Fatalf( "Could not drop the database: %+v", err )
+        t.Fatalf( "Could not drop the collection: %+v", err )
     }
 
     //Clean up everything
     db, err = db.UseDatabase( "_system" )
+    err = db.DropDatabase( "testing" )
 
     if err != nil {
         t.Fatal( "Dropping the database should work from the _system database." )

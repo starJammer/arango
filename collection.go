@@ -2,6 +2,7 @@ package arango
 
 import (
 	"fmt"
+	"strings"
 )
 
 //Collection types
@@ -52,7 +53,7 @@ type CollectionCreationOptions struct {
 
 //KeyOptions stores information about how a collection's key is configured.
 //It is used during collection creation to specify how the new collection's
-//key should be setup. 
+//key should be setup.
 //
 //It is also used for existing collections so you know how the collection's
 //key is configured.
@@ -111,11 +112,11 @@ func (c *Collection) Name() string {
 //The result is cached. Call Properties() to refresh.
 //The status can be any of the constants defined above.
 //const (
-	//NEW_BORN_STATUS       = 1
-	//UNLOADED_STATUS       = 2
-	//LOADED_STATUS         = 3
-	//BEING_UNLOADED_STATUS = 4
-	//DELETED_STATUS        = 5
+//NEW_BORN_STATUS       = 1
+//UNLOADED_STATUS       = 2
+//LOADED_STATUS         = 3
+//BEING_UNLOADED_STATUS = 4
+//DELETED_STATUS        = 5
 //)
 func (c *Collection) Status() int {
 	return c.json.Status
@@ -168,7 +169,6 @@ func (c *Collection) KeyOptions() *KeyOptions {
 	return c.json.KeyOptions
 }
 
-
 //Properties fetches additional properties of the collection.
 //It queries the /_api/collection/{collection-name}/properties
 //endpoint and causes the collection to switch to the loaded
@@ -200,8 +200,64 @@ func (c *Collection) Properties() error {
 
 //Drop deletes the collection from the database
 //DO NOT expect the collection to work after dropping it.
-//Calling any further methods on it will result in 
+//Calling any further methods on it will result in
 //unexpected behavior
 func (c *Collection) Drop() error {
-    return c.db.DropCollection( c.Name() )
+	return c.db.DropCollection(c.Name())
+}
+
+//Save creates a document in the collection.
+//Uses the POST /_api/document endpoint
+//If your document embeds the DocumentImplementation type
+//or it has fields to hold the Id, Rev, and Key fields
+//from arango, then it will be populated with the Id, Rev, Key
+//fields during the json.Unmarshal call
+func (c *Collection) Save(document interface{}) error {
+	return c.db.SaveDocumentWithOptions(document, &SaveOptions{
+		Collection:       c.Name(),
+		CreateCollection: false,
+		WaitForSync:      false,
+	})
+}
+
+//SaveWithOptions lets you save a document but lets you specify some options
+//See the POST /_api/document endpoint for more info.
+func (c *Collection) SaveWithOptions(document interface{}, options *SaveOptions) error {
+
+	options.Collection = c.Name()
+	options.CreateCollection = false
+
+	return c.db.SaveDocumentWithOptions(document, options)
+}
+
+//Document will fetch the document associated with the documentHandle.
+//An error will be returned if anything goes wrong. Otherwise, document
+//be populated with the document values from arango. json.Unmarhshal
+//is used under the hood so make sure you understand how string literals
+//tags work with the encoding/json package.
+//This uses the GET /_api/document/{document-handle} endpoint.
+//The method provides a extra bit of functionality in that it won't let
+//you fetch an document NOT from this collection. For example,
+//you can't request 'users/123413' when the collection name is 'places'.
+//If you want to look up an arbitrary document then use db.Document()
+func (c *Collection) Document(documentHandle interface{},
+	document interface{}) error {
+	return c.DocumentWithOptions(documentHandle, document, nil)
+}
+
+func (c *Collection) DocumentWithOptions(documentHandle interface{},
+	document interface{},
+	options *FetchDocumentOptions) error {
+	switch id := documentHandle.(type) {
+	case string:
+		idParts := strings.Split(id, "/")
+		if len(idParts) == 1 {
+			return c.db.DocumentWithOptions(c.Name()+"/"+idParts[0], document, options)
+		} else if len(idParts) == 2 {
+			if idParts[0] != c.Name() {
+				return newError(fmt.Sprintf("The id %s won't be found in the collection named %s.", id, c.Name()))
+			}
+		}
+	}
+	return c.db.DocumentWithOptions(documentHandle, document, options)
 }

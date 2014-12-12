@@ -18,6 +18,14 @@ type ArangoError struct {
     Code         int  `json:"code"`
     ErrorNum     int   `json:"errorNum"`
     ErrorMessage string `json:"errorMessage"`
+
+    //Reserved for some operations that will return
+    //the id, rev, or key of the document.
+    //For example, /_api/document/{doc-handle} when it
+    //return a 412 error
+    Id string `json:"_id"`
+    Rev string `json:"_rev"`
+    Key string `json:"_key"`
 }
 
 func (a ArangoError) Error() string {
