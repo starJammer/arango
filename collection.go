@@ -248,28 +248,13 @@ func (c *Collection) Document(documentHandle interface{},
 func (c *Collection) DocumentWithOptions(documentHandle interface{},
 	document interface{},
 	options *GetOptions) error {
-	switch id := documentHandle.(type) {
-	case string:
-		idParts := strings.Split(id, "/")
-		if len(idParts) == 1 {
-			return c.db.DocumentWithOptions(c.Name()+"/"+idParts[0], document, options)
-		} else if len(idParts) == 2 {
-			if idParts[0] != c.Name() {
-				return newError(fmt.Sprintf("Cross collection requests are not permitted.", id, c.Name()))
-			}
-		}
-	case HasArangoId:
-		idParts := strings.Split(id.Id(), "/")
-		if len(idParts) == 2 {
-			if idParts[0] != c.Name() {
-				return newError(fmt.Sprintf("Cross collection requests are not permitted.", id, c.Name()))
-			}
-		}
-    case HasArangoKey:
-        return c.db.DocumentWithOptions(c.Name()+"/"+id.Key(), document, options)
-	}
 
-	return c.db.DocumentWithOptions(documentHandle, document, options)
+    documentHandle, ok := c.crossCollectionCheck( documentHandle )
+    if ok {
+        return c.db.DocumentWithOptions(documentHandle, document, options)
+    } else {
+        return newError(fmt.Sprintf("Cross collection requests are not permitted.", documentHandle, c.Name()))
+    }
 }
 
 func (c *Collection) Replace(documentHandle interface{},
@@ -280,28 +265,12 @@ func (c *Collection) Replace(documentHandle interface{},
 func (c *Collection) ReplaceWithOptions(documentHandle interface{},
 	document interface{},
 	options *ReplaceOptions) error {
-	switch id := documentHandle.(type) {
-	case string:
-		idParts := strings.Split(id, "/")
-		if len(idParts) == 1 {
-			return c.db.ReplaceDocumentWithOptions(c.Name()+"/"+idParts[0], document, options)
-		} else if len(idParts) == 2 {
-			if idParts[0] != c.Name() {
-				return newError(fmt.Sprintf("Cross collection requests are not permitted.", id, c.Name()))
-			}
-		}
-	case HasArangoId:
-		idParts := strings.Split(id.Id(), "/")
-		if len(idParts) == 2 {
-			if idParts[0] != c.Name() {
-				return newError(fmt.Sprintf("Cross collection requests are not permitted.", id, c.Name()))
-			}
-		}
-    case HasArangoKey:
-        return c.db.ReplaceDocumentWithOptions(c.Name()+"/"+id.Key(), document, options)
-	}
-
-	return c.db.ReplaceDocumentWithOptions(documentHandle, document, options)
+    documentHandle, ok := c.crossCollectionCheck( documentHandle )
+    if ok {
+        return c.db.ReplaceDocumentWithOptions(documentHandle, document, options)
+    } else {
+        return newError(fmt.Sprintf("Cross collection requests are not permitted.", documentHandle, c.Name()))
+    }
 }
 
 func (c *Collection) Update(documentHandle interface{},
@@ -312,26 +281,38 @@ func (c *Collection) Update(documentHandle interface{},
 func (c *Collection) UpdateWithOptions(documentHandle interface{},
 	document interface{},
 	options *UpdateOptions) error {
+    documentHandle, ok := c.crossCollectionCheck( documentHandle )
+    if ok {
+        return c.db.UpdateDocumentWithOptions(documentHandle, document, options)
+    } else {
+        return newError(fmt.Sprintf("Cross collection requests are not permitted.", documentHandle, c.Name()))
+    }
+
+}
+
+func (c *Collection) crossCollectionCheck( documentHandle interface{} ) ( interface{}, bool ){
+
 	switch id := documentHandle.(type) {
 	case string:
 		idParts := strings.Split(id, "/")
 		if len(idParts) == 1 {
-			return c.db.UpdateDocumentWithOptions(c.Name()+"/"+idParts[0], document, options)
+			return c.Name()+"/"+idParts[0], true
 		} else if len(idParts) == 2 {
-			if idParts[0] != c.Name() {
-				return newError(fmt.Sprintf("Cross collection requests are not permitted.", id, c.Name()))
+			if idParts[0] == c.Name() {
+				return id, true
 			}
 		}
 	case HasArangoId:
 		idParts := strings.Split(id.Id(), "/")
 		if len(idParts) == 2 {
-			if idParts[0] != c.Name() {
-				return newError(fmt.Sprintf("Cross collection requests are not permitted.", id, c.Name()))
+			if idParts[0] == c.Name() {
+				return documentHandle, true
 			}
 		}
     case HasArangoKey:
-        return c.db.UpdateDocumentWithOptions(c.Name()+"/"+id.Key(), document, options)
+        return c.Name()+"/"+id.Key(), true
 	}
 
-	return c.db.UpdateDocumentWithOptions(documentHandle, document, options)
+    return "", false
+
 }

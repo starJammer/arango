@@ -294,6 +294,27 @@ func TestDatabaseDocumentMethods(t *testing.T) {
 		t.Fatal("Expected property to be set back to \"hey\"")
 	}
 
+    //Test updating a document
+    var newString = "new string not there before."
+    a.Hi = newString
+    err = db.UpdateDocumentWithOptions( a.Id(), a, nil )
+
+    if err != nil {
+        t.Fatal( "Did not expected update on document to fail.", err )
+    }
+
+    if a.Rev() == b.Rev() {
+        t.Fatal( "The revision of the old document and the new document should not be the same.")
+    }
+
+    upOpts := DefaultUpdateOptions()
+    upOpts.Rev = b.Rev()
+    err = db.UpdateDocumentWithOptions( b.Id(), &b, upOpts )
+
+    if err == nil {
+        t.Fatal( "Expected an error because the revision of the document does not match the one in the database anymore.")
+    }
+
 	//Clean up
 	db.DropCollection("testing")
 

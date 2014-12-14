@@ -67,7 +67,7 @@ type SaveOptions struct {
 	Collection string
 
 	//CreateCollection specifies if the collection should be created at the same time as this document is being saved.
-	//Irrelevant if called from
+	//Irrelevant if called from a collection struct
 	CreateCollection bool
 
 	//Wait until document has been synced to disk.
@@ -82,6 +82,9 @@ type ReplaceOptions struct {
 }
 
 //DefaultReplaceOptions returns options with default values according to arango
+//You don't really need this unless you plan on using the Rev/IfMatch or
+//WaitForSync options. In that case, it helps to have this method to have
+//the defaults that arango will use. That way you only change what you need.
 func DefaultReplaceOptions() *ReplaceOptions {
 	return &ReplaceOptions{
 		WaitForSync: false,
@@ -102,6 +105,9 @@ type UpdateOptions struct {
 }
 
 //DefaultUpdateOptions returns options with default values according to arango
+//You don't really need this unless you plan on using the Rev/IfMatch or
+//other options. In that case, it helps to have this method to have
+//the defaults that arango will use. That way you only change what you need.
 func DefaultUpdateOptions() *UpdateOptions {
 
 	return &UpdateOptions{

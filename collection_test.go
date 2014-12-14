@@ -148,4 +148,19 @@ func TestSavingAndRetrievingDocument( t *testing.T ){
         t.Fatal( "Expected to have the revs for documents be equal since they are the same document.")
     }
 
+    //Try a cross collection update
+    err = c.Document( "fake/"+fulld.Key(), ret )
+
+    if err == nil {
+        t.Fatal( "Expected a cross collection error.")
+    }
+
+    fulld.SetId( "fake/" + fulld.Key() )
+
+    err = c.Document( fulld, ret )
+
+    if err == nil {
+        t.Fatal( "Expected a cross collection error.")
+    }
+
 }
