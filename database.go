@@ -302,6 +302,14 @@ func (db *Database) DocumentWithOptions(documentHandle interface{}, document int
 		return newError("You must specify a documentHandle when fetching a document.")
 	}
 
+    if rev, ok := documentHandle.(HasArangoRev); ok {
+        if options == nil {
+            options = &GetOptions{}
+        }
+
+        options.IfMatch = rev.Rev()
+    }
+
 	if options != nil {
 		if db.session.Header == nil {
 			db.session.Header = &http.Header{}
@@ -349,8 +357,16 @@ func (db *Database) ReplaceDocumentWithOptions(documentHandle, document interfac
 	}
 
 	if id == "" {
-		return newError("You must specify a documentHandle when putting a document.")
+		return newError("You must specify a documentHandle when replacing a document.")
 	}
+
+    if rev, ok := documentHandle.(HasArangoRev); ok {
+        if options == nil {
+            options = DefaultReplaceOptions()
+        }
+
+        options.IfMatch = rev.Rev()
+    }
 
 	var query string
 
@@ -409,8 +425,16 @@ func (db *Database) UpdateDocumentWithOptions(documentHandle, document interface
 	}
 
 	if id == "" {
-		return newError("You must specify a documentHandle when putting a document.")
+		return newError("You must specify a documentHandle when updating a document.")
 	}
+
+    if rev, ok := documentHandle.(HasArangoRev); ok {
+        if options == nil {
+            options = DefaultUpdateOptions()
+        }
+
+        options.IfMatch = rev.Rev()
+    }
 
 	var query string
 
@@ -442,14 +466,82 @@ func (db *Database) UpdateDocumentWithOptions(documentHandle, document interface
 
 	endpoint := fmt.Sprintf("%s/document/%s%s", db.serverUrl.String(), id, query)
 
-	response, err := db.session.Put(endpoint, document, document, &e)
+	response, err := db.session.Patch(endpoint, document, document, &e)
 
 	if err != nil {
 		return newError(err.Error())
 	}
 
 	switch response.Status() {
-	case 200, 201, 202:
+	case 201, 202:
+		return nil
+	default:
+		return e
+	}
+
+	return nil
+}
+
+func (db *Database) DeleteDocumentWithOptions(documentHandle interface{}, options *DeleteOptions) error {
+
+	var id string
+	switch dh := documentHandle.(type) {
+	case string:
+		id = dh
+	case HasArangoId:
+		id = dh.Id()
+	default:
+		return newError("The document handle you passed in is not valid.")
+	}
+
+	if id == "" {
+		return newError("You must specify a documentHandle when deleting a document.")
+	}
+
+    if rev, ok := documentHandle.(HasArangoRev); ok {
+        if options == nil {
+            options = DefaultDeleteOptions()
+        }
+
+        options.IfMatch = rev.Rev()
+    }
+
+	var query string
+
+	if options != nil {
+		if db.session.Header == nil {
+			db.session.Header = &http.Header{}
+			defer func() { db.session.Header = nil }()
+		}
+
+		if options.IfMatch != "" {
+			db.session.Header.Add("If-Match", options.IfMatch)
+			defer func() { db.session.Header.Del("If-Match") }()
+		}
+
+		query += fmt.Sprintf("?waitForSync=%v", options.WaitForSync)
+
+		if options.Rev != "" {
+			query += fmt.Sprintf("&rev=%s", options.Rev)
+		}
+
+		if options.Policy != "" {
+			query += fmt.Sprintf("&policy=%s", options.Policy)
+		}
+	}
+
+	var e ArangoError
+
+	endpoint := fmt.Sprintf("%s/document/%s%s", db.serverUrl.String(), id, query)
+
+	response, err := db.session.Delete(endpoint, &struct{}{}, &e)
+
+	if err != nil {
+		return newError(err.Error())
+	}
+
+	switch response.Status() {
+	case 200, 202:
 		return nil
 	default:
 		return e

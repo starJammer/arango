@@ -300,13 +300,14 @@ func TestDatabaseDocumentMethods(t *testing.T) {
     err = db.UpdateDocumentWithOptions( a.Id(), a, nil )
 
     if err != nil {
-        t.Fatal( "Did not expected update on document to fail.", err )
+        t.Fatal( "Did not expect update on document to fail.", err )
     }
 
     if a.Rev() == b.Rev() {
         t.Fatal( "The revision of the old document and the new document should not be the same.")
     }
-
+    
+    //Try to update with the older Revision as a condition. Should fail.
     upOpts := DefaultUpdateOptions()
     upOpts.Rev = b.Rev()
     err = db.UpdateDocumentWithOptions( b.Id(), &b, upOpts )
@@ -315,7 +316,45 @@ func TestDatabaseDocumentMethods(t *testing.T) {
         t.Fatal( "Expected an error because the revision of the document does not match the one in the database anymore.")
     }
 
-	//Clean up
-	db.DropCollection("testing")
+    var c = &struct{ 
+        DocumentImplementation
+        C string `json:"c"` 
+    }{ C : "new property" }
+
+    var d = &struct{
+        DocumentImplementation
+        Hi string
+        C string `json:"c"`}{}
+
+    //Test adding a property to a document
+    err = db.UpdateDocumentWithOptions( a.Id(), c, nil )
+
+    if err != nil {
+        t.Fatal( "Did not expect update on document to fail.", err )
+    }
+
+    err = db.DocumentWithOptions( a.Id(), d, nil )
+
+    if err != nil {
+        t.Fatal( "Did not expect fetching document to fail.", err )
+    }
+
+    if d.Hi != a.Hi || d.C != c.C {
+        t.Fatalf( "Structs d did not have the correct properties after an update. \n(a, %+v)\n(c, %+v)\n(d, %+v)", a, c, d )
+    }
+
+
+    //Test deleting a document
+    err = db.DeleteDocumentWithOptions( a.Id(), nil )
+
+    if err != nil {
+        t.Fatal( "Did not expect delete on document to fail.", err )
+    }
+
+    err = db.DocumentWithOptions( a.Id(), d, nil )
+
+    if err == nil {
+        t.Fatal( "Expected an error because document should not exist anymore.", err )
+    }
 
 }

@@ -119,3 +119,15 @@ func DefaultUpdateOptions() *UpdateOptions {
 		IfMatch:     "",
 	}
 }
+
+type DeleteOptions ReplaceOptions
+
+func DefaultDeleteOptions() *DeleteOptions {
+	return &DeleteOptions{
+		WaitForSync: false,
+		Rev:         "",
+		Policy:      "error",
+		IfMatch:     "",
+	}
+}
+
