@@ -259,11 +259,14 @@ func (db *Database) SaveDocumentWithOptions(document interface{}, options *SaveO
 
 	var e ArangoError
 
-	endpoint := fmt.Sprintf("%s/document?collection=%s&createCollection=%v&waitForSync=%v",
+	var values url.Values = make(url.Values)
+	values.Add("collection", options.Collection)
+	values.Add("createCollection", fmt.Sprintf("%v", options.CreateCollection))
+	values.Add("waitForSync", fmt.Sprintf("%v", options.WaitForSync))
+
+	endpoint := fmt.Sprintf("%s/document?%s",
 		db.serverUrl.String(),
-		options.Collection,
-		options.CreateCollection,
-		options.WaitForSync,
+		values.Encode(),
 	)
 
 	response, err := db.session.Post(endpoint, document, document, &e)
@@ -302,13 +305,13 @@ func (db *Database) DocumentWithOptions(documentHandle interface{}, document int
 		return newError("You must specify a documentHandle when fetching a document.")
 	}
 
-    if rev, ok := documentHandle.(HasArangoRev); ok {
-        if options == nil {
-            options = &GetOptions{}
-        }
+	if rev, ok := documentHandle.(HasArangoRev); ok {
+		if options == nil {
+			options = &GetOptions{}
+		}
 
-        options.IfMatch = rev.Rev()
-    }
+		options.IfMatch = rev.Rev()
+	}
 
 	if options != nil {
 		if db.session.Header == nil {
@@ -360,15 +363,15 @@ func (db *Database) ReplaceDocumentWithOptions(documentHandle, document interfac
 		return newError("You must specify a documentHandle when replacing a document.")
 	}
 
-    if rev, ok := documentHandle.(HasArangoRev); ok {
-        if options == nil {
-            options = DefaultReplaceOptions()
-        }
+	if rev, ok := documentHandle.(HasArangoRev); ok {
+		if options == nil {
+			options = DefaultReplaceOptions()
+		}
 
-        options.IfMatch = rev.Rev()
-    }
+		options.IfMatch = rev.Rev()
+	}
 
-	var query string
+	var query url.Values = make(url.Values)
 
 	if options != nil {
 		if db.session.Header == nil {
@@ -381,20 +384,20 @@ func (db *Database) ReplaceDocumentWithOptions(documentHandle, document interfac
 			defer func() { db.session.Header.Del("If-Match") }()
 		}
 
-		query += fmt.Sprintf("?waitForSync=%v", options.WaitForSync)
+		query.Add("waitForSync", fmt.Sprintf("%v", options.WaitForSync))
 
 		if options.Rev != "" {
-			query += fmt.Sprintf("&rev=%s", options.Rev)
+			query.Add("rev", options.Rev)
 		}
 
 		if options.Policy != "" {
-			query += fmt.Sprintf("&policy=%s", options.Policy)
+			query.Add("policy", options.Policy)
 		}
 	}
 
 	var e ArangoError
 
-	endpoint := fmt.Sprintf("%s/document/%s%s", db.serverUrl.String(), id, query)
+	endpoint := fmt.Sprintf("%s/document/%s?%s", db.serverUrl.String(), id, query.Encode())
 
 	response, err := db.session.Put(endpoint, document, document, &e)
 
@@ -428,15 +431,15 @@ func (db *Database) UpdateDocumentWithOptions(documentHandle, document interface
 		return newError("You must specify a documentHandle when updating a document.")
 	}
 
-    if rev, ok := documentHandle.(HasArangoRev); ok {
-        if options == nil {
-            options = DefaultUpdateOptions()
-        }
+	if rev, ok := documentHandle.(HasArangoRev); ok {
+		if options == nil {
+			options = DefaultUpdateOptions()
+		}
 
-        options.IfMatch = rev.Rev()
-    }
+		options.IfMatch = rev.Rev()
+	}
 
-	var query string
+	var query url.Values = make(url.Values)
 
 	if options != nil {
 		if db.session.Header == nil {
@@ -449,22 +452,22 @@ func (db *Database) UpdateDocumentWithOptions(documentHandle, document interface
 			defer func() { db.session.Header.Del("If-Match") }()
 		}
 
-		query += fmt.Sprintf("?waitForSync=%v", options.WaitForSync)
-		query += fmt.Sprintf("&keepNull=%v", options.KeepNull)
-		query += fmt.Sprintf("&mergeArrays=%v", options.MergeArrays)
+		query.Add("waitForSync", fmt.Sprintf("%v", options.WaitForSync))
+		query.Add("keepNull", fmt.Sprintf("%v", options.KeepNull))
+		query.Add("mergeArrays", fmt.Sprintf("%v", options.MergeArrays))
 
 		if options.Rev != "" {
-			query += fmt.Sprintf("&rev=%s", options.Rev)
+			query.Add("rev", options.Rev)
 		}
 
 		if options.Policy != "" {
-			query += fmt.Sprintf("&policy=%s", options.Policy)
+			query.Add("policy", options.Policy)
 		}
 	}
 
 	var e ArangoError
 
-	endpoint := fmt.Sprintf("%s/document/%s%s", db.serverUrl.String(), id, query)
+	endpoint := fmt.Sprintf("%s/document/%s?%s", db.serverUrl.String(), id, query.Encode())
 
 	response, err := db.session.Patch(endpoint, document, document, &e)
 
@@ -498,15 +501,15 @@ func (db *Database) DeleteDocumentWithOptions(documentHandle interface{}, option
 		return newError("You must specify a documentHandle when deleting a document.")
 	}
 
-    if rev, ok := documentHandle.(HasArangoRev); ok {
-        if options == nil {
-            options = DefaultDeleteOptions()
-        }
+	if rev, ok := documentHandle.(HasArangoRev); ok {
+		if options == nil {
+			options = DefaultDeleteOptions()
+		}
 
-        options.IfMatch = rev.Rev()
-    }
+		options.IfMatch = rev.Rev()
+	}
 
-	var query string
+	var query url.Values = make(url.Values)
 
 	if options != nil {
 		if db.session.Header == nil {
@@ -519,20 +522,359 @@ func (db *Database) DeleteDocumentWithOptions(documentHandle interface{}, option
 			defer func() { db.session.Header.Del("If-Match") }()
 		}
 
-		query += fmt.Sprintf("?waitForSync=%v", options.WaitForSync)
+		query.Add("waitForSync", fmt.Sprintf("%v", options.WaitForSync))
 
 		if options.Rev != "" {
-			query += fmt.Sprintf("&rev=%s", options.Rev)
+			query.Add("rev", options.Rev)
 		}
 
 		if options.Policy != "" {
-			query += fmt.Sprintf("&policy=%s", options.Policy)
+			query.Add("policy", options.Policy)
 		}
 	}
 
 	var e ArangoError
 
-	endpoint := fmt.Sprintf("%s/document/%s%s", db.serverUrl.String(), id, query)
+	endpoint := fmt.Sprintf("%s/document/%s?%s", db.serverUrl.String(), id, query.Encode())
+
+	response, err := db.session.Delete(endpoint, &struct{}{}, &e)
+
+	if err != nil {
+		return newError(err.Error())
+	}
+
+	switch response.Status() {
+	case 200, 202:
+		return nil
+	default:
+		return e
+	}
+
+	return nil
+}
+
+func (db *Database) SaveEdgeWithOptions(from, to, edge interface{}, options *SaveOptions) error {
+
+	if options == nil {
+		return newError("You must provide save options when using the database.SaveWithOptions method.")
+	}
+
+	if options.Collection == "" {
+		return newError("You must provide a collection name in the options when using database.SaveWithOptions.")
+	}
+
+	var fromId string
+	var toId string
+	var e ArangoError
+
+	switch f := from.(type) {
+	case string:
+		fromId = f
+	case HasArangoId:
+		fromId = f.Id()
+	case HasArangoKey:
+		fromId = options.Collection + "/" + f.Key()
+	default:
+		return newError("The \"from\" parameter must be a valid document handle. (It must be a string, or implement HasArangoId, or HasArangoKey)")
+	}
+
+	switch t := to.(type) {
+	case string:
+		toId = t
+	case HasArangoId:
+		toId = t.Id()
+	case HasArangoKey:
+		toId = options.Collection + "/" + t.Key()
+	default:
+		return newError("The \"to\" parameter must be a valid document handle. (It must be a string, or implement HasArangoId, or HasArangoKey)")
+	}
+
+	var values url.Values = make(url.Values)
+	values.Add("collection", options.Collection)
+	values.Add("createCollection", fmt.Sprintf("%v", options.CreateCollection))
+	values.Add("waitForSync", fmt.Sprintf("%v", options.WaitForSync))
+	values.Add("from", fromId)
+	values.Add("to", toId)
+
+	endpoint := fmt.Sprintf("%s/edge?%s",
+		db.serverUrl.String(),
+		values.Encode(),
+	)
+
+	fmt.Println(endpoint)
+
+	response, err := db.session.Post(endpoint, edge, edge, &e)
+
+	if err != nil {
+		return newError(err.Error())
+	}
+
+	switch response.Status() {
+	case 200, 201, 202:
+		if e, ok := edge.(ArangoEdge); ok {
+			e.SetFrom(fromId)
+			e.SetTo(toId)
+		}
+		return nil
+	default:
+		return e
+	}
+}
+
+//Edge retrieves an edge in the database
+func (db *Database) Edge(documentHandle, edge interface{}) error {
+	return db.EdgeWithOptions(documentHandle, edge, nil)
+}
+
+//EdgeWithOptions retrieves an edge in the database
+func (db *Database) EdgeWithOptions(documentHandle interface{}, edge interface{}, options *GetOptions) error {
+
+	var id string
+	switch dh := documentHandle.(type) {
+	case string:
+		id = dh
+	case HasArangoId:
+		id = dh.Id()
+	default:
+		return newError("The document handle you passed in is not valid.")
+	}
+
+	if id == "" {
+		return newError("You must specify a documentHandle when fetching an edge.")
+	}
+
+	if rev, ok := documentHandle.(HasArangoRev); ok {
+		if options == nil {
+			options = &GetOptions{}
+		}
+
+		options.IfMatch = rev.Rev()
+	}
+
+	if options != nil {
+		if db.session.Header == nil {
+			db.session.Header = &http.Header{}
+			defer func() { db.session.Header = nil }()
+		}
+
+		if options.IfNoneMatch != "" {
+			db.session.Header.Add("If-None-Match", options.IfNoneMatch)
+			defer func() { db.session.Header.Del("If-None-Match") }()
+		}
+		if options.IfMatch != "" {
+			db.session.Header.Add("If-Match", options.IfMatch)
+			defer func() { db.session.Header.Del("If-Match") }()
+		}
+	}
+
+	var e ArangoError
+
+	endpoint := fmt.Sprintf("%s/edge/%s", db.serverUrl.String(), id)
+
+	response, err := db.session.Get(endpoint, nil, edge, &e)
+
+	if err != nil {
+		return newError(err.Error())
+	}
+
+	switch response.Status() {
+	case 200, 304:
+		return nil
+	default:
+		return e
+	}
+}
+
+//ReplaceEdgeWithOptions
+func (db *Database) ReplaceEdgeWithOptions(documentHandle, edge interface{}, options *ReplaceOptions) error {
+
+	var id string
+	switch dh := documentHandle.(type) {
+	case string:
+		id = dh
+	case HasArangoId:
+		id = dh.Id()
+	default:
+		return newError("The document handle you passed in is not valid.")
+	}
+
+	if id == "" {
+		return newError("You must specify a documentHandle when replacing an edge.")
+	}
+
+	if rev, ok := documentHandle.(HasArangoRev); ok {
+		if options == nil {
+			options = DefaultReplaceOptions()
+		}
+
+		options.IfMatch = rev.Rev()
+	}
+
+	var query url.Values = make(url.Values)
+
+	if options != nil {
+		if db.session.Header == nil {
+			db.session.Header = &http.Header{}
+			defer func() { db.session.Header = nil }()
+		}
+
+		if options.IfMatch != "" {
+			db.session.Header.Add("If-Match", options.IfMatch)
+			defer func() { db.session.Header.Del("If-Match") }()
+		}
+
+		query.Add("waitForSync", fmt.Sprintf("%v", options.WaitForSync))
+
+		if options.Rev != "" {
+			query.Add("rev", options.Rev)
+		}
+
+		if options.Policy != "" {
+			query.Add("policy", options.Policy)
+		}
+	}
+
+	var e ArangoError
+
+	endpoint := fmt.Sprintf("%s/edge/%s?%s", db.serverUrl.String(), id, query.Encode())
+
+	response, err := db.session.Put(endpoint, edge, edge, &e)
+
+	if err != nil {
+		return newError(err.Error())
+	}
+
+	switch response.Status() {
+	case 200, 201, 202:
+		return nil
+	default:
+		return e
+	}
+
+	return nil
+}
+
+func (db *Database) UpdateEdgeWithOptions(documentHandle, edge interface{}, options *UpdateOptions) error {
+
+	var id string
+	switch dh := documentHandle.(type) {
+	case string:
+		id = dh
+	case HasArangoId:
+		id = dh.Id()
+	default:
+		return newError("The document handle you passed in is not valid.")
+	}
+
+	if id == "" {
+		return newError("You must specify a documentHandle when updating an edge.")
+	}
+
+	if rev, ok := documentHandle.(HasArangoRev); ok {
+		if options == nil {
+			options = DefaultUpdateOptions()
+		}
+
+		options.IfMatch = rev.Rev()
+	}
+
+	var query url.Values = make(url.Values)
+
+	if options != nil {
+		if db.session.Header == nil {
+			db.session.Header = &http.Header{}
+			defer func() { db.session.Header = nil }()
+		}
+
+		if options.IfMatch != "" {
+			db.session.Header.Add("If-Match", options.IfMatch)
+			defer func() { db.session.Header.Del("If-Match") }()
+		}
+
+		query.Add("waitForSync", fmt.Sprintf("%v", options.WaitForSync))
+		query.Add("keepNull", fmt.Sprintf("%v", options.KeepNull))
+		query.Add("mergeArrays", fmt.Sprintf("%v", options.MergeArrays))
+
+		if options.Rev != "" {
+			query.Add("rev", options.Rev)
+		}
+
+		if options.Policy != "" {
+			query.Add("policy", options.Policy)
+		}
+	}
+
+	var e ArangoError
+
+	endpoint := fmt.Sprintf("%s/edge/%s?%s", db.serverUrl.String(), id, query.Encode())
+
+	response, err := db.session.Patch(endpoint, edge, edge, &e)
+
+	if err != nil {
+		return newError(err.Error())
+	}
+
+	switch response.Status() {
+	case 201, 202:
+		return nil
+	default:
+		return e
+	}
+
+	return nil
+}
+
+func (db *Database) DeleteEdgeWithOptions(documentHandle interface{}, options *DeleteOptions) error {
+
+	var id string
+	switch dh := documentHandle.(type) {
+	case string:
+		id = dh
+	case HasArangoId:
+		id = dh.Id()
+	default:
+		return newError("The document handle you passed in is not valid.")
+	}
+
+	if id == "" {
+		return newError("You must specify a documentHandle when deleting an edge.")
+	}
+
+	if rev, ok := documentHandle.(HasArangoRev); ok {
+		if options == nil {
+			options = DefaultDeleteOptions()
+		}
+
+		options.IfMatch = rev.Rev()
+	}
+
+	var query url.Values = make(url.Values)
+
+	if options != nil {
+		if db.session.Header == nil {
+			db.session.Header = &http.Header{}
+			defer func() { db.session.Header = nil }()
+		}
+
+		if options.IfMatch != "" {
+			db.session.Header.Add("If-Match", options.IfMatch)
+			defer func() { db.session.Header.Del("If-Match") }()
+		}
+
+		query.Add("waitForSync", fmt.Sprintf("%v", options.WaitForSync))
+
+		if options.Rev != "" {
+			query.Add("rev", options.Rev)
+		}
+
+		if options.Policy != "" {
+			query.Add("policy", options.Policy)
+		}
+	}
+
+	var e ArangoError
+
+	endpoint := fmt.Sprintf("%s/edge/%s?%s", db.serverUrl.String(), id, query.Encode())
 
 	response, err := db.session.Delete(endpoint, &struct{}{}, &e)
 

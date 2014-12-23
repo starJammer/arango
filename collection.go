@@ -124,6 +124,9 @@ func (c *Collection) Status() int {
 
 //Type returns the type of the collection.
 //Either it is a document or an edge collection
+//The type is returned as one of the two constants:
+//  DOCUMENT_COLLECTION = 2
+//  EDGE_COLLECTION     = 3
 func (c *Collection) Type() int {
 	return c.json.Type
 }
@@ -230,6 +233,25 @@ func (c *Collection) SaveWithOptions(document interface{}, options *SaveOptions)
 	return c.db.SaveDocumentWithOptions(document, options)
 }
 
+//SaveEdge creates a new edge using pointing from "from" to "to".
+//Will probably result in an error if arango determines that this collection is not an edge collection.
+func (c *Collection) SaveEdge(from, to, edge interface{}) error {
+	return c.db.SaveEdgeWithOptions(from, to, edge, &SaveOptions{
+		Collection:       c.Name(),
+		CreateCollection: false,
+		WaitForSync:      false,
+	})
+}
+
+//SaveEdgeWithOptions creates a new edge using pointing from "from" to "to" and allows you to specify more options.
+//Will probably result in an error if arango determines that this collection is not an edge collection.
+func (c *Collection) SaveEdgeWithOptions(from, to, edge interface{}, options *SaveOptions) error {
+	options.Collection = c.Name()
+	options.CreateCollection = false
+
+	return c.db.SaveEdgeWithOptions(from, to, edge, options)
+}
+
 //Document will fetch the document associated with the documentHandle.
 //An error will be returned if anything goes wrong. Otherwise, document
 //be populated with the document values from arango. json.Unmarhshal
@@ -249,12 +271,12 @@ func (c *Collection) DocumentWithOptions(documentHandle interface{},
 	document interface{},
 	options *GetOptions) error {
 
-    documentHandle, ok := c.crossCollectionCheck( documentHandle )
-    if ok {
-        return c.db.DocumentWithOptions(documentHandle, document, options)
-    } else {
-        return newError(fmt.Sprintf("Cross collection requests are not permitted.", documentHandle, c.Name()))
-    }
+	documentHandle, ok := c.crossCollectionCheck(documentHandle)
+	if ok {
+		return c.db.DocumentWithOptions(documentHandle, document, options)
+	} else {
+		return newError(fmt.Sprintf("Cross collection requests are not permitted.", documentHandle, c.Name()))
+	}
 }
 
 func (c *Collection) Replace(documentHandle interface{},
@@ -265,12 +287,12 @@ func (c *Collection) Replace(documentHandle interface{},
 func (c *Collection) ReplaceWithOptions(documentHandle interface{},
 	document interface{},
 	options *ReplaceOptions) error {
-    documentHandle, ok := c.crossCollectionCheck( documentHandle )
-    if ok {
-        return c.db.ReplaceDocumentWithOptions(documentHandle, document, options)
-    } else {
-        return newError(fmt.Sprintf("Cross collection requests are not permitted.", documentHandle, c.Name()))
-    }
+	documentHandle, ok := c.crossCollectionCheck(documentHandle)
+	if ok {
+		return c.db.ReplaceDocumentWithOptions(documentHandle, document, options)
+	} else {
+		return newError(fmt.Sprintf("Cross collection requests are not permitted.", documentHandle, c.Name()))
+	}
 }
 
 func (c *Collection) Update(documentHandle interface{},
@@ -281,22 +303,22 @@ func (c *Collection) Update(documentHandle interface{},
 func (c *Collection) UpdateWithOptions(documentHandle interface{},
 	document interface{},
 	options *UpdateOptions) error {
-    documentHandle, ok := c.crossCollectionCheck( documentHandle )
-    if ok {
-        return c.db.UpdateDocumentWithOptions(documentHandle, document, options)
-    } else {
-        return newError(fmt.Sprintf("Cross collection requests are not permitted.", documentHandle, c.Name()))
-    }
+	documentHandle, ok := c.crossCollectionCheck(documentHandle)
+	if ok {
+		return c.db.UpdateDocumentWithOptions(documentHandle, document, options)
+	} else {
+		return newError(fmt.Sprintf("Cross collection requests are not permitted.", documentHandle, c.Name()))
+	}
 
 }
 
-func (c *Collection) crossCollectionCheck( documentHandle interface{} ) ( interface{}, bool ){
+func (c *Collection) crossCollectionCheck(documentHandle interface{}) (interface{}, bool) {
 
 	switch id := documentHandle.(type) {
 	case string:
 		idParts := strings.Split(id, "/")
 		if len(idParts) == 1 {
-			return c.Name()+"/"+idParts[0], true
+			return c.Name() + "/" + idParts[0], true
 		} else if len(idParts) == 2 {
 			if idParts[0] == c.Name() {
 				return id, true
@@ -309,10 +331,10 @@ func (c *Collection) crossCollectionCheck( documentHandle interface{} ) ( interf
 				return documentHandle, true
 			}
 		}
-    case HasArangoKey:
-        return c.Name()+"/"+id.Key(), true
+	case HasArangoKey:
+		return c.Name() + "/" + id.Key(), true
 	}
 
-    return "", false
+	return "", false
 
 }

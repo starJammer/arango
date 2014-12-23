@@ -1,12 +1,5 @@
 package arango
 
-//Document represents an Arango document.
-type FullDocument interface {
-	HasArangoId
-	HasArangoRev
-	HasArangoKey
-}
-
 type HasArangoId interface {
 	Id() string
 	SetId(string)
@@ -22,8 +15,16 @@ type HasArangoKey interface {
 	SetKey(string)
 }
 
+type ArangoEdge interface {
+	From() string
+	SetFrom(string)
+
+	To() string
+	SetTo(string)
+}
+
 //DocumentImplementation is an embeddable type that
-//you can use that already implements the Document interface.
+//you can use that already implements the Document interfaces.
 type DocumentImplementation struct {
 	ArangoId  string `json:"_id,omitempty"`
 	ArangoRev string `json:"_rev,omitempty"`
@@ -52,6 +53,30 @@ func (d *DocumentImplementation) Key() string {
 
 func (d *DocumentImplementation) SetKey(key string) {
 	d.ArangoKey = key
+}
+
+//EdgeImplementation is an embeddable type that
+//you can use that already implements the edge interfaces.
+type EdgeImplementation struct {
+	DocumentImplementation
+	ArangoFrom string `json:"_from,omitempty"`
+	ArangoTo   string `json:"_to,omitempty"`
+}
+
+func (e *EdgeImplementation) From() string {
+	return e.ArangoFrom
+}
+
+func (e *EdgeImplementation) SetFrom(from string) {
+	e.ArangoFrom = from
+}
+
+func (e *EdgeImplementation) To() string {
+	return e.ArangoTo
+}
+
+func (e *EdgeImplementation) SetTo(to string) {
+	e.ArangoTo = to
 }
 
 //GetOptions are used when fetching documents
@@ -130,4 +155,3 @@ func DefaultDeleteOptions() *DeleteOptions {
 		IfMatch:     "",
 	}
 }
-

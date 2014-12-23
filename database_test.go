@@ -358,3 +358,50 @@ func TestDatabaseDocumentMethods(t *testing.T) {
     }
 
 }
+
+func TestDatabaseEdgeMethods(t *testing.T) {
+
+	setup()
+	defer teardown()
+
+	db := db
+
+	type basic struct {
+		DocumentImplementation
+	}
+    
+    type basicEdge struct {
+        EdgeImplementation
+        Field string `json:"name"`
+    }
+
+    t1, err := db.CreateDocumentCollection( "thing1" )
+    t2, err := db.CreateDocumentCollection( "thing2" )
+    edges, err := db.CreateEdgeCollection( "edges" )
+
+    if err != nil {
+        t.Fatal( "Could not create the edge collection!")
+    }
+
+    var a = new(basic)
+    var b = new(basic)
+    var e = new(basicEdge)
+    e.Field = "testing for an edge"
+
+    t1.Save( a )
+    t2.Save( b )
+
+    err = edges.SaveEdge( a, b, e )
+
+    if err != nil {
+        t.Fatal( "An unexpected error occurred when saving the edge :", err )
+    }
+
+    if e.From() != a.Id() {
+        t.Fatalf( "Expected the FROM in the edge to be correct. (%s, %s)", e.From(), a.Id() )
+    }
+
+    if e.To() != b.Id() {
+        t.Fatalf( "Expected the TO in the edge to be correct. (%s, %s)", e.To(), b.Id() )
+    }
+}
