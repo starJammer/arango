@@ -261,8 +261,8 @@ func (db *Database) SaveDocumentWithOptions(document interface{}, options *SaveO
 
 	var values url.Values = make(url.Values)
 	values.Add("collection", options.Collection)
-	values.Add("createCollection", fmt.Sprintf("%v", options.CreateCollection))
-	values.Add("waitForSync", fmt.Sprintf("%v", options.WaitForSync))
+	values.Add("createCollection", fmt.Sprintf("%t", options.CreateCollection))
+	values.Add("waitForSync", fmt.Sprintf("%t", options.WaitForSync))
 
 	endpoint := fmt.Sprintf("%s/document?%s",
 		db.serverUrl.String(),
@@ -384,7 +384,7 @@ func (db *Database) ReplaceDocumentWithOptions(documentHandle, document interfac
 			defer func() { db.session.Header.Del("If-Match") }()
 		}
 
-		query.Add("waitForSync", fmt.Sprintf("%v", options.WaitForSync))
+		query.Add("waitForSync", fmt.Sprintf("%t", options.WaitForSync))
 
 		if options.Rev != "" {
 			query.Add("rev", options.Rev)
@@ -452,9 +452,9 @@ func (db *Database) UpdateDocumentWithOptions(documentHandle, document interface
 			defer func() { db.session.Header.Del("If-Match") }()
 		}
 
-		query.Add("waitForSync", fmt.Sprintf("%v", options.WaitForSync))
-		query.Add("keepNull", fmt.Sprintf("%v", options.KeepNull))
-		query.Add("mergeArrays", fmt.Sprintf("%v", options.MergeArrays))
+		query.Add("waitForSync", fmt.Sprintf("%t", options.WaitForSync))
+		query.Add("keepNull", fmt.Sprintf("%t", options.KeepNull))
+		query.Add("mergeArrays", fmt.Sprintf("%t", options.MergeArrays))
 
 		if options.Rev != "" {
 			query.Add("rev", options.Rev)
@@ -522,7 +522,7 @@ func (db *Database) DeleteDocumentWithOptions(documentHandle interface{}, option
 			defer func() { db.session.Header.Del("If-Match") }()
 		}
 
-		query.Add("waitForSync", fmt.Sprintf("%v", options.WaitForSync))
+		query.Add("waitForSync", fmt.Sprintf("%t", options.WaitForSync))
 
 		if options.Rev != "" {
 			query.Add("rev", options.Rev)
@@ -591,8 +591,8 @@ func (db *Database) SaveEdgeWithOptions(from, to, edge interface{}, options *Sav
 
 	var values url.Values = make(url.Values)
 	values.Add("collection", options.Collection)
-	values.Add("createCollection", fmt.Sprintf("%v", options.CreateCollection))
-	values.Add("waitForSync", fmt.Sprintf("%v", options.WaitForSync))
+	values.Add("createCollection", fmt.Sprintf("%t", options.CreateCollection))
+	values.Add("waitForSync", fmt.Sprintf("%t", options.WaitForSync))
 	values.Add("from", fromId)
 	values.Add("to", toId)
 
@@ -721,7 +721,7 @@ func (db *Database) ReplaceEdgeWithOptions(documentHandle, edge interface{}, opt
 			defer func() { db.session.Header.Del("If-Match") }()
 		}
 
-		query.Add("waitForSync", fmt.Sprintf("%v", options.WaitForSync))
+		query.Add("waitForSync", fmt.Sprintf("%t", options.WaitForSync))
 
 		if options.Rev != "" {
 			query.Add("rev", options.Rev)
@@ -789,9 +789,9 @@ func (db *Database) UpdateEdgeWithOptions(documentHandle, edge interface{}, opti
 			defer func() { db.session.Header.Del("If-Match") }()
 		}
 
-		query.Add("waitForSync", fmt.Sprintf("%v", options.WaitForSync))
-		query.Add("keepNull", fmt.Sprintf("%v", options.KeepNull))
-		query.Add("mergeArrays", fmt.Sprintf("%v", options.MergeArrays))
+		query.Add("waitForSync", fmt.Sprintf("%t", options.WaitForSync))
+		query.Add("keepNull", fmt.Sprintf("%t", options.KeepNull))
+		query.Add("mergeArrays", fmt.Sprintf("%t", options.MergeArrays))
 
 		if options.Rev != "" {
 			query.Add("rev", options.Rev)
@@ -859,7 +859,7 @@ func (db *Database) DeleteEdgeWithOptions(documentHandle interface{}, options *D
 			defer func() { db.session.Header.Del("If-Match") }()
 		}
 
-		query.Add("waitForSync", fmt.Sprintf("%v", options.WaitForSync))
+		query.Add("waitForSync", fmt.Sprintf("%t", options.WaitForSync))
 
 		if options.Rev != "" {
 			query.Add("rev", options.Rev)
