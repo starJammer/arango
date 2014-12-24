@@ -279,6 +279,23 @@ func (c *Collection) DocumentWithOptions(documentHandle interface{},
 	}
 }
 
+func (c *Collection) Edge(documentHandle interface{},
+	edge interface{}) error {
+	return c.EdgeWithOptions(documentHandle, edge, nil)
+}
+
+func (c *Collection) EdgeWithOptions(documentHandle interface{},
+	edge interface{},
+	options *GetOptions) error {
+
+	documentHandle, ok := c.crossCollectionCheck(documentHandle)
+	if ok {
+		return c.db.EdgeWithOptions(documentHandle, edge, options)
+	} else {
+		return newError(fmt.Sprintf("Cross collection requests are not permitted.", documentHandle, c.Name()))
+	}
+}
+
 func (c *Collection) Replace(documentHandle interface{},
 	document interface{}) error {
 	return c.ReplaceWithOptions(documentHandle, document, nil)
@@ -290,6 +307,22 @@ func (c *Collection) ReplaceWithOptions(documentHandle interface{},
 	documentHandle, ok := c.crossCollectionCheck(documentHandle)
 	if ok {
 		return c.db.ReplaceDocumentWithOptions(documentHandle, document, options)
+	} else {
+		return newError(fmt.Sprintf("Cross collection requests are not permitted.", documentHandle, c.Name()))
+	}
+}
+
+func (c *Collection) ReplaceEdge(documentHandle interface{},
+	edge interface{}) error {
+	return c.ReplaceEdgeWithOptions(documentHandle, edge, nil)
+}
+
+func (c *Collection) ReplaceEdgeWithOptions(documentHandle interface{},
+	edge interface{},
+	options *ReplaceOptions) error {
+	documentHandle, ok := c.crossCollectionCheck(documentHandle)
+	if ok {
+		return c.db.ReplaceEdgeWithOptions(documentHandle, edge, options)
 	} else {
 		return newError(fmt.Sprintf("Cross collection requests are not permitted.", documentHandle, c.Name()))
 	}
@@ -309,7 +342,23 @@ func (c *Collection) UpdateWithOptions(documentHandle interface{},
 	} else {
 		return newError(fmt.Sprintf("Cross collection requests are not permitted.", documentHandle, c.Name()))
 	}
+}
 
+
+func (c *Collection) UpdateEdge(documentHandle interface{},
+	edge interface{}) error {
+	return c.UpdateEdgeWithOptions(documentHandle, edge, nil)
+}
+
+func (c *Collection) UpdateEdgeWithOptions(documentHandle interface{},
+	edge interface{},
+	options *UpdateOptions) error {
+	documentHandle, ok := c.crossCollectionCheck(documentHandle)
+	if ok {
+		return c.db.UpdateDocumentWithOptions(documentHandle, edge, options)
+	} else {
+		return newError(fmt.Sprintf("Cross collection requests are not permitted.", documentHandle, c.Name()))
+	}
 }
 
 func (c *Collection) crossCollectionCheck(documentHandle interface{}) (interface{}, bool) {
@@ -336,5 +385,4 @@ func (c *Collection) crossCollectionCheck(documentHandle interface{}) (interface
 	}
 
 	return "", false
-
 }

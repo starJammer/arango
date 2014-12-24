@@ -601,8 +601,6 @@ func (db *Database) SaveEdgeWithOptions(from, to, edge interface{}, options *Sav
 		values.Encode(),
 	)
 
-	fmt.Println(endpoint)
-
 	response, err := db.session.Post(endpoint, edge, edge, &e)
 
 	if err != nil {

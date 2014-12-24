@@ -294,68 +294,68 @@ func TestDatabaseDocumentMethods(t *testing.T) {
 		t.Fatal("Expected property to be set back to \"hey\"")
 	}
 
-    //Test updating a document
-    var newString = "new string not there before."
-    a.Hi = newString
-    err = db.UpdateDocumentWithOptions( a.Id(), a, nil )
+	//Test updating a document
+	var newString = "new string not there before."
+	a.Hi = newString
+	err = db.UpdateDocumentWithOptions(a.Id(), a, nil)
 
-    if err != nil {
-        t.Fatal( "Did not expect update on document to fail.", err )
-    }
+	if err != nil {
+		t.Fatal("Did not expect update on document to fail.", err)
+	}
 
-    if a.Rev() == b.Rev() {
-        t.Fatal( "The revision of the old document and the new document should not be the same.")
-    }
-    
-    //Try to update with the older Revision as a condition. Should fail.
-    upOpts := DefaultUpdateOptions()
-    upOpts.Rev = b.Rev()
-    err = db.UpdateDocumentWithOptions( b.Id(), &b, upOpts )
+	if a.Rev() == b.Rev() {
+		t.Fatal("The revision of the old document and the new document should not be the same.")
+	}
 
-    if err == nil {
-        t.Fatal( "Expected an error because the revision of the document does not match the one in the database anymore.")
-    }
+	//Try to update with the older Revision as a condition. Should fail.
+	upOpts := DefaultUpdateOptions()
+	upOpts.Rev = b.Rev()
+	err = db.UpdateDocumentWithOptions(b.Id(), &b, upOpts)
 
-    var c = &struct{ 
-        DocumentImplementation
-        C string `json:"c"` 
-    }{ C : "new property" }
+	if err == nil {
+		t.Fatal("Expected an error because the revision of the document does not match the one in the database anymore.")
+	}
 
-    var d = &struct{
-        DocumentImplementation
-        Hi string
-        C string `json:"c"`}{}
+	var c = &struct {
+		DocumentImplementation
+		C string `json:"c"`
+	}{C: "new property"}
 
-    //Test adding a property to a document
-    err = db.UpdateDocumentWithOptions( a.Id(), c, nil )
+	var d = &struct {
+		DocumentImplementation
+		Hi string
+		C  string `json:"c"`
+	}{}
 
-    if err != nil {
-        t.Fatal( "Did not expect update on document to fail.", err )
-    }
+	//Test adding a property to a document
+	err = db.UpdateDocumentWithOptions(a.Id(), c, nil)
 
-    err = db.DocumentWithOptions( a.Id(), d, nil )
+	if err != nil {
+		t.Fatal("Did not expect update on document to fail.", err)
+	}
 
-    if err != nil {
-        t.Fatal( "Did not expect fetching document to fail.", err )
-    }
+	err = db.DocumentWithOptions(a.Id(), d, nil)
 
-    if d.Hi != a.Hi || d.C != c.C {
-        t.Fatalf( "Structs d did not have the correct properties after an update. \n(a, %+v)\n(c, %+v)\n(d, %+v)", a, c, d )
-    }
+	if err != nil {
+		t.Fatal("Did not expect fetching document to fail.", err)
+	}
 
+	if d.Hi != a.Hi || d.C != c.C {
+		t.Fatalf("Structs d did not have the correct properties after an update. \n(a, %+v)\n(c, %+v)\n(d, %+v)", a, c, d)
+	}
 
-    //Test deleting a document
-    err = db.DeleteDocumentWithOptions( a.Id(), nil )
+	//Test deleting a document
+	err = db.DeleteDocumentWithOptions(a.Id(), nil)
 
-    if err != nil {
-        t.Fatal( "Did not expect delete on document to fail.", err )
-    }
+	if err != nil {
+		t.Fatal("Did not expect delete on document to fail.", err)
+	}
 
-    err = db.DocumentWithOptions( a.Id(), d, nil )
+	err = db.DocumentWithOptions(a.Id(), d, nil)
 
-    if err == nil {
-        t.Fatal( "Expected an error because document should not exist anymore.", err )
-    }
+	if err == nil {
+		t.Fatal("Expected an error because document should not exist anymore.", err)
+	}
 
 }
 
@@ -369,39 +369,103 @@ func TestDatabaseEdgeMethods(t *testing.T) {
 	type basic struct {
 		DocumentImplementation
 	}
-    
-    type basicEdge struct {
-        EdgeImplementation
-        Field string `json:"name"`
-    }
 
-    t1, err := db.CreateDocumentCollection( "thing1" )
-    t2, err := db.CreateDocumentCollection( "thing2" )
-    edges, err := db.CreateEdgeCollection( "edges" )
+	type basicEdge struct {
+		EdgeImplementation
+		Field string `json:"name"`
+	}
 
-    if err != nil {
-        t.Fatal( "Could not create the edge collection!")
-    }
+	type basicEdge2 struct {
+		EdgeImplementation
+		Field2 string `json:"name2"`
+	}
 
-    var a = new(basic)
-    var b = new(basic)
-    var e = new(basicEdge)
-    e.Field = "testing for an edge"
+	t1, err := db.CreateDocumentCollection("thing1")
+	t2, err := db.CreateDocumentCollection("thing2")
+	edges, err := db.CreateEdgeCollection("edges")
 
-    t1.Save( a )
-    t2.Save( b )
+	if err != nil {
+		t.Fatal("Could not create the edge collection!")
+	}
 
-    err = edges.SaveEdge( a, b, e )
+	var a = new(basic)
+	var b = new(basic)
+	var e = new(basicEdge)
+	var f = new(basicEdge)
 
-    if err != nil {
-        t.Fatal( "An unexpected error occurred when saving the edge :", err )
-    }
+	e.Field = "testing for an edge"
 
-    if e.From() != a.Id() {
-        t.Fatalf( "Expected the FROM in the edge to be correct. (%s, %s)", e.From(), a.Id() )
-    }
+	t1.Save(a)
+	t2.Save(b)
 
-    if e.To() != b.Id() {
-        t.Fatalf( "Expected the TO in the edge to be correct. (%s, %s)", e.To(), b.Id() )
-    }
+	err = edges.SaveEdge(a, b, e)
+
+	if err != nil {
+		t.Fatal("An unexpected error occurred when saving the edge :", err)
+	}
+
+	if e.From() != a.Id() {
+		t.Fatalf("Expected the FROM in the edge to be correct. (%s, %s)", e.From(), a.Id())
+	}
+
+	if e.To() != b.Id() {
+		t.Fatalf("Expected the TO in the edge to be correct. (%s, %s)", e.To(), b.Id())
+	}
+
+	err = db.Edge(e, f)
+
+	if err != nil {
+		t.Fatal("Could not fetch the edge we just created.")
+	}
+
+	if f.Id() != e.Id() {
+		t.Fatal("The _id values of the edges are not equal.")
+	}
+
+	if f.Rev() != e.Rev() {
+		t.Fatal("The _rev values of the edges are not equal.")
+	}
+
+	if f.From() != e.From() {
+		t.Fatal("The FROM values of the edges are not equal.")
+	}
+
+	if f.To() != e.To() {
+		t.Fatal("The TO values of the edges are not equal.")
+	}
+
+	e.Field = "something new"
+
+	err = db.UpdateEdgeWithOptions(e.Id(), e, nil)
+
+	if err != nil {
+		t.Fatal("Could not update the edge.")
+	}
+
+	if e.Rev() == f.Rev() {
+		t.Fatal("Revision numbers should not be equal anymore.")
+	}
+
+	db.Edge(e.Id(), f)
+
+	if e.Field != f.Field {
+		t.Fatal("Fields should now be equal but they're not.")
+	}
+
+	var replacement = new(basicEdge2)
+	replacement.Field2 = "yeah"
+
+	err = db.ReplaceEdgeWithOptions(e.Id(), replacement, nil)
+
+	if err != nil {
+		t.Fatal("Replacing the edge did not work.")
+	}
+
+	e = new(basicEdge)
+	db.Edge(replacement.Id(), e)
+
+	if e.Field != "" {
+		t.Fatal("The old Field was not deleted during the replacement.")
+	}
+
 }
