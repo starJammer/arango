@@ -361,7 +361,7 @@ func (c *Collection) UpdateEdgeWithOptions(documentHandle interface{},
 }
 
 func (c *Collection) ByExample(example interface{}) (*Cursor, error) {
-	return c.db.ByExample(&ByExampleQuery{
+	return c.db.ByExampleQuery(&ByExampleQuery{
 		Collection: c.Name(),
 		Example:    example,
 	})
@@ -374,7 +374,7 @@ func (c *Collection) ByExampleQuery(query *ByExampleQuery) (*Cursor, error) {
 			Example:    struct{}{},
 		}
 	}
-	return c.db.ByExample(query)
+	return c.db.ByExampleQuery(query)
 }
 
 func (c *Collection) crossCollectionCheck(documentHandle interface{}) (interface{}, bool) {

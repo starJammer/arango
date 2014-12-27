@@ -21,7 +21,7 @@ func (db *Database) ByExampleQuery(query *ByExampleQuery) (*Cursor, error) {
 		db.serverUrl.String(),
 	)
 
-	response, err := db.session.Put(endpoint, query, c, &e)
+	response, err := db.session.Put(endpoint, query, &c.json, &e)
 
 	if err != nil {
 		return nil, newError(err.Error())
