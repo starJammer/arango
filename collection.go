@@ -344,7 +344,6 @@ func (c *Collection) UpdateWithOptions(documentHandle interface{},
 	}
 }
 
-
 func (c *Collection) UpdateEdge(documentHandle interface{},
 	edge interface{}) error {
 	return c.UpdateEdgeWithOptions(documentHandle, edge, nil)
@@ -359,6 +358,23 @@ func (c *Collection) UpdateEdgeWithOptions(documentHandle interface{},
 	} else {
 		return newError(fmt.Sprintf("Cross collection requests are not permitted.", documentHandle, c.Name()))
 	}
+}
+
+func (c *Collection) ByExample(example interface{}) (*Cursor, error) {
+	return c.db.ByExample(&ByExampleQuery{
+		Collection: c.Name(),
+		Example:    example,
+	})
+}
+
+func (c *Collection) ByExampleQuery(query *ByExampleQuery) (*Cursor, error) {
+	if query == nil {
+		query = &ByExampleQuery{
+			Collection: c.Name(),
+			Example:    struct{}{},
+		}
+	}
+	return c.db.ByExample(query)
 }
 
 func (c *Collection) crossCollectionCheck(documentHandle interface{}) (interface{}, bool) {
