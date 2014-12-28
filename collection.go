@@ -370,10 +370,10 @@ func (c *Collection) ByExample(example interface{}) (*Cursor, error) {
 func (c *Collection) ByExampleQuery(query *ByExampleQuery) (*Cursor, error) {
 	if query == nil {
 		query = &ByExampleQuery{
-			Collection: c.Name(),
-			Example:    struct{}{},
+			Example: &struct{}{},
 		}
 	}
+	query.Collection = c.Name()
 	return c.db.ByExampleQuery(query)
 }
 
