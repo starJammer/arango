@@ -105,13 +105,15 @@ func TestSearchByExample(t *testing.T) {
 		}
 		switch fetchDoc.Id() {
 		case doc1.Id():
-			if fetchDoc.Rev() != doc1.Rev() ||
+			if fetchDoc.Id() != doc1.Id() ||
+				fetchDoc.Rev() != doc1.Rev() ||
 				fetchDoc.Field != doc1.Field ||
 				fetchDoc.Obj.Field != doc1.Obj.Field {
 				t.Fatalf("The fetched doc and the original are not equal.")
 			}
 		case doc2.Id():
-			if fetchDoc.Rev() != doc2.Rev() ||
+			if fetchDoc.Id() != doc2.Id() ||
+				fetchDoc.Rev() != doc2.Rev() ||
 				fetchDoc.Field != doc2.Field ||
 				fetchDoc.Obj.Field != doc2.Obj.Field {
 				t.Fatalf("The fetched doc and the original are not equal.")
@@ -131,4 +133,27 @@ func TestSearchByExample(t *testing.T) {
 		t.Fatal("Expected error when calling a cursor with nothing left.")
 	}
 
+	fetchDoc = basic{}
+	err = d.FirstExample(&struct {
+		Field string `json:"field"`
+	}{Field: "bye"}, &fetchDoc)
+
+	if err != nil {
+		t.Fatal("Did not expect an error.", err)
+	}
+
+	if fetchDoc.Id() != doc2.Id() ||
+		fetchDoc.Rev() != doc2.Rev() ||
+		fetchDoc.Field != doc2.Field ||
+		fetchDoc.Obj.Field != doc2.Obj.Field {
+		t.Fatalf("The fetched doc and the original are not equal. (%+v, %+v)", fetchDoc, doc2)
+	}
+
+	err = d.FirstExample(&struct {
+		Field string `json:"field"`
+	}{Field: "not there"}, &fetchDoc)
+
+    if err == nil {
+        t.Fatal( "Expected an error but didn't get one.")
+    }
 }
