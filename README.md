@@ -18,12 +18,12 @@ Run `go get github.com/starJammer/arango`
 * Switch databases
 * Create, drop edge and document collections
 * Save, Update, Replace, Delete documents
+* Save, Update, Replace, Delete edges
 * Retrieve document via id only, NO searching by example or AQL queries yet.
+* Retrieve documents via simple by example queries
 
 ## Upcoming Features
 
-* Save, Update, Replace, Delete edges
-* Retrieve documents via simple by example queries
 
 ## Usage
 
