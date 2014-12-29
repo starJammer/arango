@@ -121,4 +121,39 @@ I'll add more usage notes about different ways to do things.
         //the revision will change since we updated it
         fmt.Println( testDoc.Rev() )
 
+        //Searching by example will return a cursor
+        cur, err := db.ByExampleQuery( &ByExampleQuery{
+            Collection : d.Name(),
+            BatchSize : 5, //if it is 0 then it is ignored and the arango server calculates this automatically
+            Limit : 5, //if 0 then it is ignored.
+            Skip : 5, //if 0 then it is ignored
+            Example : &struct{ MyField string }{ MyField : "some string"},
+        })
+
+        //OR you can simply call ByExample on the collection
+        cur, err := d.ByExample( &struct{ MyField string }{ MyField : "some string"} )
+
+        //OR call ByExampleQuery on the collection for more control like in the above call to the Database type
+        cur, err := d.ByExampleQuery(&ByExampleQuery{
+            BatchSize : 5,
+            Limite : 5,
+            Skip : 5,
+            Example : &struct{ MyField string }{ MyField : "some string"},
+            //Collection : "name" //No need for this. The collection will do it automatically
+        })
+
+        //Using a nil query will fetch everything in the collection
+        cur, err := d.ByExampleQuery( nil )
+
+        var fetchDoc = new(TestDocument)
+
+        //Iterate over the results
+        for cur.HasNext() {
+            err = cur.Next( fetchDoc )
+            if err != nil {
+                fmt.Println( "Another unexpected error.")
+            }
+            //fetchDoc is now populated with one of the resulting documents from arango.
+            //do what you want with it here.
+        }
     }
