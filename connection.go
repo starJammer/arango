@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	na "github.com/jmcvetta/napping"
+	"net"
 	"net/http"
 	"net/url"
 )
@@ -43,6 +44,16 @@ func ConnDb(host, databaseName string) (*Database, error) {
 	return ConnDbUserPassword(host, databaseName, user, password)
 }
 
+type unixDialer struct {
+	net.Dialer
+    path string
+}
+
+// overriding net.Dialer.Dial to force unix socket connection
+func (d *unixDialer) Dial(network, address string) (net.Conn, error) {
+	return d.Dialer.Dial("unix", d.path)
+}
+
 //ConnDbUserPassword returns a new database to an arango server.
 //This function will connect to the given database using the
 //given user name and password. This method is here for
@@ -66,47 +77,65 @@ func ConnDbUserPassword(host, databaseName, user, password string) (*Database, e
 		parsedUrl.User = url.UserPassword(user, password)
 	}
 
-	switch parsedUrl.Scheme {
-	case "http", "https":
-	case "unix":
-		return nil, newError( fmt.Sprintf("The %s scheme is not supported yet.", parsedUrl.Scheme) )
-	default:
-		return nil, newError( fmt.Sprintf("The %s scheme is not supported yet.", parsedUrl.Scheme) )
-	}
-
-	parsedUrl.Path = "/_db/" + databaseName + "/_api"
-
 	var db = new(Database)
 	db.json = new(databaseResult)
 	db.serverUrl = parsedUrl
+	db.originalUrl = &url.URL{
+        Scheme: parsedUrl.Scheme,
+        Opaque: parsedUrl.Opaque,
+        User: parsedUrl.User,
+        Host: parsedUrl.Host,
+        Path: parsedUrl.Path,
+        RawQuery: parsedUrl.RawQuery,
+        Fragment: parsedUrl.Fragment,
+    }
 	db.session = new(na.Session)
 
-	//Create transport that will allow
-	//bad ssl certs if we allow it
-	if AllowBadSslCerts {
+	switch parsedUrl.Scheme {
+	case "http", "https":
+
+		//Create transport that will allow
+		//bad ssl certs if we allow it
 		db.session.Client = &http.Client{
 			Transport: &http.Transport{
 				TLSClientConfig: &tls.Config{
-					InsecureSkipVerify: true,
+					InsecureSkipVerify: AllowBadSslCerts,
 				},
 			},
 		}
+	case "unix":
+		//Create transport that will allow
+		//bad ssl certs if we allow it
+		db.session.Client = &http.Client{
+			Transport: &http.Transport{
+                Dial: (&unixDialer{
+                        net.Dialer{},
+                        parsedUrl.Path,
+                    }).Dial,
+			},
+		}
+        parsedUrl.Scheme = "http"
+        parsedUrl.Host = "localhost-socket"
+	default:
+		return nil, newError(fmt.Sprintf("The %s scheme is not supported yet.", parsedUrl.Scheme))
 	}
+
+    parsedUrl.Path = "/_db/" + databaseName + "/_api"
 
 	var e ArangoError
 	response, err := db.session.Get(db.serverUrl.String()+"/database/current", nil, db.json, &e)
 
 	if err != nil {
-		return nil, newError( err.Error() )
+		return nil, newError(err.Error())
 	}
 
 	switch response.Status() {
-    case 200:
-        return db, nil
+	case 200:
+		return db, nil
 	case 401:
-		return nil, newError( "401 Unauthorized: check user password." )
-    default:
-        return nil, e
+		return nil, newError("401 Unauthorized: check user password.")
+	default:
+		return nil, e
 	}
 
 }

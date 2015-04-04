@@ -38,6 +38,20 @@ func TestSslConnectionSuccessful( t *testing.T ){
     }
 }
 
+func TestUnixSocketConnectionSuccessful( t *testing.T ){
+    _, err := Conn( "unix://root@/tmp/arangod.soc" )
+    if err != nil {
+        t.Fatal( err )
+    }
+}
+
+func TestBadPathUnixSocketConnectionSuccessful( t *testing.T ){
+    _, err := Conn( "unix://root@/tmp/fakearangod.soc" )
+    if err == nil {
+        t.Fatal( "Expected error when connectiong to unix:///tmp/fakearangod.soc" )
+    }
+}
+
 func TestConnectionFailure( t *testing.T ){
     _, err := Conn( "http://root@localhost:9999" )
 
@@ -68,6 +82,19 @@ func TestBadUser( t *testing.T ){
 
 func TestUsingDatabaseName( t *testing.T ){
     db, err := ConnDb( "http://root@localhost:8529", "_system" )
+
+    if err != nil {
+        t.Fatal( err )
+    }
+
+    if db.Name() != "_system" {
+        t.Error( "Did not get default database _system.")
+    }
+
+}
+
+func TestUsingDatabaseNameUnixConn( t *testing.T ){
+    db, err := ConnDb( "unix://root@/tmp/arangod.soc", "_system" )
 
     if err != nil {
         t.Fatal( err )

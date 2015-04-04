@@ -17,6 +17,7 @@ import (
 //methods instead.
 type Database struct {
 	json *databaseResult
+	originalUrl *url.URL
 	//holds addresses in form http://[username[:pass]@]localhost:8529
 	serverUrl *url.URL
 	session   *na.Session
@@ -69,7 +70,7 @@ func (db *Database) UseDatabase(databaseName string) (*Database, error) {
 	//create a new connection instead of re-using the old
 	//object because re-use will cause collections
 	//that used the old object to break
-	return ConnDb(db.serverUrl.String(), databaseName)
+	return ConnDb(db.originalUrl.String(), databaseName)
 }
 
 //Small internal type used while creating a database
