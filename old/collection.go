@@ -1,4 +1,4 @@
-package arango
+package old
 
 import (
 	"fmt"
@@ -377,11 +377,11 @@ func (c *Collection) ByExampleQuery(query *ByExampleQuery) (*Cursor, error) {
 	return c.db.ByExampleQuery(query)
 }
 
-func (c *Collection) FirstExample( example, document interface{} ) error{
-    return c.db.FirstExample( &FirstExampleQuery{
-        Collection : c.Name(),
-        Example : example,
-    }, document )
+func (c *Collection) FirstExample(example, document interface{}) error {
+	return c.db.FirstExample(&FirstExampleQuery{
+		Collection: c.Name(),
+		Example:    example,
+	}, document)
 }
 
 func (c *Collection) crossCollectionCheck(documentHandle interface{}) (interface{}, bool) {

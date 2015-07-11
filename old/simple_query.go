@@ -1,4 +1,4 @@
-package arango
+package old
 
 import (
 	"fmt"
@@ -42,10 +42,10 @@ func (db *Database) ByExampleQuery(query *ByExampleQuery) (*Cursor, error) {
 
 }
 
-type firstExampleResult struct{
-    Document interface{} `json:"document"`
-    Error bool `json:"error"`
-    Code int `json:"code"`
+type firstExampleResult struct {
+	Document interface{} `json:"document"`
+	Error    bool        `json:"error"`
+	Code     int         `json:"code"`
 }
 
 //FirstExample will call the PUT /_api/simple/first-example endpoint.
@@ -56,9 +56,9 @@ func (db *Database) FirstExample(query *FirstExampleQuery, document interface{})
 		db.serverUrl.String(),
 	)
 
-    var result = &firstExampleResult{
-        Document : document,
-    }
+	var result = &firstExampleResult{
+		Document: document,
+	}
 
 	response, err := db.session.Put(endpoint, query, result, &e)
 

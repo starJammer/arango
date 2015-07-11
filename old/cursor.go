@@ -1,4 +1,4 @@
-package arango
+package old
 
 import (
 	"encoding/json"
@@ -40,11 +40,11 @@ func (c Cursor) Code() int {
 
 //Next retrieves the next item from the cursor.
 //According to the arango docs :
-//Note that even if hasMore returns true, the next 
-//call might still return no documents. 
-//If, however, hasMore is false, then the cursor 
-//is exhausted. Once the hasMore attribute has a value 
-//of false, the client can stop. 
+//Note that even if hasMore returns true, the next
+//call might still return no documents.
+//If, however, hasMore is false, then the cursor
+//is exhausted. Once the hasMore attribute has a value
+//of false, the client can stop.
 func (c *Cursor) Next(next interface{}) error {
 
 	if len(c.json.Result) > 0 {

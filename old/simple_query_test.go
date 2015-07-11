@@ -1,4 +1,4 @@
-package arango
+package old
 
 import (
 	"testing"
@@ -153,7 +153,7 @@ func TestSearchByExample(t *testing.T) {
 		Field string `json:"field"`
 	}{Field: "not there"}, &fetchDoc)
 
-    if err == nil {
-        t.Fatal( "Expected an error but didn't get one.")
-    }
+	if err == nil {
+		t.Fatal("Expected an error but didn't get one.")
+	}
 }

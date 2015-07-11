@@ -1,141 +1,132 @@
 package arango
 
 import (
-	"crypto/tls"
 	"fmt"
-	na "github.com/jmcvetta/napping"
-	"net"
-	"net/http"
+	gr "github.com/starJammer/grestclient"
 	"net/url"
 )
 
-var (
-	//AllowBadSslCerts is to be used for development to allow self signed certs
-	//This will not affect connections that have already been made, only
-	//new connections that are created will be affected by this.
-	AllowBadSslCerts = false
-)
-
-//Conn returns a new database connection to an arango server.
-//This function will connect to the _system database
-//
-//The url can be in the following forms
-//http://[username[:password]@]host:port
-//or
-//https://...etc
-func Conn(host string) (*Database, error) {
-
-	//connect to this db by default with these creds
-	db := "_system"
-	user := ""
-	password := ""
-
-	return ConnDbUserPassword(host, db, user, password)
+type arangoError struct {
+	IsErrorf      bool   `json:`
+	Codef         int    `json:`
+	ErrorNumf     int    `json:`
+	ErrorMessagef string `json:`
+	Idf           string `json:`
+	Revf          string `json:`
+	Keyf          string `json:`
 }
 
-//ConnDb returns a new database connection to an arango server.
-//This function will connect to the given database using the
-//default root user with a blank password.
-func ConnDb(host, databaseName string) (*Database, error) {
-
-	user := ""
-	password := ""
-
-	return ConnDbUserPassword(host, databaseName, user, password)
+func (e *arangoError) IsError() bool {
+	return e.IsErrorf
 }
 
-type unixDialer struct {
-	net.Dialer
-    path string
+func (e *arangoError) Code() int {
+	return e.Codef
 }
 
-// overriding net.Dialer.Dial to force unix socket connection
-func (d *unixDialer) Dial(network, address string) (net.Conn, error) {
-	return d.Dialer.Dial("unix", d.path)
+func (e *arangoError) ErrorNum() int {
+	return e.ErrorNumf
 }
 
-//ConnDbUserPassword returns a new database to an arango server.
-//This function will connect to the given database using the
-//given user name and password. This method is here for
-//no reason really other than to separate the database
-//host from the user name. So you can make host=http://localhost:1324
-//and specify the user and password separately. Otherwise, you can
-//just use ConnDb and specify the user info in the host string
-func ConnDbUserPassword(host, databaseName, user, password string) (*Database, error) {
+func (e *arangoError) ErrorMessage() string {
+	return e.ErrorMessagef
+}
 
-	if databaseName == "" {
-		return nil, ArangoError{IsError: true, ErrorMessage: "A blank database was specified but that is not allowed."}
+func (e *arangoError) Error() string {
+	return fmt.Sprintf("Code: %d, ErrorNum: %d, Message: %s\n",
+		e.Code(),
+		e.ErrorNum(),
+		e.ErrorMessage())
+}
+
+func (e *arangoError) Id() string {
+	return e.Idf
+}
+func (e *arangoError) Rev() string {
+	return e.Revf
+}
+func (e *arangoError) Key() string {
+	return e.Keyf
+}
+
+func newArangoError(code int, message string) ArangoError {
+	return &arangoError{
+		IsErrorf:      true,
+		Codef:         code,
+		ErrorNumf:     code,
+		ErrorMessagef: message,
 	}
+}
 
-	parsedUrl, err := url.Parse(host)
+type connection struct {
+	client gr.Client
+}
+
+//NewConnection creates a new Connection that will
+//use the given url as the address for the arango
+//server. The url should not contain anything
+//other than basic authentication info and
+//the server's base url. If you include a path it will
+//be stripped/ignored.
+//Ex. http://localhost:8529.
+func NewConnection(serverUrl *url.URL) (Connection, error) {
+
+	c := &connection{}
+
+	client, err := gr.New(serverUrl)
+	if err != nil {
+		return nil, err
+	}
+	gr.SetupForJson(client)
+
+	c.client = client
+
+	return c, nil
+}
+
+type version struct {
+	S string            `json:"server"`
+	V string            `json:"version"`
+	D map[string]string `json:"details"`
+}
+
+func (v *version) Version() string {
+	return v.V
+}
+
+func (v *version) Server() string {
+	return v.S
+}
+
+func (v *version) Details() map[string]string {
+	return v.D
+}
+
+func (c *connection) Version(details bool) (Version, error) {
+	v := &version{}
+
+	errorResult := &arangoError{}
+
+	params := url.Values{}
+	if details {
+		params.Add("details", "true")
+	}
+	h, err := c.client.Get(
+		VersionEndPoint,
+		params,
+		v, errorResult)
 
 	if err != nil {
 		return nil, err
 	}
 
-	if user != "" {
-		parsedUrl.User = url.UserPassword(user, password)
+	if h.StatusCode != 200 {
+		return nil, newArangoError(h.StatusCode, "Unxpected error fetching version.")
 	}
 
-	var db = new(Database)
-	db.json = new(databaseResult)
-	db.serverUrl = parsedUrl
-	db.originalUrl = &url.URL{
-        Scheme: parsedUrl.Scheme,
-        Opaque: parsedUrl.Opaque,
-        User: parsedUrl.User,
-        Host: parsedUrl.Host,
-        Path: parsedUrl.Path,
-        RawQuery: parsedUrl.RawQuery,
-        Fragment: parsedUrl.Fragment,
-    }
-	db.session = new(na.Session)
+	return v, nil
+}
 
-	switch parsedUrl.Scheme {
-	case "http", "https":
-
-		//Create transport that will allow
-		//bad ssl certs if we allow it
-		db.session.Client = &http.Client{
-			Transport: &http.Transport{
-				TLSClientConfig: &tls.Config{
-					InsecureSkipVerify: AllowBadSslCerts,
-				},
-			},
-		}
-	case "unix":
-		//Create transport that will allow
-		//bad ssl certs if we allow it
-		db.session.Client = &http.Client{
-			Transport: &http.Transport{
-                Dial: (&unixDialer{
-                        net.Dialer{},
-                        parsedUrl.Path,
-                    }).Dial,
-			},
-		}
-        parsedUrl.Scheme = "http"
-        parsedUrl.Host = "localhost-socket"
-	default:
-		return nil, newError(fmt.Sprintf("The %s scheme is not supported yet.", parsedUrl.Scheme))
-	}
-
-    parsedUrl.Path = "/_db/" + databaseName + "/_api"
-
-	var e ArangoError
-	response, err := db.session.Get(db.serverUrl.String()+"/database/current", nil, db.json, &e)
-
-	if err != nil {
-		return nil, newError(err.Error())
-	}
-
-	switch response.Status() {
-	case 200:
-		return db, nil
-	case 401:
-		return nil, newError("401 Unauthorized: check user password.")
-	default:
-		return nil, e
-	}
-
+func (c *connection) GetGrestClient() gr.Client {
+	return c.client
 }

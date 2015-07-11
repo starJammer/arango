@@ -1,4 +1,4 @@
-package arango
+package old
 
 type HasArangoId interface {
 	Id() string

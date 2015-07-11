@@ -1,141 +1,66 @@
 package arango
 
 import (
-    "testing"
+	"net/url"
+	"testing"
 )
 
-func TestConnectionSuccessful( t *testing.T ){
-    db, err := Conn( "http://root@localhost:8529" )
-
-    if err != nil {
-        t.Fatal( err )
-    }
-
-    if db.Name() != "_system" {
-        t.Error( "Did not get default database _system.")
-    }
-
-    if !db.IsSystem() {
-        t.Error( "Expected _system to have IsSystem = true")
-    }
-
-    if db.Path() == "" {
-        t.Error( "Path of the database was not set. A path is expected." )
-    }
-
-    if db.Id() == "" {
-        t.Error( "Id of the database was not set. An id is expected." )
-    }
-
+func TestArangoErrorMeetsInterface(t *testing.T) {
+	var _ ArangoError = &arangoError{}
 }
 
-func TestSslConnectionSuccessful( t *testing.T ){
-    AllowBadSslCerts = true
-    _, err := Conn( "https://root@localhost:8530" )
-    AllowBadSslCerts = false
-    if err != nil {
-        t.Fatal( err )
-    }
+func TestConnectionMeetsInterface(t *testing.T) {
+	var err error
+	u, err := url.Parse("http://localhost:8529")
+	c, err := NewConnection(u)
+
+	if err != nil {
+		t.Fatal("Could not create a connection: ", err)
+	}
+
+	if _, ok := c.(HasGrestClient); !ok {
+		t.Fatal("Expected this implementation to use grestclient.")
+	}
 }
 
-func TestUnixSocketConnectionSuccessful( t *testing.T ){
-    _, err := Conn( "unix://root@/tmp/arangod.soc" )
-    if err != nil {
-        t.Fatal( err )
-    }
+func TestGetVersion(t *testing.T) {
+	var err error
+	u, err := url.Parse("http://root@localhost:8529")
+	c, err := NewConnection(u)
+
+	v, err := c.Version(false)
+
+	if err != nil {
+		t.Fatal("Could not get version: ", err)
+	}
+
+	if v.Server() != "arango" {
+		t.Fatal("Unexpected server value: ", v.Server())
+	}
+
+	if v.Version() != "2.6.2" {
+		t.Fatal("Unexpected version value: ", v.Version())
+	}
+
+	if v.Details() != nil || len(v.Details()) > 0 {
+		t.Fatal("Unexpected details when none were requested.", v.Details())
+	}
+
+	v, err = c.Version(true)
+
+	if v.Details() == nil || len(v.Details()) < 1 {
+		t.Fatal("Unable to fetch details.", v.Details())
+	}
 }
 
-func TestBadPathUnixSocketConnectionSuccessful( t *testing.T ){
-    _, err := Conn( "unix://root@/tmp/fakearangod.soc" )
-    if err == nil {
-        t.Fatal( "Expected error when connectiong to unix:///tmp/fakearangod.soc" )
-    }
-}
+func TestGetDatabase(t *testing.T) {
+	u, _ := url.Parse("http://root@localhost:8529")
+	c, _ := NewConnection(u)
 
-func TestConnectionFailure( t *testing.T ){
-    _, err := Conn( "http://root@localhost:9999" )
+	var db Database = c.Database("_system")
 
-    if err == nil {
-        t.Fatal( "Expected error when connectiong to http://localhost:9999" )
-    }
-
-    if _, ok := err.(ArangoError); !ok {
-        t.Fatalf( "Expected ArangoError but got something else (%T, %v)", err, err )
-    }
-}
-
-func TestBadUser( t *testing.T ){
-    db, err := Conn( "http://roo@localhost:8529" )
-
-    if err == nil {
-        t.Fatal( "Expected error when connectiong to http://localhost:8529" )
-    }
-
-    if _, ok := err.(ArangoError); !ok {
-        t.Fatalf( "Expected ArangoError but got something else (%T, %v)", err, err )
-    }
-
-    if db != nil {
-        t.Fatalf( "Expected database to be nil but got something back : (%T, %v)", db, db )
-    }
-}
-
-func TestUsingDatabaseName( t *testing.T ){
-    db, err := ConnDb( "http://root@localhost:8529", "_system" )
-
-    if err != nil {
-        t.Fatal( err )
-    }
-
-    if db.Name() != "_system" {
-        t.Error( "Did not get default database _system.")
-    }
-
-}
-
-func TestUsingDatabaseNameUnixConn( t *testing.T ){
-    db, err := ConnDb( "unix://root@/tmp/arangod.soc", "_system" )
-
-    if err != nil {
-        t.Fatal( err )
-    }
-
-    if db.Name() != "_system" {
-        t.Error( "Did not get default database _system.")
-    }
-
-}
-
-func TestUsingDatabaseNameAndUserCreds( t *testing.T ){
-    db, err := ConnDbUserPassword( "http://localhost:8529", "_system", "root", "" )
-
-    if err != nil {
-        t.Fatal( err )
-    }
-
-    if db == nil {
-        t.Fatal( "Expected to get a database back but got nil." )
-    }
-
-    if db.Name() != "_system" {
-        t.Error( "Did not get default database _system.")
-    }
-
-}
-
-func TestFailUsingDatabaseNameAndUserCreds( t *testing.T ){
-    db, err := ConnDbUserPassword( "http://localhost:8529", "_system", "roo", "" )
-
-    if err == nil {
-        t.Fatal( "Expected error when connectiong to http://localhost:8529" )
-    }
-
-    if _, ok := err.(ArangoError); !ok {
-        t.Fatalf( "Expected ArangoError but got something else (%T, %v)", err, err )
-    }
-
-    if db != nil {
-        t.Fatalf( "Expected database to be nil but got something back : (%T, %v)", db, db )
-    }
+	if db.Name() != "_system" {
+		t.Fatal("Database name incorrect: ", db.Name())
+	}
 
 }
