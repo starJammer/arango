@@ -5,25 +5,6 @@ import (
 	"strings"
 )
 
-//Collection types
-//
-//See arango manual or rest api docs for what these might mean
-const (
-	DOCUMENT_COLLECTION = 2
-	EDGE_COLLECTION     = 3
-)
-
-//Collection statuses
-//
-//See arango manual or rest api docs for what these might mean
-const (
-	NEW_BORN_STATUS       = 1
-	UNLOADED_STATUS       = 2
-	LOADED_STATUS         = 3
-	BEING_UNLOADED_STATUS = 4
-	DELETED_STATUS        = 5
-)
-
 //Collection represents a collection from arangodb
 //Don't instantiate this yourself. Use db.Collection
 //to get the one you want.

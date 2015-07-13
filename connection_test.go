@@ -52,15 +52,3 @@ func TestGetVersion(t *testing.T) {
 		t.Fatal("Unable to fetch details.", v.Details())
 	}
 }
-
-func TestGetDatabase(t *testing.T) {
-	u, _ := url.Parse("http://root@localhost:8529")
-	c, _ := NewConnection(u)
-
-	var db Database = c.Database("_system")
-
-	if db.Name() != "_system" {
-		t.Fatal("Database name incorrect: ", db.Name())
-	}
-
-}

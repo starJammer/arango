@@ -7,13 +7,13 @@ import (
 )
 
 type arangoError struct {
-	IsErrorf      bool   `json:`
-	Codef         int    `json:`
-	ErrorNumf     int    `json:`
-	ErrorMessagef string `json:`
-	Idf           string `json:`
-	Revf          string `json:`
-	Keyf          string `json:`
+	IsErrorf      bool   `json:"error"`
+	Codef         int    `json:"code"`
+	ErrorNumf     int    `json:"errorNum"`
+	ErrorMessagef string `json:"errorMessage"`
+	Idf           string `json:"_id,omitempty"`
+	Revf          string `json:"_rev,omitempty"`
+	Keyf          string `json:"_key,omitempty"`
 }
 
 func (e *arangoError) IsError() bool {

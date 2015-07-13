@@ -4,6 +4,21 @@ import (
 	gr "github.com/starJammer/grestclient"
 )
 
+//Collection types
+const (
+	DOCUMENT_COLLECTION = 2
+	EDGE_COLLECTION     = 3
+)
+
+//Collection statuses
+const (
+	NEW_BORN_STATUS       = 1
+	UNLOADED_STATUS       = 2
+	LOADED_STATUS         = 3
+	BEING_UNLOADED_STATUS = 4
+	DELETED_STATUS        = 5
+)
+
 const (
 	Databasepath = "/_db/%s"
 
@@ -108,7 +123,7 @@ type Database interface {
 	GetCurrent() (CurrentResult, error)
 
 	//Post -> POST on /_api/database
-	Post() error
+	Post(*PostDatabaseOptions) error
 
 	//Delete -> DELETE on /_api/database/{name}
 	Delete(name string) error
@@ -119,11 +134,11 @@ type Database interface {
 	PostCollection()
 }
 
-type CurrentResult struct {
-	Name     string `json:name`
-	Id       string `json:id`
-	Path     string `json:path`
-	IsSystem bool   `json:isSystem`
+type CurrentResult interface {
+	Name() string
+	Id() string
+	Path() string
+	IsSystem() bool
 }
 
 type Collection interface {
@@ -141,4 +156,16 @@ type Collection interface {
 }
 
 type Document interface {
+}
+
+type PostDatabaseOptions struct {
+	Name  string `json:"name"`
+	Users []User `json:"users,omitempty"`
+}
+
+type User struct {
+	Username string      `json:"username"`
+	Passwd   string      `json:"passwd"`
+	Active   bool        `json:"active"`
+	Extra    interface{} `json:"extra"`
 }
