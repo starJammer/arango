@@ -316,6 +316,113 @@ func (c *collection) GetChecksum(withRevisions bool, withData bool) (CollectionD
 	return descriptor, nil
 }
 
+func (c *collection) PutLoad(includeCount bool) (CollectionDescriptor, error) {
+
+	var descriptor = &collectionDescriptor{}
+	var errorResult = &arangoError{}
+
+	h, err := c.client.Put("/load",
+		nil,
+		map[string]string{"count": fmt.Sprintf("%t", includeCount)},
+		descriptor, errorResult)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if h.StatusCode != 200 {
+		return nil, errorResult
+	}
+
+	return descriptor, nil
+}
+
+func (c *collection) PutUnload() (CollectionDescriptor, error) {
+
+	var descriptor = &collectionDescriptor{}
+	var errorResult = &arangoError{}
+
+	h, err := c.client.Put("/unload",
+		nil,
+		nil,
+		descriptor, errorResult)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if h.StatusCode != 200 {
+		return nil, errorResult
+	}
+
+	return descriptor, nil
+}
+
+func (c *collection) PutTruncate() (CollectionDescriptor, error) {
+
+	var descriptor = &collectionDescriptor{}
+	var errorResult = &arangoError{}
+
+	h, err := c.client.Put("/truncate",
+		nil,
+		nil,
+		descriptor, errorResult)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if h.StatusCode != 200 {
+		return nil, errorResult
+	}
+
+	return descriptor, nil
+}
+
+func (c *collection) PutProperties(properties *CollectionPropertyChange) (CollectionDescriptor, error) {
+
+	var descriptor = &collectionDescriptor{}
+	var errorResult = &arangoError{}
+
+	h, err := c.client.Put("/properties",
+		nil,
+		properties,
+		descriptor, errorResult)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if h.StatusCode != 200 {
+		return nil, errorResult
+	}
+
+	return descriptor, nil
+}
+
+func (c *collection) PutRename(name string) (CollectionDescriptor, error) {
+
+	var descriptor = &collectionDescriptor{}
+	var errorResult = &arangoError{}
+
+	h, err := c.client.Put("/rename",
+		nil,
+		map[string]string{"name": name},
+		descriptor, errorResult)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if h.StatusCode != 200 {
+		return nil, errorResult
+	}
+
+	c.client.BaseUrl().Path = fmt.Sprintf(DatabasePath, c.Database().Name()) + fmt.Sprintf(CollectionPath, name)
+	c.name = name
+	return descriptor, nil
+}
+
 func (c *collection) Delete() error {
 
 	var errorResult = &arangoError{}

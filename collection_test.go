@@ -224,3 +224,164 @@ func TestGetCollectionChecksum(t *testing.T) {
 	}
 
 }
+
+func TestPutLoad(t *testing.T) {
+	u, _ := url.Parse("http://root@localhost:8529")
+	c, _ := NewConnection(u)
+	var db Database = c.Database("_system")
+
+	opts := DefaultCollectionOptions()
+	opts.Name = "test"
+
+	err := db.PostCollection(opts)
+
+	if err != nil {
+		t.Fatal("Error creating collection: ", err)
+	}
+	defer db.Collection(opts.Name).Delete()
+	col := db.Collection(opts.Name)
+
+	descriptor, err := col.PutLoad(false)
+
+	if err != nil {
+		t.Fatal("Unexpected error when getting collection descriptor: ", err)
+	}
+
+	if descriptor.Status() != LOADED_STATUS {
+		t.Fatal("Expected collection to be in loaded state.")
+	}
+
+}
+
+func TestPutUnload(t *testing.T) {
+	u, _ := url.Parse("http://root@localhost:8529")
+	c, _ := NewConnection(u)
+	var db Database = c.Database("_system")
+
+	opts := DefaultCollectionOptions()
+	opts.Name = "test"
+
+	err := db.PostCollection(opts)
+
+	if err != nil {
+		t.Fatal("Error creating collection: ", err)
+	}
+	defer db.Collection(opts.Name).Delete()
+	col := db.Collection(opts.Name)
+
+	descriptor, err := col.PutUnload()
+
+	if err != nil {
+		t.Fatal("Unexpected error when getting collection descriptor: ", err)
+	}
+
+	if descriptor.Status() == LOADED_STATUS {
+		t.Fatal("Expected collection to not be in loaded state: ", descriptor.Status())
+	}
+}
+
+func TestPutTruncate(t *testing.T) {
+	u, _ := url.Parse("http://root@localhost:8529")
+	c, _ := NewConnection(u)
+	var db Database = c.Database("_system")
+
+	opts := DefaultCollectionOptions()
+	opts.Name = "test"
+
+	err := db.PostCollection(opts)
+
+	if err != nil {
+		t.Fatal("Error creating collection: ", err)
+	}
+	defer db.Collection(opts.Name).Delete()
+	col := db.Collection(opts.Name)
+
+	_, err = col.PutTruncate()
+
+	if err != nil {
+		t.Fatal("Unexpected error when getting collection descriptor: ", err)
+	}
+
+}
+
+func TestPutProperties(t *testing.T) {
+	u, _ := url.Parse("http://root@localhost:8529")
+	c, _ := NewConnection(u)
+	var db Database = c.Database("_system")
+
+	opts := DefaultCollectionOptions()
+	opts.Name = "test"
+	opts.WaitForSync = true
+
+	err := db.PostCollection(opts)
+
+	if err != nil {
+		t.Fatal("Error creating collection: ", err)
+	}
+	defer db.Collection(opts.Name).Delete()
+	col := db.Collection(opts.Name)
+
+	descriptor, err := col.GetProperties()
+	if err != nil {
+		t.Fatal("Unexpected error when getting collection descriptor: ", err)
+	}
+
+	if descriptor.WaitForSync() != true {
+		t.Fatal("Expected waitforsync to be true upon creation.")
+	}
+
+	descriptor, err = col.PutProperties(&CollectionPropertyChange{WaitForSync: false})
+
+	if err != nil {
+		t.Fatal("Unexpected error when getting collection descriptor: ", err)
+	}
+
+	descriptor, err = col.PutProperties(&CollectionPropertyChange{WaitForSync: false})
+
+	if descriptor.WaitForSync() != false {
+		t.Fatal("Expected waitforSync to be false now.")
+	}
+}
+
+func TestPutRename(t *testing.T) {
+	u, _ := url.Parse("http://root@localhost:8529")
+	c, _ := NewConnection(u)
+	var db Database = c.Database("_system")
+
+	opts := DefaultCollectionOptions()
+	opts.Name = "test"
+
+	err := db.PostCollection(opts)
+	if err != nil {
+		t.Fatal("Error creating collection: ", err)
+	}
+	col := db.Collection(opts.Name)
+
+	descriptor, err := col.PutRename("newtestname")
+
+	if err != nil {
+		t.Fatal("Error during rename: ", err)
+	}
+
+	if descriptor.Name() != "newtestname" {
+		t.Fatal("Collection rename failed: ", descriptor.Name())
+	}
+
+	if col.Name() != "newtestname" {
+		t.Fatal("Collection rename failed: ", descriptor.Name())
+	}
+
+	old := db.Collection(opts.Name)
+
+	_, err = old.GetProperties()
+
+	if err == nil {
+		t.Fatal("Expected an error when getting properties of old collection.")
+	}
+
+	err = col.Delete()
+
+	if err != nil {
+		t.Fatal("Error deleting newly renamed collection: ", err)
+	}
+}

@@ -21,10 +21,11 @@ const (
 	LOADED_STATUS         CollectionStatus = 3
 	BEING_UNLOADED_STATUS CollectionStatus = 4
 	DELETED_STATUS        CollectionStatus = 5
+	LOADING_STATUS        CollectionStatus = 6
 )
 
 const (
-	Databasepath   = "/_db/%s"
+	DatabasePath   = "/_db/%s"
 	CollectionPath = "/_api/collection/%s"
 
 	AqlfunctionEndPoint = "/_api/aqlfunction"
@@ -138,6 +139,11 @@ type Database interface {
 
 	//PostCollection -> POST on /_api/collection
 	PostCollection(options *CollectionCreationOptions) error
+}
+
+type CollectionPropertyChange struct {
+	WaitForSync bool `json:"waitForSync"`
+	JournalSize int  `json:"journalSize,omitempty"`
 }
 
 //CollectionCreationOptions represent options when creating a new collection.
@@ -303,6 +309,21 @@ type Collection interface {
 
 	//GetChecksum -> GET on /_api/collection/{name}/checksum
 	GetChecksum(withRevisions bool, withData bool) (CollectionDescriptor, error)
+
+	//PutLoad -> PUT on /_api/collection/{name}/load
+	PutLoad(includeCount bool) (CollectionDescriptor, error)
+
+	//PutUnload -> PUT on /_api/collection/{name}/unload
+	PutUnload() (CollectionDescriptor, error)
+
+	//PutTruncate -> PUT on /_api/collection/{name}/truncate
+	PutTruncate() (CollectionDescriptor, error)
+
+	//PutProperties -> PUT on /_api/collection/{name}/properties
+	PutProperties(properties *CollectionPropertyChange) (CollectionDescriptor, error)
+
+	//PutRename -> PUT on /_api/collection/{name}/rename
+	PutRename(name string) (CollectionDescriptor, error)
 
 	//Delete -> DELETE on /_api/collection/{name}
 	Delete() error

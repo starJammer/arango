@@ -132,7 +132,7 @@ func (c *connection) Database(name string) Database {
 	db.connection = c
 	db.name = name
 	db.client = c.client.Clone()
-	db.client.BaseUrl().Path += fmt.Sprintf(Databasepath, name)
+	db.client.BaseUrl().Path += fmt.Sprintf(DatabasePath, name)
 
 	return db
 }
