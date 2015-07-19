@@ -3,17 +3,8 @@ package arango
 import (
 	"fmt"
 	gr "github.com/starJammer/grestclient"
+	"net/url"
 )
-
-func (c *connection) Database(name string) Database {
-	db := &database{}
-	db.connection = c
-	db.name = name
-	db.client = c.client.Clone()
-	db.client.BaseUrl().Path += fmt.Sprintf(Databasepath, name)
-
-	return db
-}
 
 type database struct {
 	connection Connection
@@ -26,7 +17,13 @@ func (d *database) Name() string {
 }
 
 func (d *database) Collection(name string) Collection {
-	return nil
+	cl := &collection{}
+	cl.name = name
+	cl.client = d.client.Clone()
+	cl.client.BaseUrl().Path += fmt.Sprintf(CollectionPath, name)
+	cl.database = d
+
+	return cl
 }
 
 func (d *database) Connection() Connection {
@@ -154,10 +151,80 @@ func (d *database) Delete(name string) error {
 	return nil
 }
 
-func (d *database) GetCollections() {
-
+type collectionDescriptor struct {
+	Idf       string           `json:"id"`
+	Namef     string           `json:"name"`
+	IsSystemf bool             `json:"isSystem"`
+	Statusf   CollectionStatus `json:"status"`
+	Typef     CollectionType   `json:"type"`
 }
 
-func (d *database) PostCollection() {
+func (c *collectionDescriptor) Id() string {
+	return c.Idf
+}
 
+func (c *collectionDescriptor) Name() string {
+	return c.Namef
+}
+
+func (c *collectionDescriptor) IsSystem() bool {
+	return c.IsSystemf
+}
+
+func (c *collectionDescriptor) Status() CollectionStatus {
+	return c.Statusf
+}
+
+func (c *collectionDescriptor) Type() CollectionType {
+	return c.Typef
+}
+
+func (d *database) GetCollections(excludeSystemCollections bool) (CollectionDescriptors, error) {
+
+	var result struct {
+		Collections []*collectionDescriptor `json:"collections"`
+	}
+
+	var errorResult = &arangoError{}
+
+	h, err := d.client.Get(
+		CollectionEndPoint,
+		url.Values{"excludeSystem": []string{fmt.Sprintf("%t", excludeSystemCollections)}},
+		&result, errorResult)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if h.StatusCode != 200 {
+		return nil, errorResult
+	}
+
+	var collections []CollectionDescriptor = make([]CollectionDescriptor, len(result.Collections))
+	for i, d := range result.Collections {
+		collections[i] = d
+	}
+
+	return collections, nil
+}
+
+func (d *database) PostCollection(options *CollectionCreationOptions) error {
+
+	var errorResult = &arangoError{}
+
+	h, err := d.client.Post(
+		CollectionEndPoint,
+		nil,
+		options,
+		nil, errorResult)
+
+	if err != nil {
+		return err
+	}
+
+	if h.StatusCode != 200 {
+		return errorResult
+	}
+
+	return nil
 }

@@ -4,23 +4,28 @@ import (
 	gr "github.com/starJammer/grestclient"
 )
 
+type CollectionType int
+
 //Collection types
 const (
-	DOCUMENT_COLLECTION = 2
-	EDGE_COLLECTION     = 3
+	DOCUMENT_COLLECTION CollectionType = 2
+	EDGE_COLLECTION     CollectionType = 3
 )
+
+type CollectionStatus int
 
 //Collection statuses
 const (
-	NEW_BORN_STATUS       = 1
-	UNLOADED_STATUS       = 2
-	LOADED_STATUS         = 3
-	BEING_UNLOADED_STATUS = 4
-	DELETED_STATUS        = 5
+	NEW_BORN_STATUS       CollectionStatus = 1
+	UNLOADED_STATUS       CollectionStatus = 2
+	LOADED_STATUS         CollectionStatus = 3
+	BEING_UNLOADED_STATUS CollectionStatus = 4
+	DELETED_STATUS        CollectionStatus = 5
 )
 
 const (
-	Databasepath = "/_db/%s"
+	Databasepath   = "/_db/%s"
+	CollectionPath = "/_api/collection/%s"
 
 	AqlfunctionEndPoint = "/_api/aqlfunction"
 	BatchEndPoint       = "/_api/batch"
@@ -129,14 +134,69 @@ type Database interface {
 	Delete(name string) error
 
 	//GetCollections -> GET on  /_api/collection
-	GetCollections()
+	GetCollections(excludeSystemCollections bool) (CollectionDescriptors, error)
+
 	//PostCollection -> POST on /_api/collection
-	PostCollection()
+	PostCollection(options *CollectionCreationOptions) error
+}
+
+//CollectionCreationOptions represent options when creating a new collection.
+//Look at the documentation for the POST to /_api/collection
+//for information on the defaults, optionals, and required
+//attributes.
+type CollectionCreationOptions struct {
+	Name           string         `json:"name"`
+	WaitForSync    bool           `json:"waitForSync,omitempty"`
+	DoCompact      bool           `json:"doCompact"`
+	JournalSize    int            `json:"journalSize,omitempty"`
+	IsSystem       bool           `json:"isSystem,omitempty"`
+	IsVolatile     bool           `json:"isVolatile,omitempty"`
+	KeyOptions     *KeyOptions    `json:"keyOptions,omitempty"`
+	Type           CollectionType `json:"type,omitempty"`
+	NumberOfShards int            `json:"numberOfShards,omitempty"`
+	ShardKeys      []string       `json:"shardKeys,omitempty"`
+}
+
+//KeyOptions stores information about how a collection's key is configured.
+//It is used during collection creation to specify how the new collection's
+//key should be setup.
+type KeyOptions struct {
+	Type          string `json:"type,omitempty"`
+	AllowUserKeys bool   `json:"allowUserKeys"`
+	Increment     int    `json:"increment"`
+	Offset        int    `json:"offset"`
+}
+
+//DefaultCollectionOptions creates a default set of collection options
+func DefaultCollectionOptions() *CollectionCreationOptions {
+	return &CollectionCreationOptions{
+		DoCompact: true,
+		Type:      DOCUMENT_COLLECTION,
+	}
+}
+
+type CollectionDescriptor interface {
+	Id() string
+	Name() string
+	IsSystem() bool
+	Status() CollectionStatus
+	Type() CollectionType
+}
+
+type CollectionDescriptors []CollectionDescriptor
+
+func (c CollectionDescriptors) Find(name string) CollectionDescriptor {
+	for _, d := range c {
+		if d.Name() == name {
+			return d
+		}
+	}
+	return nil
 }
 
 type CurrentResult interface {
-	Name() string
 	Id() string
+	Name() string
 	Path() string
 	IsSystem() bool
 }
@@ -153,6 +213,9 @@ type Collection interface {
 
 	//GetProperties -> GET on /_api/collection/{name}/properties
 	GetProperties() error
+
+	//Delete -> DELETE on /_api/collection/{name}
+	Delete() error
 }
 
 type Document interface {

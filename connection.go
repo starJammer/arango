@@ -127,6 +127,16 @@ func (c *connection) Version(details bool) (Version, error) {
 	return v, nil
 }
 
+func (c *connection) Database(name string) Database {
+	db := &database{}
+	db.connection = c
+	db.name = name
+	db.client = c.client.Clone()
+	db.client.BaseUrl().Path += fmt.Sprintf(Databasepath, name)
+
+	return db
+}
+
 func (c *connection) GetGrestClient() gr.Client {
 	return c.client
 }
