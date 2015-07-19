@@ -116,7 +116,7 @@ type Database interface {
 	Name() string
 
 	//Collection gets the collection endpoint for the given
-	//name
+	//collection name
 	Collection(name string) Collection
 
 	//Get -> GET on /_api/database
@@ -325,11 +325,11 @@ type Collection interface {
 	//PutRename -> PUT on /_api/collection/{name}/rename
 	PutRename(name string) (CollectionDescriptor, error)
 
+	//PutRotate -> PUT on /_api/collection/{name}/rotate
+	PutRotate() error
+
 	//Delete -> DELETE on /_api/collection/{name}
 	Delete() error
-}
-
-type Document interface {
 }
 
 type PostDatabaseOptions struct {

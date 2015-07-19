@@ -423,6 +423,26 @@ func (c *collection) PutRename(name string) (CollectionDescriptor, error) {
 	return descriptor, nil
 }
 
+func (c *collection) PutRotate() error {
+
+	var errorResult = &arangoError{}
+
+	h, err := c.client.Put("/rotate",
+		nil,
+		nil,
+		nil, errorResult)
+
+	if err != nil {
+		return err
+	}
+
+	if h.StatusCode != 200 {
+		return errorResult
+	}
+
+	return nil
+}
+
 func (c *collection) Delete() error {
 
 	var errorResult = &arangoError{}
