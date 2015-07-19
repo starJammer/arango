@@ -145,22 +145,22 @@ type Database interface {
 //for information on the defaults, optionals, and required
 //attributes.
 type CollectionCreationOptions struct {
-	Name           string         `json:"name"`
-	WaitForSync    bool           `json:"waitForSync,omitempty"`
-	DoCompact      bool           `json:"doCompact"`
-	JournalSize    int            `json:"journalSize,omitempty"`
-	IsSystem       bool           `json:"isSystem,omitempty"`
-	IsVolatile     bool           `json:"isVolatile,omitempty"`
-	KeyOptions     *KeyOptions    `json:"keyOptions,omitempty"`
-	Type           CollectionType `json:"type,omitempty"`
-	NumberOfShards int            `json:"numberOfShards,omitempty"`
-	ShardKeys      []string       `json:"shardKeys,omitempty"`
+	Name               string              `json:"name"`
+	WaitForSync        bool                `json:"waitForSync,omitempty"`
+	DoCompact          bool                `json:"doCompact"`
+	JournalSize        int                 `json:"journalSize,omitempty"`
+	IsSystem           bool                `json:"isSystem,omitempty"`
+	IsVolatile         bool                `json:"isVolatile,omitempty"`
+	KeyCreationOptions *KeyCreationOptions `json:"keyOptions,omitempty"`
+	Type               CollectionType      `json:"type,omitempty"`
+	NumberOfShards     int                 `json:"numberOfShards,omitempty"`
+	ShardKeys          []string            `json:"shardKeys,omitempty"`
 }
 
 //KeyOptions stores information about how a collection's key is configured.
 //It is used during collection creation to specify how the new collection's
 //key should be setup.
-type KeyOptions struct {
+type KeyCreationOptions struct {
 	Type          string `json:"type,omitempty"`
 	AllowUserKeys bool   `json:"allowUserKeys"`
 	Increment     int    `json:"increment"`
@@ -181,6 +181,84 @@ type CollectionDescriptor interface {
 	IsSystem() bool
 	Status() CollectionStatus
 	Type() CollectionType
+	WaitForSync() bool
+	DoCompact() bool
+	JournalSize() int
+	KeyOptions() KeyOptions
+	IsVolatile() bool
+	NumberOfShards() int
+	ShardKeys() []string
+	Count() int
+	Figures() Figures
+	Revision() string
+	Checksum() int
+}
+
+type KeyOptions interface {
+	Type() string
+	AllowUserKeys() bool
+	Increment() int
+	Offset() int
+}
+
+type Figures interface {
+	Alive() Alive
+	Dead() Dead
+	Datafiles() Datafiles
+	Journals() Journals
+	Compactors() Compactors
+	Shapefiles() Shapefiles
+	Shapes() Shapes
+	Attributes() Attributes
+	Indexes() Indexes
+	MaxTick() string
+	UncollectedLogfileEntries() int
+}
+
+type Alive interface {
+	Count() int
+	Size() int
+}
+
+type Dead interface {
+	Count() int
+	Size() int
+	Deletion() int
+}
+
+type Datafiles interface {
+	Count() int
+	FileSize() int
+}
+
+type Journals interface {
+	Count() int
+	FileSize() int
+}
+
+type Compactors interface {
+	Count() int
+	FileSize() int
+}
+
+type Shapefiles interface {
+	Count() int
+	FileSize() int
+}
+
+type Shapes interface {
+	Count() int
+	Size() int
+}
+
+type Attributes interface {
+	Count() int
+	Size() int
+}
+
+type Indexes interface {
+	Count() int
+	Size() int
 }
 
 type CollectionDescriptors []CollectionDescriptor
@@ -209,10 +287,22 @@ type Collection interface {
 	Database() Database
 
 	//Get -> GET on /_api/collection/{name}
-	Get() error
+	Get() (CollectionDescriptor, error)
 
 	//GetProperties -> GET on /_api/collection/{name}/properties
-	GetProperties() error
+	GetProperties() (CollectionDescriptor, error)
+
+	//GetCount -> GET on /_api/collection/{name}/count
+	GetCount() (CollectionDescriptor, error)
+
+	//GetFigures -> GET on /_api/collection/{name}/figures
+	GetFigures() (CollectionDescriptor, error)
+
+	//GetRevision -> GET on /_api/collection/{name}/revision
+	GetRevision() (CollectionDescriptor, error)
+
+	//GetChecksum -> GET on /_api/collection/{name}/checksum
+	GetChecksum(withRevisions bool, withData bool) (CollectionDescriptor, error)
 
 	//Delete -> DELETE on /_api/collection/{name}
 	Delete() error

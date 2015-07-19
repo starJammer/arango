@@ -151,34 +151,6 @@ func (d *database) Delete(name string) error {
 	return nil
 }
 
-type collectionDescriptor struct {
-	Idf       string           `json:"id"`
-	Namef     string           `json:"name"`
-	IsSystemf bool             `json:"isSystem"`
-	Statusf   CollectionStatus `json:"status"`
-	Typef     CollectionType   `json:"type"`
-}
-
-func (c *collectionDescriptor) Id() string {
-	return c.Idf
-}
-
-func (c *collectionDescriptor) Name() string {
-	return c.Namef
-}
-
-func (c *collectionDescriptor) IsSystem() bool {
-	return c.IsSystemf
-}
-
-func (c *collectionDescriptor) Status() CollectionStatus {
-	return c.Statusf
-}
-
-func (c *collectionDescriptor) Type() CollectionType {
-	return c.Typef
-}
-
 func (d *database) GetCollections(excludeSystemCollections bool) (CollectionDescriptors, error) {
 
 	var result struct {
