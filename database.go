@@ -41,7 +41,7 @@ func (d *database) Get() ([]string, error) {
 	}
 	var errorResult = &arangoError{}
 
-	h, err := d.client.Get(DatabasePath, nil, &result, errorResult)
+	h, err := d.client.Get(DatabasePath, nil, nil, &result, errorResult)
 
 	if err != nil {
 		return nil, err
@@ -63,7 +63,7 @@ func (d *database) GetUser() ([]string, error) {
 
 	var errorResult = &arangoError{}
 
-	h, err := d.client.Get(DatabasePath+"/user", nil, &result, errorResult)
+	h, err := d.client.Get(DatabasePath+"/user", nil, nil, &result, errorResult)
 
 	if err != nil {
 		return nil, err
@@ -106,7 +106,7 @@ func (d *database) GetCurrent() (CurrentResult, error) {
 	}
 	var errorResult = &arangoError{}
 
-	h, err := d.client.Get(DatabasePath+"/current", nil, &result, errorResult)
+	h, err := d.client.Get(DatabasePath+"/current", nil, nil, &result, errorResult)
 
 	if err != nil {
 		return nil, err
@@ -123,7 +123,7 @@ func (d *database) Post(opts *PostDatabaseOptions) error {
 
 	var errorResult = &arangoError{}
 
-	h, err := d.client.Post(DatabasePath, nil, opts, nil, errorResult)
+	h, err := d.client.Post(DatabasePath, nil, nil, opts, nil, errorResult)
 
 	if err != nil {
 		return err
@@ -142,6 +142,7 @@ func (d *database) Delete(name string) error {
 
 	h, err := d.client.Delete(
 		DatabasePath+"/"+name,
+		nil,
 		nil,
 		nil, errorResult)
 

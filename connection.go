@@ -113,6 +113,7 @@ func (c *connection) Version(details bool) (Version, error) {
 	}
 	h, err := c.client.Get(
 		VersionPath,
+		nil,
 		params,
 		v, errorResult)
 

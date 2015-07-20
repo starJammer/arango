@@ -19,7 +19,9 @@ func (doc *documentEndpoint) GetDocuments(collection, returnType string) ([]stri
 		Documents []string `json:"documents"`
 	}
 
-	h, err := doc.client.Get("",
+	h, err := doc.client.Get(
+		"",
+		nil,
 		url.Values{
 			"collection": []string{collection},
 			"type":       []string{returnType},
