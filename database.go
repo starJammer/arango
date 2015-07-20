@@ -1,9 +1,7 @@
 package arango
 
 import (
-	"fmt"
 	gr "github.com/starJammer/grestclient"
-	"net/url"
 )
 
 type database struct {
@@ -16,11 +14,10 @@ func (d *database) Name() string {
 	return d.name
 }
 
-func (d *database) Collection(name string) Collection {
-	cl := &collection{}
-	cl.name = name
+func (d *database) CollectionEndpoint() CollectionEndpoint {
+	cl := &collectionEndpoint{}
 	cl.client = d.client.Clone()
-	cl.client.BaseUrl().Path += fmt.Sprintf(CollectionPath, name)
+	cl.client.BaseUrl().Path += CollectionPath
 	cl.database = d
 
 	return cl
@@ -36,7 +33,7 @@ func (d *database) Get() ([]string, error) {
 	}
 	var errorResult = &arangoError{}
 
-	h, err := d.client.Get(DatabaseEndPoint, nil, &result, errorResult)
+	h, err := d.client.Get(DatabasePath, nil, &result, errorResult)
 
 	if err != nil {
 		return nil, err
@@ -58,7 +55,7 @@ func (d *database) GetUser() ([]string, error) {
 
 	var errorResult = &arangoError{}
 
-	h, err := d.client.Get(DatabaseEndPoint+"/user", nil, &result, errorResult)
+	h, err := d.client.Get(DatabasePath+"/user", nil, &result, errorResult)
 
 	if err != nil {
 		return nil, err
@@ -101,7 +98,7 @@ func (d *database) GetCurrent() (CurrentResult, error) {
 	}
 	var errorResult = &arangoError{}
 
-	h, err := d.client.Get(DatabaseEndPoint+"/current", nil, &result, errorResult)
+	h, err := d.client.Get(DatabasePath+"/current", nil, &result, errorResult)
 
 	if err != nil {
 		return nil, err
@@ -118,7 +115,7 @@ func (d *database) Post(opts *PostDatabaseOptions) error {
 
 	var errorResult = &arangoError{}
 
-	h, err := d.client.Post(DatabaseEndPoint, nil, opts, nil, errorResult)
+	h, err := d.client.Post(DatabasePath, nil, opts, nil, errorResult)
 
 	if err != nil {
 		return err
@@ -136,7 +133,7 @@ func (d *database) Delete(name string) error {
 	var errorResult = &arangoError{}
 
 	h, err := d.client.Delete(
-		DatabaseEndPoint+"/"+name,
+		DatabasePath+"/"+name,
 		nil,
 		nil, errorResult)
 
@@ -151,52 +148,11 @@ func (d *database) Delete(name string) error {
 	return nil
 }
 
-func (d *database) GetCollections(excludeSystemCollections bool) (CollectionDescriptors, error) {
+func (d *database) DocumentEndpoint() DocumentEndpoint {
+	ep := &documentEndpoint{}
 
-	var result struct {
-		Collections []*collectionDescriptor `json:"collections"`
-	}
+	ep.client = d.client.Clone()
+	ep.client.BaseUrl().Path += DatabasePath
 
-	var errorResult = &arangoError{}
-
-	h, err := d.client.Get(
-		CollectionEndPoint,
-		url.Values{"excludeSystem": []string{fmt.Sprintf("%t", excludeSystemCollections)}},
-		&result, errorResult)
-
-	if err != nil {
-		return nil, err
-	}
-
-	if h.StatusCode != 200 {
-		return nil, errorResult
-	}
-
-	var collections []CollectionDescriptor = make([]CollectionDescriptor, len(result.Collections))
-	for i, d := range result.Collections {
-		collections[i] = d
-	}
-
-	return collections, nil
-}
-
-func (d *database) PostCollection(options *CollectionCreationOptions) error {
-
-	var errorResult = &arangoError{}
-
-	h, err := d.client.Post(
-		CollectionEndPoint,
-		nil,
-		options,
-		nil, errorResult)
-
-	if err != nil {
-		return err
-	}
-
-	if h.StatusCode != 200 {
-		return errorResult
-	}
-
-	return nil
+	return ep
 }

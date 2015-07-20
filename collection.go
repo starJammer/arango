@@ -193,26 +193,71 @@ func (c *collectionDescriptor) Checksum() int {
 	return c.Checksumf
 }
 
-type collection struct {
-	name     string
+type collectionEndpoint struct {
 	client   gr.Client
 	database *database
 }
 
-func (c *collection) Name() string {
-	return c.name
-}
-
-func (c *collection) Database() Database {
+func (c *collectionEndpoint) Database() Database {
 	return c.database
 }
 
-func (c *collection) Get() (CollectionDescriptor, error) {
+func (c *collectionEndpoint) GetCollections(excludeSystemCollections bool) (CollectionDescriptors, error) {
+
+	var result struct {
+		Collections []*collectionDescriptor `json:"collections"`
+	}
+
+	var errorResult = &arangoError{}
+
+	h, err := c.client.Get(
+		"",
+		url.Values{"excludeSystem": []string{fmt.Sprintf("%t", excludeSystemCollections)}},
+		&result, errorResult)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if h.StatusCode != 200 {
+		return nil, errorResult
+	}
+
+	var collections []CollectionDescriptor = make([]CollectionDescriptor, len(result.Collections))
+	for i, d := range result.Collections {
+		collections[i] = d
+	}
+
+	return collections, nil
+}
+
+func (c *collectionEndpoint) PostCollection(options *CollectionCreationOptions) error {
+
+	var errorResult = &arangoError{}
+
+	h, err := c.client.Post(
+		"",
+		nil,
+		options,
+		nil, errorResult)
+
+	if err != nil {
+		return err
+	}
+
+	if h.StatusCode != 200 {
+		return errorResult
+	}
+
+	return nil
+}
+
+func (c *collectionEndpoint) Get(name string) (CollectionDescriptor, error) {
 
 	var descriptor = &collectionDescriptor{}
 	var errorResult = &arangoError{}
 
-	h, err := c.client.Get("", nil, descriptor, errorResult)
+	h, err := c.client.Get(fmt.Sprintf("/%s", name), nil, descriptor, errorResult)
 
 	if err != nil {
 		return nil, err
@@ -225,11 +270,11 @@ func (c *collection) Get() (CollectionDescriptor, error) {
 	return descriptor, nil
 }
 
-func (c *collection) GetProperties() (CollectionDescriptor, error) {
+func (c *collectionEndpoint) GetProperties(name string) (CollectionDescriptor, error) {
 	var descriptor = &collectionDescriptor{}
 	var errorResult = &arangoError{}
 
-	h, err := c.client.Get("/properties", nil, descriptor, errorResult)
+	h, err := c.client.Get(fmt.Sprintf("/%s/properties", name), nil, descriptor, errorResult)
 
 	if err != nil {
 		return nil, err
@@ -242,11 +287,11 @@ func (c *collection) GetProperties() (CollectionDescriptor, error) {
 	return descriptor, nil
 }
 
-func (c *collection) GetCount() (CollectionDescriptor, error) {
+func (c *collectionEndpoint) GetCount(name string) (CollectionDescriptor, error) {
 	var descriptor = &collectionDescriptor{}
 	var errorResult = &arangoError{}
 
-	h, err := c.client.Get("/count", nil, descriptor, errorResult)
+	h, err := c.client.Get(fmt.Sprintf("/%s/count", name), nil, descriptor, errorResult)
 
 	if err != nil {
 		return nil, err
@@ -259,11 +304,11 @@ func (c *collection) GetCount() (CollectionDescriptor, error) {
 	return descriptor, nil
 }
 
-func (c *collection) GetFigures() (CollectionDescriptor, error) {
+func (c *collectionEndpoint) GetFigures(name string) (CollectionDescriptor, error) {
 	var descriptor = &collectionDescriptor{}
 	var errorResult = &arangoError{}
 
-	h, err := c.client.Get("/figures", nil, descriptor, errorResult)
+	h, err := c.client.Get(fmt.Sprintf("/%s/figures", name), nil, descriptor, errorResult)
 
 	if err != nil {
 		return nil, err
@@ -276,11 +321,11 @@ func (c *collection) GetFigures() (CollectionDescriptor, error) {
 	return descriptor, nil
 }
 
-func (c *collection) GetRevision() (CollectionDescriptor, error) {
+func (c *collectionEndpoint) GetRevision(name string) (CollectionDescriptor, error) {
 	var descriptor = &collectionDescriptor{}
 	var errorResult = &arangoError{}
 
-	h, err := c.client.Get("/revision", nil, descriptor, errorResult)
+	h, err := c.client.Get(fmt.Sprintf("/%s/revision", name), nil, descriptor, errorResult)
 
 	if err != nil {
 		return nil, err
@@ -293,12 +338,12 @@ func (c *collection) GetRevision() (CollectionDescriptor, error) {
 	return descriptor, nil
 }
 
-func (c *collection) GetChecksum(withRevisions bool, withData bool) (CollectionDescriptor, error) {
+func (c *collectionEndpoint) GetChecksum(name string, withRevisions bool, withData bool) (CollectionDescriptor, error) {
 	var descriptor = &collectionDescriptor{}
 	var errorResult = &arangoError{}
 
 	h, err := c.client.Get(
-		"/checksum",
+		fmt.Sprintf("/%s/checksum", name),
 		url.Values{
 			"withRevisions": []string{fmt.Sprintf("%t", withRevisions)},
 			"withData":      []string{fmt.Sprintf("%t", withData)},
@@ -316,12 +361,13 @@ func (c *collection) GetChecksum(withRevisions bool, withData bool) (CollectionD
 	return descriptor, nil
 }
 
-func (c *collection) PutLoad(includeCount bool) (CollectionDescriptor, error) {
+func (c *collectionEndpoint) PutLoad(name string, includeCount bool) (CollectionDescriptor, error) {
 
 	var descriptor = &collectionDescriptor{}
 	var errorResult = &arangoError{}
 
-	h, err := c.client.Put("/load",
+	h, err := c.client.Put(
+		fmt.Sprintf("/%s/load", name),
 		nil,
 		map[string]string{"count": fmt.Sprintf("%t", includeCount)},
 		descriptor, errorResult)
@@ -337,12 +383,13 @@ func (c *collection) PutLoad(includeCount bool) (CollectionDescriptor, error) {
 	return descriptor, nil
 }
 
-func (c *collection) PutUnload() (CollectionDescriptor, error) {
+func (c *collectionEndpoint) PutUnload(name string) (CollectionDescriptor, error) {
 
 	var descriptor = &collectionDescriptor{}
 	var errorResult = &arangoError{}
 
-	h, err := c.client.Put("/unload",
+	h, err := c.client.Put(
+		fmt.Sprintf("/%s/unload", name),
 		nil,
 		nil,
 		descriptor, errorResult)
@@ -358,12 +405,13 @@ func (c *collection) PutUnload() (CollectionDescriptor, error) {
 	return descriptor, nil
 }
 
-func (c *collection) PutTruncate() (CollectionDescriptor, error) {
+func (c *collectionEndpoint) PutTruncate(name string) (CollectionDescriptor, error) {
 
 	var descriptor = &collectionDescriptor{}
 	var errorResult = &arangoError{}
 
-	h, err := c.client.Put("/truncate",
+	h, err := c.client.Put(
+		fmt.Sprintf("/%s/truncate", name),
 		nil,
 		nil,
 		descriptor, errorResult)
@@ -379,12 +427,13 @@ func (c *collection) PutTruncate() (CollectionDescriptor, error) {
 	return descriptor, nil
 }
 
-func (c *collection) PutProperties(properties *CollectionPropertyChange) (CollectionDescriptor, error) {
+func (c *collectionEndpoint) PutProperties(name string, properties *CollectionPropertyChange) (CollectionDescriptor, error) {
 
 	var descriptor = &collectionDescriptor{}
 	var errorResult = &arangoError{}
 
-	h, err := c.client.Put("/properties",
+	h, err := c.client.Put(
+		fmt.Sprintf("/%s/properties", name),
 		nil,
 		properties,
 		descriptor, errorResult)
@@ -400,14 +449,15 @@ func (c *collection) PutProperties(properties *CollectionPropertyChange) (Collec
 	return descriptor, nil
 }
 
-func (c *collection) PutRename(name string) (CollectionDescriptor, error) {
+func (c *collectionEndpoint) PutRename(name string, newName string) (CollectionDescriptor, error) {
 
 	var descriptor = &collectionDescriptor{}
 	var errorResult = &arangoError{}
 
-	h, err := c.client.Put("/rename",
+	h, err := c.client.Put(
+		fmt.Sprintf("/%s/rename", name),
 		nil,
-		map[string]string{"name": name},
+		map[string]string{"name": newName},
 		descriptor, errorResult)
 
 	if err != nil {
@@ -418,16 +468,15 @@ func (c *collection) PutRename(name string) (CollectionDescriptor, error) {
 		return nil, errorResult
 	}
 
-	c.client.BaseUrl().Path = fmt.Sprintf(DatabasePath, c.Database().Name()) + fmt.Sprintf(CollectionPath, name)
-	c.name = name
 	return descriptor, nil
 }
 
-func (c *collection) PutRotate() error {
+func (c *collectionEndpoint) PutRotate(name string) error {
 
 	var errorResult = &arangoError{}
 
-	h, err := c.client.Put("/rotate",
+	h, err := c.client.Put(
+		fmt.Sprintf("/%s/rotate", name),
 		nil,
 		nil,
 		nil, errorResult)
@@ -443,11 +492,11 @@ func (c *collection) PutRotate() error {
 	return nil
 }
 
-func (c *collection) Delete() error {
+func (c *collectionEndpoint) Delete(name string) error {
 
 	var errorResult = &arangoError{}
 
-	h, err := c.client.Delete("", nil, nil, errorResult)
+	h, err := c.client.Delete(fmt.Sprintf("/%s", name), nil, nil, errorResult)
 
 	if err != nil {
 		return err

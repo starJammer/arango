@@ -5,24 +5,93 @@ import (
 	"testing"
 )
 
-func TestGetCollection(t *testing.T) {
+func TestGetCollections(t *testing.T) {
 	u, _ := url.Parse("http://root@localhost:8529")
 	c, _ := NewConnection(u)
 	var db Database = c.Database("_system")
+	var collEnd = db.CollectionEndpoint()
+
+	collections, err := collEnd.GetCollections(false)
+
+	if err != nil {
+		t.Fatal("Unexpected error during GetCollections: ", err)
+	}
+
+	if len(collections) < 1 {
+		t.Fatal("Expected at least one collection.")
+	}
+
+	coll := collections[0]
+
+	if coll.Id() == "" {
+		t.Fatal("Expected an id value for the collection.")
+	}
+
+	if coll.Name() == "" {
+		t.Fatal("Expected a name value for the collection.")
+	}
+
+	if coll.Status() == 0 {
+		t.Fatal("Expected a CollectionStatus value for the collection.")
+	}
+
+	if coll.Type() == 0 {
+		t.Fatal("Expected a CollectionType value for the collection.")
+	}
+
+}
+
+func TestPostCollection(t *testing.T) {
+	u, _ := url.Parse("http://root@localhost:8529")
+	c, _ := NewConnection(u)
+	var db Database = c.Database("_system")
+	var collEnd = db.CollectionEndpoint()
+
+	err := collEnd.PostCollection(nil)
+
+	if err == nil {
+		t.Fatal("Expected error whet creating collection with nil options.")
+	}
 
 	opts := DefaultCollectionOptions()
 	opts.Name = "test"
 
-	err := db.PostCollection(opts)
+	err = collEnd.PostCollection(opts)
+
+	if err != nil {
+		t.Fatal("Got an error when creating collection: ", err)
+	}
+
+	colls, err := collEnd.GetCollections(true)
+
+	if found := colls.Find(opts.Name); found == nil || found.Name() != opts.Name {
+		t.Fatal("Could not find newly created connection.")
+	}
+
+	err = collEnd.Delete(opts.Name)
+
+	if err != nil {
+		t.Fatal("Unexpected error when deleting collection: ", err)
+	}
+}
+
+func TestGetCollection(t *testing.T) {
+	u, _ := url.Parse("http://root@localhost:8529")
+	c, _ := NewConnection(u)
+	var db Database = c.Database("_system")
+	var collEnd = db.CollectionEndpoint()
+
+	opts := DefaultCollectionOptions()
+	opts.Name = "test"
+
+	err := collEnd.PostCollection(opts)
 
 	if err != nil {
 		t.Fatal("Error creating collection")
 	}
-	defer db.Collection(opts.Name).Delete()
+	defer collEnd.Delete(opts.Name)
 
-	col := db.Collection(opts.Name)
-
-	descriptor, err := col.Get()
+	descriptor, err := collEnd.Get(opts.Name)
 
 	if err != nil {
 		t.Fatal("Unexpected error when getting collection descriptor: ", err)
@@ -54,22 +123,21 @@ func TestGetCollectionProperties(t *testing.T) {
 	u, _ := url.Parse("http://root@localhost:8529")
 	c, _ := NewConnection(u)
 	var db Database = c.Database("_system")
+	var collEnd = db.CollectionEndpoint()
 
 	opts := DefaultCollectionOptions()
 	opts.Name = "test"
 	opts.WaitForSync = true
 	opts.DoCompact = false
 
-	err := db.PostCollection(opts)
+	err := collEnd.PostCollection(opts)
 
 	if err != nil {
 		t.Fatal("Error creating collection: ", err)
 	}
-	defer db.Collection(opts.Name).Delete()
+	defer collEnd.Delete(opts.Name)
 
-	col := db.Collection(opts.Name)
-
-	descriptor, err := col.GetProperties()
+	descriptor, err := collEnd.GetProperties(opts.Name)
 
 	if err != nil {
 		t.Fatal("Unexpected error when getting collection descriptor: ", err)
@@ -114,19 +182,19 @@ func TestGetCollectionCount(t *testing.T) {
 	u, _ := url.Parse("http://root@localhost:8529")
 	c, _ := NewConnection(u)
 	var db Database = c.Database("_system")
+	var collEnd = db.CollectionEndpoint()
 
 	opts := DefaultCollectionOptions()
 	opts.Name = "test"
 
-	err := db.PostCollection(opts)
+	err := collEnd.PostCollection(opts)
 
 	if err != nil {
 		t.Fatal("Error creating collection: ", err)
 	}
-	defer db.Collection(opts.Name).Delete()
-	col := db.Collection(opts.Name)
+	defer collEnd.Delete(opts.Name)
 
-	descriptor, err := col.GetCount()
+	descriptor, err := collEnd.GetCount(opts.Name)
 
 	if err != nil {
 		t.Fatal("Unexpected error when getting collection descriptor: ", err)
@@ -142,19 +210,19 @@ func TestGetCollectionFigures(t *testing.T) {
 	u, _ := url.Parse("http://root@localhost:8529")
 	c, _ := NewConnection(u)
 	var db Database = c.Database("_system")
+	var collEnd = db.CollectionEndpoint()
 
 	opts := DefaultCollectionOptions()
 	opts.Name = "test"
 
-	err := db.PostCollection(opts)
+	err := collEnd.PostCollection(opts)
 
 	if err != nil {
 		t.Fatal("Error creating collection: ", err)
 	}
-	defer db.Collection(opts.Name).Delete()
-	col := db.Collection(opts.Name)
+	defer collEnd.Delete(opts.Name)
 
-	descriptor, err := col.GetFigures()
+	descriptor, err := collEnd.GetFigures(opts.Name)
 
 	if err != nil {
 		t.Fatal("Unexpected error when getting collection descriptor: ", err)
@@ -170,19 +238,19 @@ func TestGetCollectionRevision(t *testing.T) {
 	u, _ := url.Parse("http://root@localhost:8529")
 	c, _ := NewConnection(u)
 	var db Database = c.Database("_system")
+	var collEnd = db.CollectionEndpoint()
 
 	opts := DefaultCollectionOptions()
 	opts.Name = "test"
 
-	err := db.PostCollection(opts)
+	err := collEnd.PostCollection(opts)
 
 	if err != nil {
 		t.Fatal("Error creating collection: ", err)
 	}
-	defer db.Collection(opts.Name).Delete()
-	col := db.Collection(opts.Name)
+	defer collEnd.Delete(opts.Name)
 
-	descriptor, err := col.GetRevision()
+	descriptor, err := collEnd.GetRevision(opts.Name)
 
 	if err != nil {
 		t.Fatal("Unexpected error when getting collection descriptor: ", err)
@@ -198,19 +266,19 @@ func TestGetCollectionChecksum(t *testing.T) {
 	u, _ := url.Parse("http://root@localhost:8529")
 	c, _ := NewConnection(u)
 	var db Database = c.Database("_system")
+	var collEnd = db.CollectionEndpoint()
 
 	opts := DefaultCollectionOptions()
 	opts.Name = "test"
 
-	err := db.PostCollection(opts)
+	err := collEnd.PostCollection(opts)
 
 	if err != nil {
 		t.Fatal("Error creating collection: ", err)
 	}
-	defer db.Collection(opts.Name).Delete()
-	col := db.Collection(opts.Name)
+	defer collEnd.Delete(opts.Name)
 
-	descriptor, err := col.GetChecksum(false, false)
+	descriptor, err := collEnd.GetChecksum(opts.Name, false, false)
 
 	if err != nil {
 		t.Fatal("Unexpected error when getting collection descriptor: ", err)
@@ -229,19 +297,19 @@ func TestPutLoad(t *testing.T) {
 	u, _ := url.Parse("http://root@localhost:8529")
 	c, _ := NewConnection(u)
 	var db Database = c.Database("_system")
+	var collEnd = db.CollectionEndpoint()
 
 	opts := DefaultCollectionOptions()
 	opts.Name = "test"
 
-	err := db.PostCollection(opts)
+	err := collEnd.PostCollection(opts)
 
 	if err != nil {
 		t.Fatal("Error creating collection: ", err)
 	}
-	defer db.Collection(opts.Name).Delete()
-	col := db.Collection(opts.Name)
+	defer collEnd.Delete(opts.Name)
 
-	descriptor, err := col.PutLoad(false)
+	descriptor, err := collEnd.PutLoad(opts.Name, false)
 
 	if err != nil {
 		t.Fatal("Unexpected error when getting collection descriptor: ", err)
@@ -257,19 +325,19 @@ func TestPutUnload(t *testing.T) {
 	u, _ := url.Parse("http://root@localhost:8529")
 	c, _ := NewConnection(u)
 	var db Database = c.Database("_system")
+	var collEnd = db.CollectionEndpoint()
 
 	opts := DefaultCollectionOptions()
 	opts.Name = "test"
 
-	err := db.PostCollection(opts)
+	err := collEnd.PostCollection(opts)
 
 	if err != nil {
 		t.Fatal("Error creating collection: ", err)
 	}
-	defer db.Collection(opts.Name).Delete()
-	col := db.Collection(opts.Name)
+	defer collEnd.Delete(opts.Name)
 
-	descriptor, err := col.PutUnload()
+	descriptor, err := collEnd.PutUnload(opts.Name)
 
 	if err != nil {
 		t.Fatal("Unexpected error when getting collection descriptor: ", err)
@@ -284,19 +352,18 @@ func TestPutTruncate(t *testing.T) {
 	u, _ := url.Parse("http://root@localhost:8529")
 	c, _ := NewConnection(u)
 	var db Database = c.Database("_system")
+	var collEnd = db.CollectionEndpoint()
 
 	opts := DefaultCollectionOptions()
 	opts.Name = "test"
 
-	err := db.PostCollection(opts)
+	err := collEnd.PostCollection(opts)
 
 	if err != nil {
 		t.Fatal("Error creating collection: ", err)
 	}
-	defer db.Collection(opts.Name).Delete()
-	col := db.Collection(opts.Name)
-
-	_, err = col.PutTruncate()
+	defer collEnd.Delete(opts.Name)
+	_, err = collEnd.PutTruncate(opts.Name)
 
 	if err != nil {
 		t.Fatal("Unexpected error when getting collection descriptor: ", err)
@@ -308,20 +375,20 @@ func TestPutProperties(t *testing.T) {
 	u, _ := url.Parse("http://root@localhost:8529")
 	c, _ := NewConnection(u)
 	var db Database = c.Database("_system")
+	var collEnd = db.CollectionEndpoint()
 
 	opts := DefaultCollectionOptions()
 	opts.Name = "test"
 	opts.WaitForSync = true
 
-	err := db.PostCollection(opts)
+	err := collEnd.PostCollection(opts)
 
 	if err != nil {
 		t.Fatal("Error creating collection: ", err)
 	}
-	defer db.Collection(opts.Name).Delete()
-	col := db.Collection(opts.Name)
+	defer collEnd.Delete(opts.Name)
 
-	descriptor, err := col.GetProperties()
+	descriptor, err := collEnd.GetProperties(opts.Name)
 	if err != nil {
 		t.Fatal("Unexpected error when getting collection descriptor: ", err)
 	}
@@ -330,13 +397,13 @@ func TestPutProperties(t *testing.T) {
 		t.Fatal("Expected waitforsync to be true upon creation.")
 	}
 
-	descriptor, err = col.PutProperties(&CollectionPropertyChange{WaitForSync: false})
+	descriptor, err = collEnd.PutProperties(opts.Name, &CollectionPropertyChange{WaitForSync: false})
 
 	if err != nil {
 		t.Fatal("Unexpected error when getting collection descriptor: ", err)
 	}
 
-	descriptor, err = col.PutProperties(&CollectionPropertyChange{WaitForSync: false})
+	descriptor, err = collEnd.PutProperties(opts.Name, &CollectionPropertyChange{WaitForSync: false})
 
 	if descriptor.WaitForSync() != false {
 		t.Fatal("Expected waitforSync to be false now.")
@@ -347,39 +414,34 @@ func TestPutRename(t *testing.T) {
 	u, _ := url.Parse("http://root@localhost:8529")
 	c, _ := NewConnection(u)
 	var db Database = c.Database("_system")
+	var collEnd = db.CollectionEndpoint()
+	var newName = "newtestname"
 
 	opts := DefaultCollectionOptions()
 	opts.Name = "test"
 
-	err := db.PostCollection(opts)
+	err := collEnd.PostCollection(opts)
 	if err != nil {
 		t.Fatal("Error creating collection: ", err)
 	}
-	col := db.Collection(opts.Name)
 
-	descriptor, err := col.PutRename("newtestname")
+	descriptor, err := collEnd.PutRename(opts.Name, newName)
 
 	if err != nil {
 		t.Fatal("Error during rename: ", err)
 	}
 
-	if descriptor.Name() != "newtestname" {
+	if descriptor.Name() != newName {
 		t.Fatal("Collection rename failed: ", descriptor.Name())
 	}
 
-	if col.Name() != "newtestname" {
-		t.Fatal("Collection rename failed: ", descriptor.Name())
-	}
-
-	old := db.Collection(opts.Name)
-
-	_, err = old.GetProperties()
+	_, err = collEnd.GetProperties(opts.Name)
 
 	if err == nil {
 		t.Fatal("Expected an error when getting properties of old collection.")
 	}
 
-	err = col.Delete()
+	err = collEnd.Delete(newName)
 
 	if err != nil {
 		t.Fatal("Error deleting newly renamed collection: ", err)

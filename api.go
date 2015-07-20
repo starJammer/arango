@@ -25,36 +25,36 @@ const (
 )
 
 const (
-	DatabasePath   = "/_db/%s"
-	CollectionPath = "/_api/collection/%s"
+	DatabasePrefix   = "/_db/%s"
+	CollectionPrefix = "/_api/collection/%s"
 
-	AqlfunctionEndPoint = "/_api/aqlfunction"
-	BatchEndPoint       = "/_api/batch"
-	DatabaseEndPoint    = "/_api/database"
-	CollectionEndPoint  = "/_api/collection"
-	CursorEndPoint      = "/_api/cursor"
-	DocumentEndPoint    = "/_api/document"
-	EdgeEndPoint        = "/_api/edge"
-	EdgesEndPoint       = "/_api/edges"
-	EndpointEndPoint    = "/_api/endpoint"
-	ExplainEndPoint     = "/_api/explain"
-	ExportEndPoint      = "/_api/export"
-	GraphEndPoint       = "/_api/graph"
-	ImportEndPoint      = "/_api/import"
-	IndexEndPoint       = "/_api/index"
-	JobEndPoint         = "/_api/job"
-	LogEndPoint         = "/_api/log"
-	QueryEndPoint       = "/_api/query"
-	ReplicationEndPoint = "/_api/replication"
-	SimpleEndPoint      = "/_api/simple"
-	StructureEndPoint   = "/_api/structure"
-	SystemEndPoint      = "/_api/system"
-	TasksEndPoint       = "/_api/tasks"
-	TransactionEndPoint = "/_api/transaction"
-	TraversalEndPoint   = "/_api/traversal"
-	UserEndPoint        = "/_api/user"
-	VersionEndPoint     = "/_api/version"
-	WalEndPoint         = "/_api/wal"
+	AqlfunctionPath = "/_api/aqlfunction"
+	BatchPath       = "/_api/batch"
+	DatabasePath    = "/_api/database"
+	CollectionPath  = "/_api/collection"
+	CursorPath      = "/_api/cursor"
+	DocumentPath    = "/_api/document"
+	EdgePath        = "/_api/edge"
+	EdgesPath       = "/_api/edges"
+	EndpointPath    = "/_api/endpoint"
+	ExplainPath     = "/_api/explain"
+	ExportPath      = "/_api/export"
+	GraphPath       = "/_api/graph"
+	ImportPath      = "/_api/import"
+	IndexPath       = "/_api/index"
+	JobPath         = "/_api/job"
+	LogPath         = "/_api/log"
+	QueryPath       = "/_api/query"
+	ReplicationPath = "/_api/replication"
+	SimplePath      = "/_api/simple"
+	StructurePath   = "/_api/structure"
+	SystemPath      = "/_api/system"
+	TasksPath       = "/_api/tasks"
+	TransactionPath = "/_api/transaction"
+	TraversalPath   = "/_api/traversal"
+	UserPath        = "/_api/user"
+	VersionPath     = "/_api/version"
+	WalPath         = "/_api/wal"
 )
 
 //Version information about arango. Should I make it a simple struct?
@@ -115,9 +115,11 @@ type Database interface {
 	//In other words, what was Connection.Database called with?
 	Name() string
 
-	//Collection gets the collection endpoint for the given
-	//collection name
-	Collection(name string) Collection
+	//Collection gets the collection endpoint.
+	CollectionEndpoint() CollectionEndpoint
+
+	//DocumentEndPoint gets the document endpoint
+	DocumentEndpoint() DocumentEndpoint
 
 	//Get -> GET on /_api/database
 	Get() ([]string, error)
@@ -133,12 +135,11 @@ type Database interface {
 
 	//Delete -> DELETE on /_api/database/{name}
 	Delete(name string) error
+}
 
-	//GetCollections -> GET on  /_api/collection
-	GetCollections(excludeSystemCollections bool) (CollectionDescriptors, error)
-
-	//PostCollection -> POST on /_api/collection
-	PostCollection(options *CollectionCreationOptions) error
+type DocumentEndpoint interface {
+	//Get() ([]string, error)
+	//Post() error
 }
 
 type CollectionPropertyChange struct {
@@ -285,51 +286,56 @@ type CurrentResult interface {
 	IsSystem() bool
 }
 
-type Collection interface {
-	//Name returns the name of the collection this endpoint is for
-	Name() string
+type CollectionEndpoint interface {
 
-	//Database gets the related database endpoint for the collection
+	//Database gets the related database endpoint
+	//for this collection endpoint
 	Database() Database
 
+	//GetCollections -> GET on  /_api/collection
+	GetCollections(excludeSystemCollections bool) (CollectionDescriptors, error)
+
+	//PostCollection -> POST on /_api/collection
+	PostCollection(options *CollectionCreationOptions) error
+
 	//Get -> GET on /_api/collection/{name}
-	Get() (CollectionDescriptor, error)
+	Get(name string) (CollectionDescriptor, error)
 
 	//GetProperties -> GET on /_api/collection/{name}/properties
-	GetProperties() (CollectionDescriptor, error)
+	GetProperties(name string) (CollectionDescriptor, error)
 
 	//GetCount -> GET on /_api/collection/{name}/count
-	GetCount() (CollectionDescriptor, error)
+	GetCount(name string) (CollectionDescriptor, error)
 
 	//GetFigures -> GET on /_api/collection/{name}/figures
-	GetFigures() (CollectionDescriptor, error)
+	GetFigures(name string) (CollectionDescriptor, error)
 
 	//GetRevision -> GET on /_api/collection/{name}/revision
-	GetRevision() (CollectionDescriptor, error)
+	GetRevision(name string) (CollectionDescriptor, error)
 
 	//GetChecksum -> GET on /_api/collection/{name}/checksum
-	GetChecksum(withRevisions bool, withData bool) (CollectionDescriptor, error)
+	GetChecksum(name string, withRevisions bool, withData bool) (CollectionDescriptor, error)
 
 	//PutLoad -> PUT on /_api/collection/{name}/load
-	PutLoad(includeCount bool) (CollectionDescriptor, error)
+	PutLoad(name string, includeCount bool) (CollectionDescriptor, error)
 
 	//PutUnload -> PUT on /_api/collection/{name}/unload
-	PutUnload() (CollectionDescriptor, error)
+	PutUnload(name string) (CollectionDescriptor, error)
 
 	//PutTruncate -> PUT on /_api/collection/{name}/truncate
-	PutTruncate() (CollectionDescriptor, error)
+	PutTruncate(name string) (CollectionDescriptor, error)
 
 	//PutProperties -> PUT on /_api/collection/{name}/properties
-	PutProperties(properties *CollectionPropertyChange) (CollectionDescriptor, error)
+	PutProperties(name string, properties *CollectionPropertyChange) (CollectionDescriptor, error)
 
 	//PutRename -> PUT on /_api/collection/{name}/rename
-	PutRename(name string) (CollectionDescriptor, error)
+	PutRename(name string, newName string) (CollectionDescriptor, error)
 
 	//PutRotate -> PUT on /_api/collection/{name}/rotate
-	PutRotate() error
+	PutRotate(name string) error
 
 	//Delete -> DELETE on /_api/collection/{name}
-	Delete() error
+	Delete(name string) error
 }
 
 type PostDatabaseOptions struct {

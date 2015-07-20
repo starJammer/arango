@@ -112,7 +112,7 @@ func (c *connection) Version(details bool) (Version, error) {
 		params.Add("details", "true")
 	}
 	h, err := c.client.Get(
-		VersionEndPoint,
+		VersionPath,
 		params,
 		v, errorResult)
 
@@ -132,7 +132,7 @@ func (c *connection) Database(name string) Database {
 	db.connection = c
 	db.name = name
 	db.client = c.client.Clone()
-	db.client.BaseUrl().Path += fmt.Sprintf(DatabasePath, name)
+	db.client.BaseUrl().Path += fmt.Sprintf(DatabasePrefix, name)
 
 	return db
 }
