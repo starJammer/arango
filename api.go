@@ -138,8 +138,12 @@ type Database interface {
 }
 
 type DocumentEndpoint interface {
-	//Get() ([]string, error)
-	//Post() error
+	//GetDocuments -> GET on /_api/document
+	//If pased in returnType is "" then the default should be used.
+	//Default is "path"
+	GetDocuments(collection string, returnType string) ([]string, error)
+	//PostDocument -> POST on /_api/document
+	PostDocument(document interface{}) error
 }
 
 type CollectionPropertyChange struct {

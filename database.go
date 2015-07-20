@@ -23,6 +23,14 @@ func (d *database) CollectionEndpoint() CollectionEndpoint {
 	return cl
 }
 
+func (d *database) DocumentEndpoint() DocumentEndpoint {
+	doc := &documentEndpoint{}
+	doc.client = d.client.Clone()
+	doc.client.BaseUrl().Path += DocumentPath
+
+	return doc
+}
+
 func (d *database) Connection() Connection {
 	return d.connection
 }
@@ -146,13 +154,4 @@ func (d *database) Delete(name string) error {
 	}
 
 	return nil
-}
-
-func (d *database) DocumentEndpoint() DocumentEndpoint {
-	ep := &documentEndpoint{}
-
-	ep.client = d.client.Clone()
-	ep.client.BaseUrl().Path += DatabasePath
-
-	return ep
 }
