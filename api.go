@@ -142,8 +142,32 @@ type DocumentEndpoint interface {
 	//If pased in returnType is "" then the default should be used.
 	//Default is "path"
 	GetDocuments(collection string, returnType string) ([]string, error)
+
 	//PostDocument -> POST on /_api/document
-	PostDocument(document interface{}) error
+	//PostDocumentOptions are NOT optional. You need to at least
+	//specify a collection to add the document to.
+	//The same document is populated with _id, _key, _rev attributes
+	//if possible on a successful POST of the document.
+	PostDocument(document interface{}, options PostDocumentOptions) error
+
+	//GetDocument -> GET on /_api/document/{document-handle}
+	//documentReceiver is where the document will be json.Unmarshaled into.
+	//GetDocumentOptions are optional and can be nil.
+	//if you provide an If-Match option and the server returns a 304
+	//documentReceiver is not populated since no body is returned
+	//by the server. See arango docs for more info.
+	GetDocument(documentHandle string, documentReceiver interface{}, options *GetDocumentOptions) error
+}
+
+type PostDocumentOptions struct {
+	Collection       string
+	CreateCollection bool //default is false
+	WaitForSync      bool //default is false
+}
+
+type GetDocumentOptions struct {
+	IfNoneMatch string
+	IfMatch     string
 }
 
 type CollectionPropertyChange struct {

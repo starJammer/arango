@@ -1,7 +1,9 @@
 package arango
 
 import (
+	"fmt"
 	gr "github.com/starJammer/grestclient"
+	"net/http"
 	"net/url"
 )
 
@@ -9,7 +11,10 @@ type documentEndpoint struct {
 	client gr.Client
 }
 
-func (doc *documentEndpoint) GetDocuments(collection, returnType string) ([]string, error) {
+func (doc *documentEndpoint) GetDocuments(
+	collection string,
+	returnType string,
+) ([]string, error) {
 
 	if returnType == "" {
 		returnType = "path"
@@ -39,7 +44,67 @@ func (doc *documentEndpoint) GetDocuments(collection, returnType string) ([]stri
 	return result.Documents, nil
 }
 
-func (doc *documentEndpoint) PostDocument(document interface{}) error {
+func (doc *documentEndpoint) PostDocument(
+	document interface{},
+	options PostDocumentOptions,
+) error {
+
+	var errorResult = &arangoError{}
+
+	var query = url.Values{}
+	query.Add("collection", options.Collection)
+	query.Add("createCollection", fmt.Sprintf("%t", options.CreateCollection))
+	query.Add("waitForSync", fmt.Sprintf("%t", options.WaitForSync))
+
+	h, err := doc.client.Post(
+		"",
+		nil,
+		query,
+		document,
+		document,
+		errorResult,
+	)
+
+	if err != nil {
+		return err
+	}
+
+	if h.StatusCode != 201 && h.StatusCode != 202 {
+		return errorResult
+	}
+
+	return nil
+}
+
+func (doc *documentEndpoint) GetDocument(documentHandle string, documentReceiver interface{}, options *GetDocumentOptions) error {
+
+	var headers http.Header
+	if options != nil {
+		if options.IfNoneMatch != "" {
+			headers.Add("If-None-Match", options.IfNoneMatch)
+		}
+		if options.IfMatch != "" {
+			headers.Add("If-Match", options.IfMatch)
+		}
+	}
+
+	var errorResult = &arangoError{}
+
+	h, err := doc.client.Get(
+		fmt.Sprintf("/%s", documentHandle),
+		headers,
+		nil,
+		documentReceiver,
+		errorResult,
+	)
+
+	if err != nil {
+		return err
+	}
+
+	if h.StatusCode != 200 && h.StatusCode != 304 {
+		return errorResult
+	}
 
 	return nil
 }
