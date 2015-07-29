@@ -232,9 +232,14 @@ func (c *collectionEndpoint) GetCollections(excludeSystemCollections bool) (Coll
 	return collections, nil
 }
 
-func (c *collectionEndpoint) PostCollection(options *CollectionCreationOptions) error {
+func (c *collectionEndpoint) PostCollection(name string, options *PostCollectionOptions) error {
 
 	var errorResult = &arangoError{}
+
+	if options == nil {
+		options = DefaultPostCollectionOptions()
+	}
+	options.Name = name
 
 	h, err := c.client.Post(
 		"",

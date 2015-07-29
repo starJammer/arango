@@ -41,25 +41,25 @@ func TestGetCollections(t *testing.T) {
 
 }
 
-func TestPostCollection(t *testing.T) {
+func TestPostGetCollection(t *testing.T) {
 	u, _ := url.Parse("http://root@localhost:8529")
 	c, _ := NewConnection(u)
 	var db Database = c.Database("_system")
 	var collEnd = db.CollectionEndpoint()
 
-	err := collEnd.PostCollection(nil)
+	err := collEnd.PostCollection("", nil)
 
 	if err == nil {
-		t.Fatal("Expected error whet creating collection with nil options.")
+		t.Fatal("Expected error whet creating collection with no name or options.")
 	}
 
-	opts := DefaultCollectionOptions()
+	opts := DefaultPostCollectionOptions()
 	opts.Name = "test"
 
-	err = collEnd.PostCollection(opts)
+	err = collEnd.PostCollection(opts.Name, nil)
 
 	if err != nil {
-		t.Fatal("Got an error when creating collection: ", err)
+		t.Fatal("Unexpected error when creating collection: ", err)
 	}
 
 	colls, err := collEnd.GetCollections(true)
@@ -67,29 +67,6 @@ func TestPostCollection(t *testing.T) {
 	if found := colls.Find(opts.Name); found == nil || found.Name() != opts.Name {
 		t.Fatal("Could not find newly created connection.")
 	}
-
-	err = collEnd.Delete(opts.Name)
-
-	if err != nil {
-		t.Fatal("Unexpected error when deleting collection: ", err)
-	}
-}
-
-func TestGetCollection(t *testing.T) {
-	u, _ := url.Parse("http://root@localhost:8529")
-	c, _ := NewConnection(u)
-	var db Database = c.Database("_system")
-	var collEnd = db.CollectionEndpoint()
-
-	opts := DefaultCollectionOptions()
-	opts.Name = "test"
-
-	err := collEnd.PostCollection(opts)
-
-	if err != nil {
-		t.Fatal("Error creating collection")
-	}
-	defer collEnd.Delete(opts.Name)
 
 	descriptor, err := collEnd.Get(opts.Name)
 
@@ -117,6 +94,31 @@ func TestGetCollection(t *testing.T) {
 		t.Fatalf("Unexpected IsSystem value - Expected(%t) Actual(%t)", false, descriptor.IsSystem())
 	}
 
+	err = collEnd.Delete(opts.Name)
+
+	if err != nil {
+		t.Fatal("Unexpected error when deleting collection: ", err)
+	}
+
+	opts.Type = EDGE_COLLECTION
+	opts.Name = "test"
+
+	err = collEnd.PostCollection(opts.Name, opts)
+
+	descriptor, err = collEnd.Get(opts.Name)
+
+	if err != nil {
+		t.Fatal("Unexpected result from CollectionEndpoint.Get", err)
+	}
+
+	if descriptor.Type() != EDGE_COLLECTION {
+		t.Fatal("Expected collection to be of type EDGE: ", descriptor.Type())
+	}
+
+	err = collEnd.Delete(opts.Name)
+	if err != nil {
+		t.Fatal("Unexpected error when deleting collection: ", err)
+	}
 }
 
 func TestGetCollectionProperties(t *testing.T) {
@@ -125,12 +127,12 @@ func TestGetCollectionProperties(t *testing.T) {
 	var db Database = c.Database("_system")
 	var collEnd = db.CollectionEndpoint()
 
-	opts := DefaultCollectionOptions()
+	opts := DefaultPostCollectionOptions()
 	opts.Name = "test"
 	opts.WaitForSync = true
 	opts.DoCompact = false
 
-	err := collEnd.PostCollection(opts)
+	err := collEnd.PostCollection(opts.Name, opts)
 
 	if err != nil {
 		t.Fatal("Error creating collection: ", err)
@@ -184,10 +186,10 @@ func TestGetCollectionCount(t *testing.T) {
 	var db Database = c.Database("_system")
 	var collEnd = db.CollectionEndpoint()
 
-	opts := DefaultCollectionOptions()
+	opts := DefaultPostCollectionOptions()
 	opts.Name = "test"
 
-	err := collEnd.PostCollection(opts)
+	err := collEnd.PostCollection(opts.Name, opts)
 
 	if err != nil {
 		t.Fatal("Error creating collection: ", err)
@@ -212,10 +214,10 @@ func TestGetCollectionFigures(t *testing.T) {
 	var db Database = c.Database("_system")
 	var collEnd = db.CollectionEndpoint()
 
-	opts := DefaultCollectionOptions()
+	opts := DefaultPostCollectionOptions()
 	opts.Name = "test"
 
-	err := collEnd.PostCollection(opts)
+	err := collEnd.PostCollection(opts.Name, opts)
 
 	if err != nil {
 		t.Fatal("Error creating collection: ", err)
@@ -240,10 +242,10 @@ func TestGetCollectionRevision(t *testing.T) {
 	var db Database = c.Database("_system")
 	var collEnd = db.CollectionEndpoint()
 
-	opts := DefaultCollectionOptions()
+	opts := DefaultPostCollectionOptions()
 	opts.Name = "test"
 
-	err := collEnd.PostCollection(opts)
+	err := collEnd.PostCollection(opts.Name, opts)
 
 	if err != nil {
 		t.Fatal("Error creating collection: ", err)
@@ -268,10 +270,10 @@ func TestGetCollectionChecksum(t *testing.T) {
 	var db Database = c.Database("_system")
 	var collEnd = db.CollectionEndpoint()
 
-	opts := DefaultCollectionOptions()
+	opts := DefaultPostCollectionOptions()
 	opts.Name = "test"
 
-	err := collEnd.PostCollection(opts)
+	err := collEnd.PostCollection(opts.Name, opts)
 
 	if err != nil {
 		t.Fatal("Error creating collection: ", err)
@@ -299,10 +301,10 @@ func TestPutLoad(t *testing.T) {
 	var db Database = c.Database("_system")
 	var collEnd = db.CollectionEndpoint()
 
-	opts := DefaultCollectionOptions()
+	opts := DefaultPostCollectionOptions()
 	opts.Name = "test"
 
-	err := collEnd.PostCollection(opts)
+	err := collEnd.PostCollection(opts.Name, opts)
 
 	if err != nil {
 		t.Fatal("Error creating collection: ", err)
@@ -327,10 +329,10 @@ func TestPutUnload(t *testing.T) {
 	var db Database = c.Database("_system")
 	var collEnd = db.CollectionEndpoint()
 
-	opts := DefaultCollectionOptions()
+	opts := DefaultPostCollectionOptions()
 	opts.Name = "test"
 
-	err := collEnd.PostCollection(opts)
+	err := collEnd.PostCollection(opts.Name, opts)
 
 	if err != nil {
 		t.Fatal("Error creating collection: ", err)
@@ -354,10 +356,10 @@ func TestPutTruncate(t *testing.T) {
 	var db Database = c.Database("_system")
 	var collEnd = db.CollectionEndpoint()
 
-	opts := DefaultCollectionOptions()
+	opts := DefaultPostCollectionOptions()
 	opts.Name = "test"
 
-	err := collEnd.PostCollection(opts)
+	err := collEnd.PostCollection(opts.Name, opts)
 
 	if err != nil {
 		t.Fatal("Error creating collection: ", err)
@@ -377,11 +379,11 @@ func TestPutProperties(t *testing.T) {
 	var db Database = c.Database("_system")
 	var collEnd = db.CollectionEndpoint()
 
-	opts := DefaultCollectionOptions()
+	opts := DefaultPostCollectionOptions()
 	opts.Name = "test"
 	opts.WaitForSync = true
 
-	err := collEnd.PostCollection(opts)
+	err := collEnd.PostCollection(opts.Name, opts)
 
 	if err != nil {
 		t.Fatal("Error creating collection: ", err)
@@ -417,10 +419,10 @@ func TestPutRename(t *testing.T) {
 	var collEnd = db.CollectionEndpoint()
 	var newName = "newtestname"
 
-	opts := DefaultCollectionOptions()
+	opts := DefaultPostCollectionOptions()
 	opts.Name = "test"
 
-	err := collEnd.PostCollection(opts)
+	err := collEnd.PostCollection(opts.Name, opts)
 	if err != nil {
 		t.Fatal("Error creating collection: ", err)
 	}

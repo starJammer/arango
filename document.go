@@ -46,15 +46,18 @@ func (doc *documentEndpoint) GetDocuments(
 
 func (doc *documentEndpoint) PostDocument(
 	document interface{},
-	options PostDocumentOptions,
+	collection string,
+	options *PostDocumentOptions,
 ) error {
 
 	var errorResult = &arangoError{}
 
 	var query = url.Values{}
-	query.Add("collection", options.Collection)
-	query.Add("createCollection", fmt.Sprintf("%t", options.CreateCollection))
-	query.Add("waitForSync", fmt.Sprintf("%t", options.WaitForSync))
+	query.Add("collection", collection)
+	if options != nil {
+		query.Add("createCollection", fmt.Sprintf("%t", options.CreateCollection))
+		query.Add("waitForSync", fmt.Sprintf("%t", options.WaitForSync))
+	}
 
 	h, err := doc.client.Post(
 		"",
@@ -79,9 +82,14 @@ func (doc *documentEndpoint) PostDocument(
 func (doc *documentEndpoint) GetDocument(documentHandle string, documentReceiver interface{}, options *GetDocumentOptions) error {
 
 	var headers http.Header
+	var query url.Values
 	if options != nil {
 		if options.IfNoneMatch != "" {
 			headers.Add("If-None-Match", options.IfNoneMatch)
+		}
+
+		if options.Rev != "" {
+			query.Add("rev", options.Rev)
 		}
 		if options.IfMatch != "" {
 			headers.Add("If-Match", options.IfMatch)

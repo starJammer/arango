@@ -80,19 +80,19 @@ func TestCreateDeleteDatabase(t *testing.T) {
 	var db Database = c.Database("_system")
 	var err error
 
-	err = db.Post(&PostDatabaseOptions{})
+	err = db.Post("", nil)
 
 	if err == nil {
 		t.Fatal("Expected error creating a database with no name.")
 	}
 
-	err = db.Post(&PostDatabaseOptions{Name: "_system"})
+	err = db.Post("_system", nil)
 
 	if err == nil {
 		t.Fatal("Expected error when creating a database that exists already: ")
 	}
 
-	err = db.Post(&PostDatabaseOptions{Name: "test"})
+	err = db.Post("test", nil)
 
 	if err != nil {
 		t.Fatal("Unexpected error when creating new database: ", err)

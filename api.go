@@ -69,16 +69,17 @@ type Version interface {
 //to provide more detailed information about
 //why a call failed.
 type ArangoError interface {
+	//Error is the error interface in go
+	Error() string
+
 	IsError() bool
 	Code() int
 	ErrorNum() int
 	ErrorMessage() string
-	//Error is the error interface in go
-	Error() string
 
 	//Reserved for some operations that will return
 	//the id, rev, or key of the document.
-	//For example, /_api/document/{doc-handle} when it
+	//For example, GET /_api/document/{doc-handle} when it
 	//return a 412 error
 	Id() string
 	Rev() string
@@ -121,6 +122,9 @@ type Database interface {
 	//DocumentEndPoint gets the document endpoint
 	DocumentEndpoint() DocumentEndpoint
 
+	//EdgeEndPoint gets the document endpoint
+	//EdgeEndpoint() EdgeEndpoint
+
 	//Get -> GET on /_api/database
 	Get() ([]string, error)
 
@@ -131,10 +135,55 @@ type Database interface {
 	GetCurrent() (CurrentResult, error)
 
 	//Post -> POST on /_api/database
-	Post(*PostDatabaseOptions) error
+	Post(name string, options *PostDatabaseOptions) error
 
 	//Delete -> DELETE on /_api/database/{name}
 	Delete(name string) error
+}
+
+type EdgeEndpoint interface {
+	//GetDocuments -> GET on /_api/document
+	//If pased in returnType is "" then the default should be used.
+	//Default is "path"
+	GetEdges(collection string, returnType string) ([]string, error)
+
+	//PostEdge -> POST on /_api/document
+	//PostEdgeOptions are NOT optional. You need to at least
+	//specify a collection, a from handle, and a to handle.
+	//The same document is populated with _id, _key, _rev, _from, _to attributes
+	//if possible on a successful POST of the document.
+	PostEdge(edge interface{}, collection string, from string, to string, options *PostEdgeOptions) error
+
+	//GetDocument -> GET on /_api/document/{document-handle}
+	//documentReceiver is where the document will be json.Unmarshaled into.
+	//GetDocumentOptions are optional and can be nil.
+	//DocumentReceiver is not populated if you provide an
+	//If-Match option and the server returns a 304. See arango docs for more info.
+	//DocumentReceiver is also not populated if you provide an
+	//If-None-Match option and the server returns a 412. In this case, you
+	//can use the returned error value to get the latest revision
+	//number for the document.
+	GetEdge(documentHandle string, documentReceiver interface{}, options *GetEdgeOptions) error
+}
+
+//EdgeImplementation is an embeddable type that
+//you can use to easily gain access to arango
+//specific attributes for edges. These include
+//the _id, _key, and _rev attributes from the
+//DocumentImplementation as well as the _to and
+//_from attributes for edges.
+type EdgeImplementation struct {
+	DocumentImplementation
+	ArangoFrom string `json:"_from,omitempty"`
+	ArangoTo   string `json:"_to,omitempty"`
+}
+
+func (e EdgeImplementation) From() string {
+	return e.ArangoFrom
+}
+
+func (e EdgeImplementation) To() string {
+	return e.ArangoTo
 }
 
 type DocumentEndpoint interface {
@@ -144,42 +193,74 @@ type DocumentEndpoint interface {
 	GetDocuments(collection string, returnType string) ([]string, error)
 
 	//PostDocument -> POST on /_api/document
-	//PostDocumentOptions are NOT optional. You need to at least
-	//specify a collection to add the document to.
+	//PostDocumentOptions are optional.
 	//The same document is populated with _id, _key, _rev attributes
 	//if possible on a successful POST of the document.
-	PostDocument(document interface{}, options PostDocumentOptions) error
+	PostDocument(document interface{}, collection string, options *PostDocumentOptions) error
 
 	//GetDocument -> GET on /_api/document/{document-handle}
 	//documentReceiver is where the document will be json.Unmarshaled into.
 	//GetDocumentOptions are optional and can be nil.
-	//if you provide an If-Match option and the server returns a 304
-	//documentReceiver is not populated since no body is returned
-	//by the server. See arango docs for more info.
+	//DocumentReceiver is not populated if you provide an
+	//If-Match option and the server returns a 304. See arango docs for more info.
+	//DocumentReceiver is also not populated if you provide an
+	//If-None-Match option and the server returns a 412. In this case, you
+	//can use the returned error value to get the latest revision
+	//number for the document.
 	GetDocument(documentHandle string, documentReceiver interface{}, options *GetDocumentOptions) error
 }
 
+//DocumentImplementation is an embeddable type that
+//you can use to easily gain access to arango specific
+//data. It will help capture the _id, _key, and _rev
+//attributes from responses made by  arangodb
+type DocumentImplementation struct {
+	ArangoId  string `json:"_id,omitempty"`
+	ArangoRev string `json:"_rev,omitempty"`
+	ArangoKey string `json:"_key,omitempty"`
+}
+
+func (d DocumentImplementation) Id() string {
+	return d.ArangoId
+}
+
+func (d DocumentImplementation) Rev() string {
+	return d.ArangoRev
+}
+
+func (d DocumentImplementation) Key() string {
+	return d.ArangoKey
+}
+
 type PostDocumentOptions struct {
-	Collection       string
 	CreateCollection bool //default is false
 	WaitForSync      bool //default is false
 }
 
+type PostEdgeOptions PostDocumentOptions
+
 type GetDocumentOptions struct {
+	//Rev is used in the query
+	Rev string
+	//IfMatch is a header equivalent of IfMatch
+	IfMatch string
+
+	//IfNoneMatch is header
 	IfNoneMatch string
-	IfMatch     string
 }
+
+type GetEdgeOptions GetDocumentOptions
 
 type CollectionPropertyChange struct {
 	WaitForSync bool `json:"waitForSync"`
 	JournalSize int  `json:"journalSize,omitempty"`
 }
 
-//CollectionCreationOptions represent options when creating a new collection.
+//PostCollectionOptions represent options when creating a new collection.
 //Look at the documentation for the POST to /_api/collection
-//for information on the defaults, optionals, and required
+//for information on the default, optional, and required
 //attributes.
-type CollectionCreationOptions struct {
+type PostCollectionOptions struct {
 	Name               string              `json:"name"`
 	WaitForSync        bool                `json:"waitForSync,omitempty"`
 	DoCompact          bool                `json:"doCompact"`
@@ -202,9 +283,9 @@ type KeyCreationOptions struct {
 	Offset        int    `json:"offset"`
 }
 
-//DefaultCollectionOptions creates a default set of collection options
-func DefaultCollectionOptions() *CollectionCreationOptions {
-	return &CollectionCreationOptions{
+//DefaultPostCollectionOptions creates a default set of collection options
+func DefaultPostCollectionOptions() *PostCollectionOptions {
+	return &PostCollectionOptions{
 		DoCompact: true,
 		Type:      DOCUMENT_COLLECTION,
 	}
@@ -324,7 +405,7 @@ type CollectionEndpoint interface {
 	GetCollections(excludeSystemCollections bool) (CollectionDescriptors, error)
 
 	//PostCollection -> POST on /_api/collection
-	PostCollection(options *CollectionCreationOptions) error
+	PostCollection(name string, options *PostCollectionOptions) error
 
 	//Get -> GET on /_api/collection/{name}
 	Get(name string) (CollectionDescriptor, error)

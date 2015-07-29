@@ -119,9 +119,13 @@ func (d *database) GetCurrent() (CurrentResult, error) {
 	return result.Result, nil
 }
 
-func (d *database) Post(opts *PostDatabaseOptions) error {
+func (d *database) Post(name string, opts *PostDatabaseOptions) error {
 
 	var errorResult = &arangoError{}
+	if opts == nil {
+		opts = new(PostDatabaseOptions)
+	}
+	opts.Name = name
 
 	h, err := d.client.Post(DatabasePath, nil, nil, opts, nil, errorResult)
 
