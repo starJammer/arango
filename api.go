@@ -69,16 +69,23 @@ type Version interface {
 //to provide more detailed information about
 //why a call failed.
 type ArangoError interface {
-	//Error is the error interface in go
+	//Error is for the error interface in go
 	Error() string
-
+	//usually true because the api doesn't return an error
+	//if this is false
 	IsError() bool
+	//The http response code
 	Code() int
+	//arango error number
 	ErrorNum() int
+	//error description from arango server
 	ErrorMessage() string
 
 	//Reserved for some operations that will return
-	//the id, rev, or key of the document.
+	//the id, rev, or key of the document in an error
+	//json object.
+	//This is primarily used when arango returns a 412
+	//http respons code.
 	//For example, GET /_api/document/{doc-handle} when it
 	//return a 412 error
 	Id() string
@@ -190,7 +197,7 @@ type DocumentEndpoint interface {
 	//GetDocuments -> GET on /_api/document
 	//If pased in returnType is "" then the default should be used.
 	//Default is "path"
-	GetDocuments(collection string, returnType string) ([]string, error)
+	GetDocuments(collection string, options *GetDocumentsOptions) ([]string, error)
 
 	//PostDocument -> POST on /_api/document
 	//PostDocumentOptions are optional.
@@ -201,13 +208,32 @@ type DocumentEndpoint interface {
 	//GetDocument -> GET on /_api/document/{document-handle}
 	//documentReceiver is where the document will be json.Unmarshaled into.
 	//GetDocumentOptions are optional and can be nil.
-	//DocumentReceiver is not populated if you provide an
-	//If-Match option and the server returns a 304. See arango docs for more info.
-	//DocumentReceiver is also not populated if you provide an
-	//If-None-Match option and the server returns a 412. In this case, you
-	//can use the returned error value to get the latest revision
-	//number for the document.
+	//DocumentReceiver cannot be populated if you provide an
+	//If-None-Match option and the server returns a 304 because the document
+	//revision matches If-None-Match. See arango docs for more info.
+	//In this case, no error is returned and the documentReceiver isn't
+	//altered at all because the server didn't return any document
+	//attributes.
+	//
+	//DocumentReceiver IS NOT populated if you provide an
+	//If-Match option and the server returns a 412 because the document
+	//revision does not match If-Match.  In this case, use the
+	//error that is returned to get the latest revision number
+	//by calling error.Rev()
 	GetDocument(documentHandle string, documentReceiver interface{}, options *GetDocumentOptions) error
+
+	//HeadDocument -> HEAD on /_api/document/{document-handle}
+	//Returns the current revision of the document.
+	//If the document doesn't exist the returned revision is blank.
+	//In all other cases, the current revision is returned and
+	//the error is nil.
+	HeadDocument(documentHandle string, options *HeadDocumentOptions) (revision string, err error)
+
+	//PutDocument -> PUT on /_api/document/{document-handle}
+	PutDocument(documentHandle string, document interface{}, options *PutDocumentOptions) error
+
+	//PatchDocument -> PATCH on /_api/document/{document-handle}
+	PatchDocument(documentHandle string, document interface{}, options *PatchDocumentOptions) error
 }
 
 //DocumentImplementation is an embeddable type that
@@ -239,6 +265,10 @@ type PostDocumentOptions struct {
 
 type PostEdgeOptions PostDocumentOptions
 
+type GetDocumentsOptions struct {
+	ReturnType string
+}
+
 type GetDocumentOptions struct {
 	//Rev is used in the query
 	Rev string
@@ -247,6 +277,35 @@ type GetDocumentOptions struct {
 
 	//IfNoneMatch is header
 	IfNoneMatch string
+}
+
+type HeadDocumentOptions GetDocumentOptions
+
+type PutDocumentOptions struct {
+	WaitForSync bool
+	Rev         string
+	Policy      string
+	IfMatch     string
+}
+
+//Use DefaultPatchDocumentOptions for options
+//set to default arango values
+type PatchDocumentOptions struct {
+	KeepNull     bool
+	MergeObjects bool
+
+	WaitForSync bool
+	Rev         string
+	Policy      string
+	IfMatch     string
+}
+
+func DefaultPatchDocumentOptions() *PatchDocumentOptions {
+	return &PatchDocumentOptions{
+		KeepNull:     true,
+		MergeObjects: true,
+		WaitForSync:  false,
+	}
 }
 
 type GetEdgeOptions GetDocumentOptions
