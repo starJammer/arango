@@ -31,6 +31,14 @@ func (d *database) DocumentEndpoint() DocumentEndpoint {
 	return doc
 }
 
+func (d *database) EdgeEndpoint() EdgeEndpoint {
+	edge := &edgeEndpoint{}
+	edge.client = d.client.Clone()
+	edge.client.BaseUrl().Path += EdgePath
+
+	return edge
+}
+
 func (d *database) Connection() Connection {
 	return d.connection
 }

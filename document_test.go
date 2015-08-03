@@ -29,6 +29,14 @@ func TestPostGetHeadPutPatchDocument(t *testing.T) {
 		Address string
 	}
 
+	documents, err := docEnd.GetDocuments("test", nil)
+	if err != nil {
+		t.Fatal("Unexpected error when fetching all documents in collection \"test\".")
+	}
+	if len(documents) != 0 {
+		t.Fatal("Expected no documents in collection \"test\"")
+	}
+
 	var doc document
 	doc.Name = "test-document"
 
@@ -48,6 +56,14 @@ func TestPostGetHeadPutPatchDocument(t *testing.T) {
 
 	if doc.Rev() == "" {
 		t.Fatal("Expected the Rev of the document to be set.")
+	}
+
+	documents, err = docEnd.GetDocuments("test", nil)
+	if err != nil {
+		t.Fatal("Unexpected error when fetching all documents in collection \"test\".")
+	}
+	if len(documents) != 1 {
+		t.Fatal("Expected only one document in collection \"test\": ", documents)
 	}
 
 	//attempt to look for a document that shouldn't exist

@@ -137,7 +137,7 @@ type Database interface {
 	DocumentEndpoint() DocumentEndpoint
 
 	//EdgeEndPoint gets the document endpoint
-	//EdgeEndpoint() EdgeEndpoint
+	EdgeEndpoint() EdgeEndpoint
 
 	//Get -> GET on /_api/database
 	Get() ([]string, error)
@@ -153,31 +153,6 @@ type Database interface {
 
 	//Delete -> DELETE on /_api/database/{name}
 	Delete(name string) error
-}
-
-type EdgeEndpoint interface {
-	//GetDocuments -> GET on /_api/document
-	//If pased in returnType is "" then the default should be used.
-	//Default is "path"
-	GetEdges(collection string, returnType string) ([]string, error)
-
-	//PostEdge -> POST on /_api/document
-	//PostEdgeOptions are NOT optional. You need to at least
-	//specify a collection, a from handle, and a to handle.
-	//The same document is populated with _id, _key, _rev, _from, _to attributes
-	//if possible on a successful POST of the document.
-	PostEdge(edge interface{}, collection string, from string, to string, options *PostEdgeOptions) error
-
-	//GetDocument -> GET on /_api/document/{document-handle}
-	//documentReceiver is where the document will be json.Unmarshaled into.
-	//GetDocumentOptions are optional and can be nil.
-	//DocumentReceiver is not populated if you provide an
-	//If-Match option and the server returns a 304. See arango docs for more info.
-	//DocumentReceiver is also not populated if you provide an
-	//If-None-Match option and the server returns a 412. In this case, you
-	//can use the returned error value to get the latest revision
-	//number for the document.
-	GetEdge(documentHandle string, documentReceiver interface{}, options *GetEdgeOptions) error
 }
 
 //EdgeImplementation is an embeddable type that
@@ -198,6 +173,52 @@ func (e EdgeImplementation) From() string {
 
 func (e EdgeImplementation) To() string {
 	return e.ArangoTo
+}
+
+type EdgeEndpoint interface {
+	//GetEdges -> GET on /_api/edge
+	//If pased in returnType is "" then the default should be used.
+	//Default is "path"
+	GetEdges(collection string, options *GetEdgesOptions) ([]string, error)
+
+	//PostEdge -> POST on /_api/edge
+	//PostEdgeOptions are optional.
+	//The same edge is populated with _id, _key, _rev attributes
+	//if possible on a successful POST of the edge.
+	PostEdge(edge interface{}, collection string, from string, to string, options *PostEdgeOptions) error
+
+	//GetEdge -> GET on /_api/edge/{edge-handle}
+	//edgeReceiver is where the edge will be json.Unmarshaled into.
+	//GetEdgeOptions are optional and can be nil.
+	//EdgeReceiver cannot be populated if you provide an
+	//If-None-Match option and the server returns a 304 because the edge
+	//revision matches If-None-Match. See arango docs for more info.
+	//In this case, no error is returned and the edgeReceiver isn't
+	//altered at all because the server didn't return any edge
+	//attributes.
+	//
+	//EdgeReceiver IS NOT populated if you provide an
+	//If-Match option and the server returns a 412 because the edge
+	//revision does not match If-Match.  In this case, use the
+	//error that is returned to get the latest revision number
+	//by calling error.Rev()
+	GetEdge(edgeHandle string, edgeReceiver interface{}, options *GetEdgeOptions) error
+
+	//HeadEdge -> HEAD on /_api/edge/{edge-handle}
+	//Returns the current revision of the edge.
+	//If the edge doesn't exist the returned revision is blank.
+	//In all other cases, the current revision is returned and
+	//the error is nil.
+	HeadEdge(edgeHandle string, options *HeadEdgeOptions) (revision string, err error)
+
+	//PutEdge -> PUT on /_api/edge/{edge-handle}
+	PutEdge(edgeHandle string, edge interface{}, options *PutEdgeOptions) error
+
+	//PatchEdge -> PATCH on /_api/edge/{edge-handle}
+	PatchEdge(edgeHandle string, edge interface{}, options *PatchEdgeOptions) error
+
+	//DeleteEdge -> DELETE on /_api/edge/{edge-handle}
+	DeleteEdge(edgeHandle string, options *DeleteEdgeOptions) error
 }
 
 type DocumentEndpoint interface {
@@ -278,6 +299,7 @@ type PostEdgeOptions PostDocumentOptions
 type GetDocumentsOptions struct {
 	ReturnType string
 }
+type GetEdgesOptions GetDocumentsOptions
 
 type GetDocumentOptions struct {
 	//Rev is used in the query
@@ -289,7 +311,11 @@ type GetDocumentOptions struct {
 	IfNoneMatch string
 }
 
+type GetEdgeOptions GetDocumentOptions
+
 type HeadDocumentOptions GetDocumentOptions
+
+type HeadEdgeOptions HeadDocumentOptions
 
 type PutDocumentOptions struct {
 	WaitForSync bool
@@ -297,6 +323,8 @@ type PutDocumentOptions struct {
 	Policy      Policy
 	IfMatch     string
 }
+
+type PutEdgeOptions PutDocumentOptions
 
 //Use DefaultPatchDocumentOptions for options
 //set to default arango values
@@ -310,8 +338,18 @@ type PatchDocumentOptions struct {
 	IfMatch     string
 }
 
+type PatchEdgeOptions PatchDocumentOptions
+
 func DefaultPatchDocumentOptions() *PatchDocumentOptions {
 	return &PatchDocumentOptions{
+		KeepNull:     true,
+		MergeObjects: true,
+		WaitForSync:  false,
+	}
+}
+
+func DefaultPatchEdgeOptions() *PatchEdgeOptions {
+	return &PatchEdgeOptions{
 		KeepNull:     true,
 		MergeObjects: true,
 		WaitForSync:  false,
@@ -325,7 +363,7 @@ type DeleteDocumentOptions struct {
 	IfMatch     string
 }
 
-type GetEdgeOptions GetDocumentOptions
+type DeleteEdgeOptions DeleteDocumentOptions
 
 type CollectionPropertyChange struct {
 	WaitForSync bool `json:"waitForSync"`
