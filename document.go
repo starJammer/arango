@@ -181,7 +181,7 @@ func (doc *documentEndpoint) PutDocument(documentHandle string, document interfa
 			query.Add("rev", options.Rev)
 		}
 		if options.Policy != "" {
-			query.Add("policy", options.Policy)
+			query.Add("policy", string(options.Policy))
 		}
 
 		headers = make(http.Header)
@@ -230,7 +230,7 @@ func (doc *documentEndpoint) PatchDocument(documentHandle string, document inter
 			query.Add("rev", options.Rev)
 		}
 		if options.Policy != "" {
-			query.Add("policy", options.Policy)
+			query.Add("policy", string(options.Policy))
 		}
 
 		headers = make(http.Header)
@@ -265,4 +265,48 @@ func (doc *documentEndpoint) PatchDocument(documentHandle string, document inter
 
 	return nil
 
+}
+
+func (doc *documentEndpoint) DeleteDocument(documentHandle string, options *DeleteDocumentOptions) error {
+
+	var headers http.Header
+	var query url.Values
+	if options != nil {
+		query = make(url.Values)
+		query.Add("waitForSync", fmt.Sprintf("%t", options.WaitForSync))
+
+		if options.Rev != "" {
+			query.Add("rev", options.Rev)
+		}
+		if options.Policy != "" {
+			query.Add("policy", string(options.Policy))
+		}
+
+		headers = make(http.Header)
+
+		if options.IfMatch != "" {
+			headers.Add("If-Match", options.IfMatch)
+		}
+
+	}
+
+	var errorResult = &arangoError{}
+
+	h, err := doc.client.Delete(
+		fmt.Sprintf("/%s", documentHandle),
+		headers,
+		query,
+		nil,
+		errorResult,
+	)
+
+	if err != nil {
+		return err
+	}
+
+	if h.StatusCode != 201 && h.StatusCode != 202 {
+		return errorResult
+	}
+
+	return nil
 }

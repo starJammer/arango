@@ -182,4 +182,56 @@ func TestPostGetHeadPutPatchDocument(t *testing.T) {
 	if err != nil {
 		t.Fatal("Unexpected error when using \"last\" policy and a mismatching revision: ", err)
 	}
+
+	fetcher = new(document)
+	err = docEnd.GetDocument(doc.Id(), fetcher, nil)
+
+	if fetcher.Name != newDoc.Name || fetcher.Address != newDoc.Address {
+		t.Fatalf("Got unexpected values after putting a new document using last policy: Expected(%v), Actual(%v)", newDoc, fetcher)
+	}
+
+	var patcher struct {
+		Name string
+	}
+
+	patcher.Name = "new-name"
+
+	err = docEnd.PatchDocument(doc.Id(), &patcher, nil)
+
+	if err != nil {
+		t.Fatal("Unexpected error when patching using a map: ", err)
+	}
+
+	fetcher = new(document)
+	err = docEnd.GetDocument(doc.Id(), fetcher, nil)
+
+	if fetcher.Name != "new-name" || fetcher.Address != newDoc.Address {
+		t.Fatalf("Unexpected error when patching only one field. Expected-field-value(%v), Actual(%v)", newDoc.Name, fetcher.Name)
+	}
+
+	//test patching with a map
+	err = docEnd.PatchDocument(doc.Id(), &map[string]interface{}{"Name": "new-name"}, nil)
+
+	if err != nil {
+		t.Fatal("Unexpected error when patching using a map: ", err)
+	}
+
+	fetcher = new(document)
+	err = docEnd.GetDocument(doc.Id(), fetcher, nil)
+
+	if fetcher.Name != "new-name" || fetcher.Address != newDoc.Address {
+		t.Fatalf("Unexpected error when patching with a map. Expected-field-value(%v), Actual(%v)", newDoc.Name, fetcher.Name)
+	}
+
+	err = docEnd.DeleteDocument(doc.Id(), &DeleteDocumentOptions{IfMatch: fetcher.Rev() + fetcher.Rev()})
+
+	if err == nil {
+		t.Fatal("Expected delete with bad revision to fail.")
+	}
+
+	err = docEnd.DeleteDocument(doc.Id(), &DeleteDocumentOptions{IfMatch: fetcher.Rev()})
+
+	if err != nil {
+		t.Fatal("Unexpected error when deleting document: ", err)
+	}
 }

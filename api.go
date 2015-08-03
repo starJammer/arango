@@ -24,6 +24,13 @@ const (
 	LOADING_STATUS        CollectionStatus = 6
 )
 
+type Policy string
+
+const (
+	ERROR_POLICY Policy = "error"
+	LAST_POLICY  Policy = "last"
+)
+
 const (
 	DatabasePrefix   = "/_db/%s"
 	CollectionPrefix = "/_api/collection/%s"
@@ -234,6 +241,9 @@ type DocumentEndpoint interface {
 
 	//PatchDocument -> PATCH on /_api/document/{document-handle}
 	PatchDocument(documentHandle string, document interface{}, options *PatchDocumentOptions) error
+
+	//DeleteDocument -> DELETE on /_api/document/{document-handle}
+	DeleteDocument(documentHandle string, options *DeleteDocumentOptions) error
 }
 
 //DocumentImplementation is an embeddable type that
@@ -284,7 +294,7 @@ type HeadDocumentOptions GetDocumentOptions
 type PutDocumentOptions struct {
 	WaitForSync bool
 	Rev         string
-	Policy      string
+	Policy      Policy
 	IfMatch     string
 }
 
@@ -296,7 +306,7 @@ type PatchDocumentOptions struct {
 
 	WaitForSync bool
 	Rev         string
-	Policy      string
+	Policy      Policy
 	IfMatch     string
 }
 
@@ -306,6 +316,13 @@ func DefaultPatchDocumentOptions() *PatchDocumentOptions {
 		MergeObjects: true,
 		WaitForSync:  false,
 	}
+}
+
+type DeleteDocumentOptions struct {
+	Rev         string
+	Policy      Policy
+	WaitForSync string
+	IfMatch     string
 }
 
 type GetEdgeOptions GetDocumentOptions
