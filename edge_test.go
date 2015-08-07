@@ -53,144 +53,151 @@ func TestPostGetHeadPutPatchEdge(t *testing.T) {
 		t.Fatal("Unexpected error when creating new document: ", err)
 	}
 
-	//attempt to look for a document that shouldn't exist
-	var fetcher *edge
-	fetcher = new(edge)
-	err = docEnd.GetDocument(doc.Id()+"9999", fetcher, nil)
+	var efetcher *edge
+	efetcher = new(edge)
 
-	if err == nil {
-		t.Fatal("Expected an error because the document didn't exist.")
-	}
-
-	err = docEnd.GetDocument(doc.Id(), fetcher, nil)
+	//create an edge from/to the same document
+	var dedge *edge
+	dedge = new(edge)
+	dedge.Name = "edge-1"
+	dedge.Address = "edge-address"
+	err = edgeEnd.PostEdge(dedge, edgeCollectionOptions.Name, doc.Id(), doc.Id(), nil)
 
 	if err != nil {
-		t.Fatal("Problems fetching document.")
+		t.Fatal("Unexpected error when saving the edge.")
 	}
 
-	if fetcher.Name != doc.Name {
-		t.Fatal("Did not fetch Name attribute properly.")
+	if dedge.Id() == "" {
+		t.Fatal("Expected edge id to be set.")
 	}
 
-	if fetcher.Id() != doc.Id() {
-		t.Fatal("Ids are different between saved and fetched document for no reason.")
+	if dedge.Key() == "" {
+		t.Fatal("Expected edge key to be set.")
 	}
 
-	if fetcher.Rev() != doc.Rev() {
-		t.Fatal("Revs are different between saved and fetched document for no reason.")
+	if dedge.Rev() == "" {
+		t.Fatal("Expected edge revision to be set.")
 	}
 
-	err = docEnd.PostDocument(&doc, docs.Name, nil)
-
-	if err == nil {
-		t.Fatal("Expected an error when creating a duplicate document but didn't get one.")
+	if dedge.From() != doc.Id() || dedge.To() != doc.Id() {
+		t.Fatalf("Unexpected From and To fields in the edge: From(%s), To(%s), Expected From(%s), Expected To(%s)", dedge.From(), dedge.To(), doc.Id(), doc.Id())
 	}
 
-	if doc.Id() == "" {
-		t.Fatal("Expected the Id of the document to be set even though we double posted.")
+	err = edgeEnd.GetEdge(dedge.Id(), efetcher, nil)
+
+	if err != nil {
+		t.Fatal("Unexpected error when fetching the edge again for some reason.")
 	}
 
-	if doc.Key() == "" {
-		t.Fatal("Expected the Key of the document to be set even though we double posted.")
+	if efetcher.From() != dedge.From() || efetcher.To() != dedge.To() {
+		t.Fatalf("Unexpected From and To fields in fetched edge. From(%s), To(%s), Expected From(%s), Expected To(%s)", efetcher.From(), efetcher.To(), doc.Id(), doc.Id())
 	}
 
-	if doc.Rev() == "" {
-		t.Fatal("Expected the Rev of the document to be set even though we double posted.")
+	if efetcher.Name != dedge.Name {
+		t.Fatalf("Expected Name attributes to match. Actual(%s), Expected(%s)", efetcher.Name, dedge.Name)
 	}
 
-	err = docEnd.GetDocument(
-		doc.Id(),
-		fetcher,
-		&GetDocumentOptions{IfNoneMatch: doc.Rev()})
+	edges, err = edgeEnd.GetEdges(edgeCollectionOptions.Name, nil)
+	if err != nil {
+		t.Fatal("Unexpected error when fetching all edges in collection.")
+	}
+	if len(edges) != 1 {
+		t.Fatal("Expected one edge in collection.")
+	}
+
+	err = edgeEnd.GetEdge(
+		dedge.Id(),
+		efetcher,
+		&GetEdgeOptions{IfNoneMatch: dedge.Rev()})
 
 	if err != nil {
 		t.Fatal("Did not expect an error because the revisions should match.")
 	}
 
-	revision, err := docEnd.HeadDocument(doc.Id(), nil)
+	revision, err := edgeEnd.HeadEdge(dedge.Id(), nil)
 
 	if err != nil {
 		t.Fatal("Did not expect an error: ", err)
 	}
 
-	if revision != doc.Rev() {
+	if revision != dedge.Rev() {
 		t.Fatalf("Expected HEAD to return correct revision: Expected(%s), Actual(%s)", doc.Rev(), revision)
 	}
 
-	revision, err = docEnd.HeadDocument(doc.Id(), &HeadDocumentOptions{IfMatch: doc.Rev() + doc.Rev()})
+	revision, err = edgeEnd.HeadEdge(dedge.Id(), &HeadEdgeOptions{IfMatch: dedge.Rev() + dedge.Rev()})
 
 	if err != nil {
 		t.Fatal("Did not expect an error even though revisions did not match:", err, revision)
 	}
 
-	if revision != doc.Rev() {
-		t.Fatal("Expected returned revision to match document revision.")
+	if revision != dedge.Rev() {
+		t.Fatal("Expected returned revision to match edge revision.")
 	}
 
-	revision, err = docEnd.HeadDocument(doc.Id(), &HeadDocumentOptions{IfNoneMatch: doc.Rev()})
+	revision, err = edgeEnd.HeadEdge(dedge.Id(), &HeadEdgeOptions{IfNoneMatch: dedge.Rev()})
 
 	if err != nil {
 		t.Fatal("Did not expect an error: ", err)
 	}
 
-	if revision != doc.Rev() {
-		t.Fatalf("Expected HEAD to return correct revision: Expected(%s), Actual(%s)", doc.Rev(), revision)
+	if revision != dedge.Rev() {
+		t.Fatalf("Expected HEAD to return correct revision: Expected(%s), Actual(%s)", dedge.Rev(), revision)
 	}
 
-	var newDoc document
-	newDoc.Address = "address"
+	var newEdge edge
+	newEdge.Address = "address"
 
 	//test IfMatch
-	err = docEnd.PutDocument(doc.Id(), &newDoc, &PutDocumentOptions{IfMatch: doc.Rev() + doc.Rev()})
+	err = edgeEnd.PutEdge(dedge.Id(), &newEdge, &PutEdgeOptions{IfMatch: dedge.Rev() + dedge.Rev()})
 
 	if err == nil {
 		t.Fatal("Expected an error when putting to a document whose revision doesn't match.")
 	}
 
 	//test Rev
-	err = docEnd.PutDocument(doc.Id(), &newDoc, &PutDocumentOptions{Rev: doc.Rev() + doc.Rev()})
+	err = edgeEnd.PutEdge(dedge.Id(), &newEdge, &PutEdgeOptions{Rev: dedge.Rev() + dedge.Rev()})
 
 	if err == nil {
 		t.Fatal("Expected an error when putting to a document whose revision doesn't match.")
 	}
 
-	err = docEnd.PutDocument(doc.Id(), &newDoc, nil)
+	err = edgeEnd.PutEdge(dedge.Id(), &newEdge, nil)
 
 	if err != nil {
 		t.Fatal("Unexpected error when putting a new document:", err)
 	}
 
-	if newDoc.Id() != doc.Id() {
-		t.Fatalf("Expected put document id to be equal to old doc id. Expected(%s), Actual(%s)", doc.Id(), newDoc.Id())
+	if newEdge.Id() != dedge.Id() {
+		t.Fatalf("Expected put document id to be equal to old doc id. Expected(%s), Actual(%s)", dedge.Id(), newEdge.Id())
 	}
 
-	if newDoc.Rev() == doc.Rev() {
-		t.Fatalf("Expected put document rev to NOT be  equal to old doc rev. Expected(%s), Actual(%s)", doc.Rev(), newDoc.Rev())
+	if newEdge.Rev() == dedge.Rev() {
+		t.Fatalf("Expected put document rev to NOT be  equal to old doc rev. Expected(%s), Actual(%s)", dedge.Rev(), newEdge.Rev())
 	}
 
-	fetcher = new(edge)
-	err = docEnd.GetDocument(doc.Id(), fetcher, nil)
+	efetcher = new(edge)
+	err = edgeEnd.GetEdge(dedge.Id(), efetcher, nil)
 
-	if fetcher.Name != "" || fetcher.Name == "test-document" {
-		t.Fatal("Expected fetcher.Name to not have a value since we put a document with no Name. Name = ", fetcher.Name)
+	if efetcher.Name != "" || efetcher.Name == "test-document" {
+		t.Fatal("Expected efetcher.Name to not have a value since we put a document with no Name. Name = ", efetcher.Name)
 	}
 
-	if fetcher.Address != "address" {
-		t.Fatalf("Unexpected value for address after put. Actual(%s)", fetcher.Address)
+	if efetcher.Address != "address" {
+		t.Fatalf("Unexpected value for address after put. Actual(%s)", efetcher.Address)
 	}
 
-	newDoc.Name = "test-document"
-	err = docEnd.PutDocument(doc.Id(), &newDoc, &PutDocumentOptions{Rev: newDoc.Rev() + newDoc.Rev(), Policy: "last"})
+	newEdge.Name = "test-document"
+	err = edgeEnd.PutEdge(dedge.Id(), &newEdge, &PutEdgeOptions{Rev: newEdge.Rev() + newEdge.Rev(), Policy: "last"})
 
 	if err != nil {
 		t.Fatal("Unexpected error when using \"last\" policy and a mismatching revision: ", err)
 	}
 
-	fetcher = new(edge)
-	err = docEnd.GetDocument(doc.Id(), fetcher, nil)
+	efetcher = new(edge)
+	err = edgeEnd.GetEdge(dedge.Id(), efetcher, nil)
 
-	if fetcher.Name != newDoc.Name || fetcher.Address != newDoc.Address {
-		t.Fatalf("Got unexpected values after putting a new document using last policy: Expected(%v), Actual(%v)", newDoc, fetcher)
+	if efetcher.Name != newEdge.Name || efetcher.Address != newEdge.Address {
+		t.Fatalf("Got unexpected values after putting a new document using last policy: Expected(%v), Actual(%v)", newEdge, efetcher)
 	}
 
 	var patcher struct {
@@ -199,40 +206,40 @@ func TestPostGetHeadPutPatchEdge(t *testing.T) {
 
 	patcher.Name = "new-name"
 
-	err = docEnd.PatchDocument(doc.Id(), &patcher, nil)
+	err = edgeEnd.PatchEdge(dedge.Id(), &patcher, nil)
 
 	if err != nil {
 		t.Fatal("Unexpected error when patching using a map: ", err)
 	}
 
-	fetcher = new(edge)
-	err = docEnd.GetDocument(doc.Id(), fetcher, nil)
+	efetcher = new(edge)
+	err = edgeEnd.GetEdge(dedge.Id(), efetcher, nil)
 
-	if fetcher.Name != "new-name" || fetcher.Address != newDoc.Address {
-		t.Fatalf("Unexpected error when patching only one field. Expected-field-value(%v), Actual(%v)", newDoc.Name, fetcher.Name)
+	if efetcher.Name != "new-name" || efetcher.Address != newEdge.Address {
+		t.Fatalf("Unexpected error when patching only one field. Expected-field-value(%v), Actual(%v)", newEdge.Name, efetcher.Name)
 	}
 
 	//test patching with a map
-	err = docEnd.PatchDocument(doc.Id(), &map[string]interface{}{"Name": "new-name"}, nil)
+	err = edgeEnd.PatchEdge(dedge.Id(), &map[string]interface{}{"Name": "new-name"}, nil)
 
 	if err != nil {
 		t.Fatal("Unexpected error when patching using a map: ", err)
 	}
 
-	fetcher = new(edge)
-	err = docEnd.GetDocument(doc.Id(), fetcher, nil)
+	efetcher = new(edge)
+	err = edgeEnd.GetEdge(dedge.Id(), efetcher, nil)
 
-	if fetcher.Name != "new-name" || fetcher.Address != newDoc.Address {
-		t.Fatalf("Unexpected error when patching with a map. Expected-field-value(%v), Actual(%v)", newDoc.Name, fetcher.Name)
+	if efetcher.Name != "new-name" || efetcher.Address != newEdge.Address {
+		t.Fatalf("Unexpected error when patching with a map. Expected-field-value(%v), Actual(%v)", newEdge.Name, efetcher.Name)
 	}
 
-	err = docEnd.DeleteDocument(doc.Id(), &DeleteDocumentOptions{IfMatch: fetcher.Rev() + fetcher.Rev()})
+	err = edgeEnd.DeleteEdge(dedge.Id(), &DeleteEdgeOptions{IfMatch: efetcher.Rev() + efetcher.Rev()})
 
 	if err == nil {
 		t.Fatal("Expected delete with bad revision to fail.")
 	}
 
-	err = docEnd.DeleteDocument(doc.Id(), &DeleteDocumentOptions{IfMatch: fetcher.Rev()})
+	err = edgeEnd.DeleteEdge(dedge.Id(), &DeleteEdgeOptions{IfMatch: efetcher.Rev()})
 
 	if err != nil {
 		t.Fatal("Unexpected error when deleting document: ", err)
