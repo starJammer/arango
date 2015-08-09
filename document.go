@@ -39,13 +39,18 @@ func (doc *documentEndpoint) GetDocuments(
 			"collection": []string{collection},
 			"type":       []string{returnType},
 		},
-		&result, errorResult)
+		gr.UnmarshalMap{
+			http.StatusOK:         &result,
+			http.StatusBadRequest: errorResult,
+			http.StatusNotFound:   errorResult,
+		},
+	)
 
 	if err != nil {
 		return nil, err
 	}
 
-	if h.StatusCode != 200 {
+	if h.StatusCode != http.StatusOK {
 		return nil, errorResult
 	}
 
@@ -72,15 +77,20 @@ func (doc *documentEndpoint) PostDocument(
 		nil,
 		query,
 		document,
-		document,
-		errorResult,
+		gr.UnmarshalMap{
+			http.StatusCreated:    document,
+			http.StatusAccepted:   document,
+			http.StatusBadRequest: errorResult,
+			http.StatusNotFound:   errorResult,
+		},
 	)
 
 	if err != nil {
 		return err
 	}
 
-	if h.StatusCode != 201 && h.StatusCode != 202 {
+	if h.StatusCode != http.StatusCreated &&
+		h.StatusCode != http.StatusAccepted {
 		return errorResult
 	}
 
@@ -113,15 +123,19 @@ func (doc *documentEndpoint) GetDocument(documentHandle string, documentReceiver
 		fmt.Sprintf("/%s", documentHandle),
 		headers,
 		query,
-		documentReceiver,
-		errorResult,
+		gr.UnmarshalMap{
+			http.StatusOK:                 documentReceiver,
+			http.StatusBadRequest:         errorResult,
+			http.StatusNotFound:           errorResult,
+			http.StatusPreconditionFailed: errorResult,
+		},
 	)
 
 	if err != nil {
 		return err
 	}
 
-	if h.StatusCode != 200 && h.StatusCode != 304 {
+	if h.StatusCode != http.StatusOK && h.StatusCode != http.StatusNotModified {
 		return errorResult
 	}
 
@@ -158,11 +172,13 @@ func (doc *documentEndpoint) HeadDocument(documentHandle string, options *HeadDo
 		return "", err
 	}
 
-	if h.StatusCode == 400 {
+	if h.StatusCode == http.StatusBadRequest {
 		return "", newArangoError(h.StatusCode, "Malformed request.")
 	}
 
-	if h.StatusCode != 200 && h.StatusCode != 304 && h.StatusCode != 412 {
+	if h.StatusCode != http.StatusOK &&
+		h.StatusCode != http.StatusNotModified &&
+		h.StatusCode != http.StatusPreconditionFailed {
 		return "", newArangoError(h.StatusCode, "Unknown response from arango.")
 	}
 
@@ -199,16 +215,22 @@ func (doc *documentEndpoint) PutDocument(documentHandle string, document interfa
 		headers,
 		query,
 		document, //document is the body
-		document, //document is used as the successResult so it gets
-		//populated with the new revision info
-		errorResult,
+		gr.UnmarshalMap{
+			//document is used as the successResult so it gets
+			//populated with the new revision info
+			http.StatusCreated:    document,
+			http.StatusAccepted:   document,
+			http.StatusBadRequest: errorResult,
+			http.StatusNotFound:   errorResult,
+		},
 	)
 
 	if err != nil {
 		return err
 	}
 
-	if h.StatusCode != 201 && h.StatusCode != 202 {
+	if h.StatusCode != http.StatusCreated &&
+		h.StatusCode != http.StatusAccepted {
 		return errorResult
 	}
 
@@ -249,17 +271,22 @@ func (doc *documentEndpoint) PatchDocument(documentHandle string, document inter
 		query,
 		//document is the body
 		document,
-		//document is used as the successResult so it gets
-		//populated with the new revision info
-		document,
-		errorResult,
+		gr.UnmarshalMap{
+			//document is used as the successResult so it gets
+			//populated with the new revision info
+			http.StatusCreated:    document,
+			http.StatusAccepted:   document,
+			http.StatusBadRequest: errorResult,
+			http.StatusNotFound:   errorResult,
+		},
 	)
 
 	if err != nil {
 		return err
 	}
 
-	if h.StatusCode != 201 && h.StatusCode != 202 {
+	if h.StatusCode != http.StatusCreated &&
+		h.StatusCode != http.StatusAccepted {
 		return errorResult
 	}
 
@@ -296,15 +323,18 @@ func (doc *documentEndpoint) DeleteDocument(documentHandle string, options *Dele
 		fmt.Sprintf("/%s", documentHandle),
 		headers,
 		query,
-		nil,
-		errorResult,
+		gr.UnmarshalMap{
+			http.StatusBadRequest: errorResult,
+			http.StatusNotFound:   errorResult,
+		},
 	)
 
 	if err != nil {
 		return err
 	}
 
-	if h.StatusCode != 201 && h.StatusCode != 202 {
+	if h.StatusCode != http.StatusCreated &&
+		h.StatusCode != http.StatusAccepted {
 		return errorResult
 	}
 

@@ -175,6 +175,10 @@ func TestPostGetHeadPutPatchEdge(t *testing.T) {
 		t.Fatalf("Expected put document rev to NOT be  equal to old doc rev. Expected(%s), Actual(%s)", dedge.Rev(), newEdge.Rev())
 	}
 
+	if newEdge.From() != dedge.From() || newEdge.To() != dedge.To() {
+		t.Fatalf("Expected put edge to have correct from and to.. ExpectedFrom(%s), ExpectedTo(%s), ActualFrom(%s), ActualTo(%s)", newEdge.From(), newEdge.To(), dedge.From(), dedge.To())
+	}
+
 	efetcher = new(edge)
 	err = edgeEnd.GetEdge(dedge.Id(), efetcher, nil)
 

@@ -3,6 +3,7 @@ package arango
 import (
 	"fmt"
 	gr "github.com/starJammer/grestclient"
+	"net/http"
 	"net/url"
 )
 
@@ -53,8 +54,6 @@ func (v *version) Details() map[string]string {
 func (c *connection) Version(details bool) (Version, error) {
 	v := &version{}
 
-	errorResult := &arangoError{}
-
 	params := url.Values{}
 	if details {
 		params.Add("details", "true")
@@ -63,13 +62,16 @@ func (c *connection) Version(details bool) (Version, error) {
 		VersionPath,
 		nil,
 		params,
-		v, errorResult)
+		gr.UnmarshalMap{
+			http.StatusOK: v,
+		},
+	)
 
 	if err != nil {
 		return nil, err
 	}
 
-	if h.StatusCode != 200 {
+	if h.StatusCode != http.StatusOK {
 		return nil, newArangoError(h.StatusCode, "Unxpected error fetching version.")
 	}
 

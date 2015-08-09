@@ -155,6 +155,17 @@ type Database interface {
 	Delete(name string) error
 }
 
+//Edge is similar to the Document type but
+//includes the From and To methods specific
+//for edges.
+type Edge interface {
+	Document
+	From() string
+	SetFrom(string)
+	To() string
+	SetTo(string)
+}
+
 //EdgeImplementation is an embeddable type that
 //you can use to easily gain access to arango
 //specific attributes for edges. These include
@@ -167,12 +178,20 @@ type EdgeImplementation struct {
 	ArangoTo   string `json:"_to,omitempty"`
 }
 
-func (e EdgeImplementation) From() string {
+func (e *EdgeImplementation) From() string {
 	return e.ArangoFrom
 }
 
-func (e EdgeImplementation) To() string {
+func (e *EdgeImplementation) SetFrom(from string) {
+	e.ArangoFrom = from
+}
+
+func (e *EdgeImplementation) To() string {
 	return e.ArangoTo
+}
+
+func (e *EdgeImplementation) SetTo(to string) {
+	e.ArangoTo = to
 }
 
 type EdgeEndpoint interface {
@@ -267,6 +286,20 @@ type DocumentEndpoint interface {
 	DeleteDocument(documentHandle string, options *DeleteDocumentOptions) error
 }
 
+//Document represents a document. You'll never
+//need to use this directly. Use DocumentImplementation instead.
+//This is here in case you need to do a type test for a Document
+//to get the id, key, or rev. Don't use the set methods yourself.
+//Things might go wrong.
+type Document interface {
+	Id() string
+	SetId(string)
+	Key() string
+	SetKey(string)
+	Rev() string
+	SetRev(string)
+}
+
 //DocumentImplementation is an embeddable type that
 //you can use to easily gain access to arango specific
 //data. It will help capture the _id, _key, and _rev
@@ -277,16 +310,28 @@ type DocumentImplementation struct {
 	ArangoKey string `json:"_key,omitempty"`
 }
 
-func (d DocumentImplementation) Id() string {
+func (d *DocumentImplementation) Id() string {
 	return d.ArangoId
 }
 
-func (d DocumentImplementation) Rev() string {
+func (d *DocumentImplementation) SetId(id string) {
+	d.ArangoId = id
+}
+
+func (d *DocumentImplementation) Rev() string {
 	return d.ArangoRev
+}
+
+func (d DocumentImplementation) SetRev(rev string) {
+	d.ArangoRev = rev
 }
 
 func (d DocumentImplementation) Key() string {
 	return d.ArangoKey
+}
+
+func (d DocumentImplementation) SetKey(key string) {
+	d.ArangoKey = key
 }
 
 type PostDocumentOptions struct {

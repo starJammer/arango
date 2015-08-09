@@ -39,13 +39,18 @@ func (doc *edgeEndpoint) GetEdges(
 			"collection": []string{collection},
 			"type":       []string{returnType},
 		},
-		&result, errorResult)
+		gr.UnmarshalMap{
+			http.StatusOK:         &result,
+			http.StatusBadRequest: errorResult,
+			http.StatusNotFound:   errorResult,
+		},
+	)
 
 	if err != nil {
 		return nil, err
 	}
 
-	if h.StatusCode != 200 {
+	if h.StatusCode != http.StatusOK {
 		return nil, errorResult
 	}
 
@@ -76,16 +81,26 @@ func (doc *edgeEndpoint) PostEdge(
 		nil,
 		query,
 		edge,
-		edge,
-		errorResult,
+		gr.UnmarshalMap{
+			http.StatusCreated:    edge,
+			http.StatusAccepted:   edge,
+			http.StatusBadRequest: errorResult,
+			http.StatusNotFound:   errorResult,
+		},
 	)
 
 	if err != nil {
 		return err
 	}
 
-	if h.StatusCode != 201 && h.StatusCode != 202 {
+	if h.StatusCode != http.StatusCreated &&
+		h.StatusCode != http.StatusAccepted {
 		return errorResult
+	}
+
+	if e, ok := edge.(Edge); ok {
+		e.SetFrom(from)
+		e.SetTo(to)
 	}
 
 	return nil
@@ -117,15 +132,19 @@ func (doc *edgeEndpoint) GetEdge(edgeHandle string, edgeReceiver interface{}, op
 		fmt.Sprintf("/%s", edgeHandle),
 		headers,
 		query,
-		edgeReceiver,
-		errorResult,
+		gr.UnmarshalMap{
+			http.StatusOK:                 edgeReceiver,
+			http.StatusBadRequest:         errorResult,
+			http.StatusNotFound:           errorResult,
+			http.StatusPreconditionFailed: errorResult,
+		},
 	)
 
 	if err != nil {
 		return err
 	}
 
-	if h.StatusCode != 200 && h.StatusCode != 304 {
+	if h.StatusCode != http.StatusOK && h.StatusCode != http.StatusNotModified {
 		return errorResult
 	}
 
@@ -162,11 +181,13 @@ func (doc *edgeEndpoint) HeadEdge(edgeHandle string, options *HeadEdgeOptions) (
 		return "", err
 	}
 
-	if h.StatusCode == 400 {
+	if h.StatusCode == http.StatusBadRequest {
 		return "", newArangoError(h.StatusCode, "Malformed request.")
 	}
 
-	if h.StatusCode != 200 && h.StatusCode != 304 && h.StatusCode != 412 {
+	if h.StatusCode != http.StatusOK &&
+		h.StatusCode != http.StatusNotModified &&
+		h.StatusCode != http.StatusPreconditionFailed {
 		return "", newArangoError(h.StatusCode, "Unknown response from arango.")
 	}
 
@@ -203,16 +224,22 @@ func (doc *edgeEndpoint) PutEdge(edgeHandle string, edge interface{}, options *P
 		headers,
 		query,
 		edge, //edge is the body
-		edge, //edge is used as the successResult so it gets
-		//populated with the new revision info
-		errorResult,
+		gr.UnmarshalMap{
+			//edge is used as the successResult so it gets
+			//populated with the new revision info
+			http.StatusCreated:    edge,
+			http.StatusAccepted:   edge,
+			http.StatusBadRequest: errorResult,
+			http.StatusNotFound:   errorResult,
+		},
 	)
 
 	if err != nil {
 		return err
 	}
 
-	if h.StatusCode != 201 && h.StatusCode != 202 {
+	if h.StatusCode != http.StatusCreated &&
+		h.StatusCode != http.StatusAccepted {
 		return errorResult
 	}
 
@@ -253,17 +280,22 @@ func (doc *edgeEndpoint) PatchEdge(edgeHandle string, edge interface{}, options 
 		query,
 		//edge is the body
 		edge,
-		//edge is used as the successResult so it gets
-		//populated with the new revision info
-		edge,
-		errorResult,
+		gr.UnmarshalMap{
+			//document is used as the successResult so it gets
+			//populated with the new revision info
+			http.StatusCreated:    edge,
+			http.StatusAccepted:   edge,
+			http.StatusBadRequest: errorResult,
+			http.StatusNotFound:   errorResult,
+		},
 	)
 
 	if err != nil {
 		return err
 	}
 
-	if h.StatusCode != 201 && h.StatusCode != 202 {
+	if h.StatusCode != http.StatusCreated &&
+		h.StatusCode != http.StatusAccepted {
 		return errorResult
 	}
 
@@ -300,15 +332,18 @@ func (doc *edgeEndpoint) DeleteEdge(edgeHandle string, options *DeleteEdgeOption
 		fmt.Sprintf("/%s", edgeHandle),
 		headers,
 		query,
-		nil,
-		errorResult,
+		gr.UnmarshalMap{
+			http.StatusBadRequest: errorResult,
+			http.StatusNotFound:   errorResult,
+		},
 	)
 
 	if err != nil {
 		return err
 	}
 
-	if h.StatusCode != 201 && h.StatusCode != 202 {
+	if h.StatusCode != http.StatusCreated &&
+		h.StatusCode != http.StatusAccepted {
 		return errorResult
 	}
 

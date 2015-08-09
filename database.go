@@ -2,6 +2,7 @@ package arango
 
 import (
 	gr "github.com/starJammer/grestclient"
+	"net/http"
 )
 
 type database struct {
@@ -49,13 +50,22 @@ func (d *database) Get() ([]string, error) {
 	}
 	var errorResult = &arangoError{}
 
-	h, err := d.client.Get(DatabasePath, nil, nil, &result, errorResult)
+	h, err := d.client.Get(
+		DatabasePath,
+		nil,
+		nil,
+		gr.UnmarshalMap{
+			http.StatusOK:         &result,
+			http.StatusBadRequest: errorResult,
+			http.StatusNotFound:   errorResult,
+		},
+	)
 
 	if err != nil {
 		return nil, err
 	}
 
-	if h.StatusCode >= 400 {
+	if h.StatusCode >= http.StatusBadRequest {
 		return nil, errorResult
 	}
 
@@ -71,13 +81,22 @@ func (d *database) GetUser() ([]string, error) {
 
 	var errorResult = &arangoError{}
 
-	h, err := d.client.Get(DatabasePath+"/user", nil, nil, &result, errorResult)
+	h, err := d.client.Get(
+		DatabasePath+"/user",
+		nil,
+		nil,
+		gr.UnmarshalMap{
+			http.StatusOK:         &result,
+			http.StatusBadRequest: errorResult,
+			http.StatusNotFound:   errorResult,
+		},
+	)
 
 	if err != nil {
 		return nil, err
 	}
 
-	if h.StatusCode >= 400 {
+	if h.StatusCode >= http.StatusBadRequest {
 		return nil, errorResult
 	}
 
@@ -114,7 +133,16 @@ func (d *database) GetCurrent() (CurrentResult, error) {
 	}
 	var errorResult = &arangoError{}
 
-	h, err := d.client.Get(DatabasePath+"/current", nil, nil, &result, errorResult)
+	h, err := d.client.Get(
+		DatabasePath+"/current",
+		nil,
+		nil,
+		gr.UnmarshalMap{
+			http.StatusOK:         &result,
+			http.StatusBadRequest: errorResult,
+			http.StatusNotFound:   errorResult,
+		},
+	)
 
 	if err != nil {
 		return nil, err
@@ -135,7 +163,16 @@ func (d *database) Post(name string, opts *PostDatabaseOptions) error {
 	}
 	opts.Name = name
 
-	h, err := d.client.Post(DatabasePath, nil, nil, opts, nil, errorResult)
+	h, err := d.client.Post(
+		DatabasePath,
+		nil,
+		nil,
+		opts,
+		gr.UnmarshalMap{
+			http.StatusBadRequest: errorResult,
+			http.StatusNotFound:   errorResult,
+		},
+	)
 
 	if err != nil {
 		return err
@@ -156,7 +193,11 @@ func (d *database) Delete(name string) error {
 		DatabasePath+"/"+name,
 		nil,
 		nil,
-		nil, errorResult)
+		gr.UnmarshalMap{
+			http.StatusBadRequest: errorResult,
+			http.StatusNotFound:   errorResult,
+		},
+	)
 
 	if err != nil {
 		return err
