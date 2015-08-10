@@ -55,9 +55,9 @@ func (d *database) Get() ([]string, error) {
 		nil,
 		nil,
 		gr.UnmarshalMap{
-			http.StatusOK:         &result,
-			http.StatusBadRequest: errorResult,
-			http.StatusNotFound:   errorResult,
+			http.StatusOK:         gr.UnmarshalList(&result),
+			http.StatusForbidden:  gr.UnmarshalList(errorResult),
+			http.StatusBadRequest: gr.UnmarshalList(errorResult),
 		},
 	)
 
@@ -86,9 +86,9 @@ func (d *database) GetUser() ([]string, error) {
 		nil,
 		nil,
 		gr.UnmarshalMap{
-			http.StatusOK:         &result,
-			http.StatusBadRequest: errorResult,
-			http.StatusNotFound:   errorResult,
+			http.StatusOK:         gr.UnmarshalList(&result),
+			http.StatusBadRequest: gr.UnmarshalList(errorResult),
+			http.StatusNotFound:   gr.UnmarshalList(errorResult),
 		},
 	)
 
@@ -138,9 +138,9 @@ func (d *database) GetCurrent() (CurrentResult, error) {
 		nil,
 		nil,
 		gr.UnmarshalMap{
-			http.StatusOK:         &result,
-			http.StatusBadRequest: errorResult,
-			http.StatusNotFound:   errorResult,
+			http.StatusOK:         gr.UnmarshalList(&result),
+			http.StatusBadRequest: gr.UnmarshalList(errorResult),
+			http.StatusNotFound:   gr.UnmarshalList(errorResult),
 		},
 	)
 
@@ -148,7 +148,7 @@ func (d *database) GetCurrent() (CurrentResult, error) {
 		return nil, err
 	}
 
-	if h.StatusCode >= 400 {
+	if h.StatusCode >= http.StatusBadRequest {
 		return nil, errorResult
 	}
 
@@ -169,8 +169,8 @@ func (d *database) Post(name string, opts *PostDatabaseOptions) error {
 		nil,
 		opts,
 		gr.UnmarshalMap{
-			http.StatusBadRequest: errorResult,
-			http.StatusNotFound:   errorResult,
+			http.StatusBadRequest: gr.UnmarshalList(errorResult),
+			http.StatusNotFound:   gr.UnmarshalList(errorResult),
 		},
 	)
 
@@ -178,7 +178,7 @@ func (d *database) Post(name string, opts *PostDatabaseOptions) error {
 		return err
 	}
 
-	if h.StatusCode != 201 {
+	if h.StatusCode != http.StatusCreated {
 		return errorResult
 	}
 
@@ -194,8 +194,8 @@ func (d *database) Delete(name string) error {
 		nil,
 		nil,
 		gr.UnmarshalMap{
-			http.StatusBadRequest: errorResult,
-			http.StatusNotFound:   errorResult,
+			http.StatusBadRequest: gr.UnmarshalList(errorResult),
+			http.StatusNotFound:   gr.UnmarshalList(errorResult),
 		},
 	)
 
@@ -203,7 +203,7 @@ func (d *database) Delete(name string) error {
 		return err
 	}
 
-	if h.StatusCode != 200 {
+	if h.StatusCode != http.StatusOK {
 		return errorResult
 	}
 

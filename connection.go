@@ -63,7 +63,7 @@ func (c *connection) Version(details bool) (Version, error) {
 		nil,
 		params,
 		gr.UnmarshalMap{
-			http.StatusOK: v,
+			http.StatusOK: gr.UnmarshalList(v),
 		},
 	)
 

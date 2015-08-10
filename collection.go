@@ -216,7 +216,7 @@ func (c *collectionEndpoint) GetCollections(excludeSystemCollections bool) (Coll
 		nil,
 		url.Values{"excludeSystem": []string{fmt.Sprintf("%t", excludeSystemCollections)}},
 		gr.UnmarshalMap{
-			http.StatusOK: &result,
+			http.StatusOK: gr.UnmarshalList(&result),
 		},
 	)
 
@@ -252,9 +252,9 @@ func (c *collectionEndpoint) PostCollection(name string, options *PostCollection
 		nil,
 		options,
 		gr.UnmarshalMap{
-			http.StatusOK:         descriptor,
-			http.StatusBadRequest: errorResult,
-			http.StatusNotFound:   errorResult,
+			http.StatusOK:         gr.UnmarshalList(descriptor),
+			http.StatusBadRequest: gr.UnmarshalList(errorResult),
+			http.StatusNotFound:   gr.UnmarshalList(errorResult),
 		},
 	)
 
@@ -279,8 +279,8 @@ func (c *collectionEndpoint) Get(name string) (CollectionDescriptor, error) {
 		nil,
 		nil,
 		gr.UnmarshalMap{
-			http.StatusOK:       descriptor,
-			http.StatusNotFound: errorResult,
+			http.StatusOK:       gr.UnmarshalList(descriptor),
+			http.StatusNotFound: gr.UnmarshalList(errorResult),
 		},
 	)
 
@@ -305,8 +305,8 @@ func (c *collectionEndpoint) GetProperties(name string) (CollectionDescriptor, e
 		nil,
 		nil,
 		gr.UnmarshalMap{
-			http.StatusOK:       descriptor,
-			http.StatusNotFound: errorResult,
+			http.StatusOK:       gr.UnmarshalList(descriptor),
+			http.StatusNotFound: gr.UnmarshalList(errorResult),
 		},
 	)
 
@@ -330,9 +330,9 @@ func (c *collectionEndpoint) GetCount(name string) (CollectionDescriptor, error)
 		nil,
 		nil,
 		gr.UnmarshalMap{
-			http.StatusOK:         descriptor,
-			http.StatusBadRequest: errorResult,
-			http.StatusNotFound:   errorResult,
+			http.StatusOK:         gr.UnmarshalList(descriptor),
+			http.StatusBadRequest: gr.UnmarshalList(errorResult),
+			http.StatusNotFound:   gr.UnmarshalList(errorResult),
 		},
 	)
 
@@ -356,9 +356,9 @@ func (c *collectionEndpoint) GetFigures(name string) (CollectionDescriptor, erro
 		nil,
 		nil,
 		gr.UnmarshalMap{
-			http.StatusOK:         descriptor,
-			http.StatusBadRequest: errorResult,
-			http.StatusNotFound:   errorResult,
+			http.StatusOK:         gr.UnmarshalList(descriptor),
+			http.StatusBadRequest: gr.UnmarshalList(errorResult),
+			http.StatusNotFound:   gr.UnmarshalList(errorResult),
 		},
 	)
 
@@ -382,9 +382,9 @@ func (c *collectionEndpoint) GetRevision(name string) (CollectionDescriptor, err
 		nil,
 		nil,
 		gr.UnmarshalMap{
-			http.StatusOK:         descriptor,
-			http.StatusBadRequest: errorResult,
-			http.StatusNotFound:   errorResult,
+			http.StatusOK:         gr.UnmarshalList(descriptor),
+			http.StatusBadRequest: gr.UnmarshalList(errorResult),
+			http.StatusNotFound:   gr.UnmarshalList(errorResult),
 		},
 	)
 
@@ -411,9 +411,9 @@ func (c *collectionEndpoint) GetChecksum(name string, withRevisions bool, withDa
 			"withData":      []string{fmt.Sprintf("%t", withData)},
 		},
 		gr.UnmarshalMap{
-			http.StatusOK:         descriptor,
-			http.StatusBadRequest: errorResult,
-			http.StatusNotFound:   errorResult,
+			http.StatusOK:         gr.UnmarshalList(descriptor),
+			http.StatusBadRequest: gr.UnmarshalList(errorResult),
+			http.StatusNotFound:   gr.UnmarshalList(errorResult),
 		},
 	)
 
@@ -439,9 +439,9 @@ func (c *collectionEndpoint) PutLoad(name string, includeCount bool) (Collection
 		nil,
 		map[string]string{"count": fmt.Sprintf("%t", includeCount)},
 		gr.UnmarshalMap{
-			http.StatusOK:         descriptor,
-			http.StatusBadRequest: errorResult,
-			http.StatusNotFound:   errorResult,
+			http.StatusOK:         gr.UnmarshalList(descriptor),
+			http.StatusBadRequest: gr.UnmarshalList(errorResult),
+			http.StatusNotFound:   gr.UnmarshalList(errorResult),
 		},
 	)
 
@@ -467,9 +467,9 @@ func (c *collectionEndpoint) PutUnload(name string) (CollectionDescriptor, error
 		nil,
 		nil,
 		gr.UnmarshalMap{
-			http.StatusOK:         descriptor,
-			http.StatusBadRequest: errorResult,
-			http.StatusNotFound:   errorResult,
+			http.StatusOK:         gr.UnmarshalList(descriptor),
+			http.StatusBadRequest: gr.UnmarshalList(errorResult),
+			http.StatusNotFound:   gr.UnmarshalList(errorResult),
 		},
 	)
 
@@ -495,9 +495,9 @@ func (c *collectionEndpoint) PutTruncate(name string) (CollectionDescriptor, err
 		nil,
 		nil,
 		gr.UnmarshalMap{
-			http.StatusOK:         descriptor,
-			http.StatusBadRequest: errorResult,
-			http.StatusNotFound:   errorResult,
+			http.StatusOK:         gr.UnmarshalList(descriptor),
+			http.StatusBadRequest: gr.UnmarshalList(errorResult),
+			http.StatusNotFound:   gr.UnmarshalList(errorResult),
 		},
 	)
 
@@ -523,9 +523,9 @@ func (c *collectionEndpoint) PutProperties(name string, properties *CollectionPr
 		nil,
 		properties,
 		gr.UnmarshalMap{
-			http.StatusOK:         descriptor,
-			http.StatusBadRequest: errorResult,
-			http.StatusNotFound:   errorResult,
+			http.StatusOK:         gr.UnmarshalList(descriptor),
+			http.StatusBadRequest: gr.UnmarshalList(errorResult),
+			http.StatusNotFound:   gr.UnmarshalList(errorResult),
 		},
 	)
 
@@ -551,9 +551,9 @@ func (c *collectionEndpoint) PutRename(name string, newName string) (CollectionD
 		nil,
 		map[string]string{"name": newName},
 		gr.UnmarshalMap{
-			http.StatusOK:         descriptor,
-			http.StatusBadRequest: errorResult,
-			http.StatusNotFound:   errorResult,
+			http.StatusOK:         gr.UnmarshalList(descriptor),
+			http.StatusBadRequest: gr.UnmarshalList(errorResult),
+			http.StatusNotFound:   gr.UnmarshalList(errorResult),
 		},
 	)
 
@@ -578,8 +578,8 @@ func (c *collectionEndpoint) PutRotate(name string) error {
 		nil,
 		nil,
 		gr.UnmarshalMap{
-			http.StatusBadRequest: errorResult,
-			http.StatusNotFound:   errorResult,
+			http.StatusBadRequest: gr.UnmarshalList(errorResult),
+			http.StatusNotFound:   gr.UnmarshalList(errorResult),
 		},
 	)
 
@@ -603,8 +603,8 @@ func (c *collectionEndpoint) Delete(name string) error {
 		nil,
 		nil,
 		gr.UnmarshalMap{
-			http.StatusBadRequest: errorResult,
-			http.StatusNotFound:   errorResult,
+			http.StatusBadRequest: gr.UnmarshalList(errorResult),
+			http.StatusNotFound:   gr.UnmarshalList(errorResult),
 		},
 	)
 
@@ -612,7 +612,7 @@ func (c *collectionEndpoint) Delete(name string) error {
 		return err
 	}
 
-	if h.StatusCode != 200 {
+	if h.StatusCode != http.StatusOK {
 		return errorResult
 	}
 

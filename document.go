@@ -40,9 +40,9 @@ func (doc *documentEndpoint) GetDocuments(
 			"type":       []string{returnType},
 		},
 		gr.UnmarshalMap{
-			http.StatusOK:         &result,
-			http.StatusBadRequest: errorResult,
-			http.StatusNotFound:   errorResult,
+			http.StatusOK:         gr.UnmarshalList(&result),
+			http.StatusBadRequest: gr.UnmarshalList(errorResult),
+			http.StatusNotFound:   gr.UnmarshalList(errorResult),
 		},
 	)
 
@@ -78,10 +78,10 @@ func (doc *documentEndpoint) PostDocument(
 		query,
 		document,
 		gr.UnmarshalMap{
-			http.StatusCreated:    document,
-			http.StatusAccepted:   document,
-			http.StatusBadRequest: errorResult,
-			http.StatusNotFound:   errorResult,
+			http.StatusCreated:    gr.UnmarshalList(document),
+			http.StatusAccepted:   gr.UnmarshalList(document),
+			http.StatusBadRequest: gr.UnmarshalList(errorResult),
+			http.StatusNotFound:   gr.UnmarshalList(errorResult),
 		},
 	)
 
@@ -124,10 +124,10 @@ func (doc *documentEndpoint) GetDocument(documentHandle string, documentReceiver
 		headers,
 		query,
 		gr.UnmarshalMap{
-			http.StatusOK:                 documentReceiver,
-			http.StatusBadRequest:         errorResult,
-			http.StatusNotFound:           errorResult,
-			http.StatusPreconditionFailed: errorResult,
+			http.StatusOK:                 gr.UnmarshalList(documentReceiver),
+			http.StatusBadRequest:         gr.UnmarshalList(errorResult),
+			http.StatusNotFound:           gr.UnmarshalList(errorResult),
+			http.StatusPreconditionFailed: gr.UnmarshalList(errorResult),
 		},
 	)
 
@@ -218,10 +218,10 @@ func (doc *documentEndpoint) PutDocument(documentHandle string, document interfa
 		gr.UnmarshalMap{
 			//document is used as the successResult so it gets
 			//populated with the new revision info
-			http.StatusCreated:    document,
-			http.StatusAccepted:   document,
-			http.StatusBadRequest: errorResult,
-			http.StatusNotFound:   errorResult,
+			http.StatusCreated:    gr.UnmarshalList(document),
+			http.StatusAccepted:   gr.UnmarshalList(document),
+			http.StatusBadRequest: gr.UnmarshalList(errorResult),
+			http.StatusNotFound:   gr.UnmarshalList(errorResult),
 		},
 	)
 
@@ -274,10 +274,10 @@ func (doc *documentEndpoint) PatchDocument(documentHandle string, document inter
 		gr.UnmarshalMap{
 			//document is used as the successResult so it gets
 			//populated with the new revision info
-			http.StatusCreated:    document,
-			http.StatusAccepted:   document,
-			http.StatusBadRequest: errorResult,
-			http.StatusNotFound:   errorResult,
+			http.StatusCreated:    gr.UnmarshalList(document),
+			http.StatusAccepted:   gr.UnmarshalList(document),
+			http.StatusBadRequest: gr.UnmarshalList(errorResult),
+			http.StatusNotFound:   gr.UnmarshalList(errorResult),
 		},
 	)
 
@@ -324,8 +324,8 @@ func (doc *documentEndpoint) DeleteDocument(documentHandle string, options *Dele
 		headers,
 		query,
 		gr.UnmarshalMap{
-			http.StatusBadRequest: errorResult,
-			http.StatusNotFound:   errorResult,
+			http.StatusBadRequest: gr.UnmarshalList(errorResult),
+			http.StatusNotFound:   gr.UnmarshalList(errorResult),
 		},
 	)
 

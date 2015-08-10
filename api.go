@@ -64,13 +64,6 @@ const (
 	WalPath         = "/_api/wal"
 )
 
-//Version information about arango. Should I make it a simple struct?
-type Version interface {
-	Server() string
-	Version() string
-	Details() map[string]string
-}
-
 //ArangoError represents an arango error.
 //An implementation can return an ArangoError
 //to provide more detailed information about
@@ -106,6 +99,13 @@ type ArangoError interface {
 //a grestclient to do the HTTP rest calls.
 type HasGrestClient interface {
 	GetGrestClient() gr.Client
+}
+
+//Version information about arango. Should I make it a simple struct?
+type Version interface {
+	Server() string
+	Version() string
+	Details() map[string]string
 }
 
 //Connection represents a RESTFUL gateway to an arangodb server

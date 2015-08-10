@@ -40,9 +40,9 @@ func (doc *edgeEndpoint) GetEdges(
 			"type":       []string{returnType},
 		},
 		gr.UnmarshalMap{
-			http.StatusOK:         &result,
-			http.StatusBadRequest: errorResult,
-			http.StatusNotFound:   errorResult,
+			http.StatusOK:         gr.UnmarshalList(&result),
+			http.StatusBadRequest: gr.UnmarshalList(errorResult),
+			http.StatusNotFound:   gr.UnmarshalList(errorResult),
 		},
 	)
 
@@ -82,10 +82,10 @@ func (doc *edgeEndpoint) PostEdge(
 		query,
 		edge,
 		gr.UnmarshalMap{
-			http.StatusCreated:    edge,
-			http.StatusAccepted:   edge,
-			http.StatusBadRequest: errorResult,
-			http.StatusNotFound:   errorResult,
+			http.StatusCreated:    gr.UnmarshalList(edge),
+			http.StatusAccepted:   gr.UnmarshalList(edge),
+			http.StatusBadRequest: gr.UnmarshalList(errorResult),
+			http.StatusNotFound:   gr.UnmarshalList(errorResult),
 		},
 	)
 
@@ -133,10 +133,10 @@ func (doc *edgeEndpoint) GetEdge(edgeHandle string, edgeReceiver interface{}, op
 		headers,
 		query,
 		gr.UnmarshalMap{
-			http.StatusOK:                 edgeReceiver,
-			http.StatusBadRequest:         errorResult,
-			http.StatusNotFound:           errorResult,
-			http.StatusPreconditionFailed: errorResult,
+			http.StatusOK:                 gr.UnmarshalList(edgeReceiver),
+			http.StatusBadRequest:         gr.UnmarshalList(errorResult),
+			http.StatusNotFound:           gr.UnmarshalList(errorResult),
+			http.StatusPreconditionFailed: gr.UnmarshalList(errorResult),
 		},
 	)
 
@@ -227,10 +227,10 @@ func (doc *edgeEndpoint) PutEdge(edgeHandle string, edge interface{}, options *P
 		gr.UnmarshalMap{
 			//edge is used as the successResult so it gets
 			//populated with the new revision info
-			http.StatusCreated:    edge,
-			http.StatusAccepted:   edge,
-			http.StatusBadRequest: errorResult,
-			http.StatusNotFound:   errorResult,
+			http.StatusCreated:    gr.UnmarshalList(edge),
+			http.StatusAccepted:   gr.UnmarshalList(edge),
+			http.StatusBadRequest: gr.UnmarshalList(errorResult),
+			http.StatusNotFound:   gr.UnmarshalList(errorResult),
 		},
 	)
 
@@ -283,10 +283,10 @@ func (doc *edgeEndpoint) PatchEdge(edgeHandle string, edge interface{}, options 
 		gr.UnmarshalMap{
 			//document is used as the successResult so it gets
 			//populated with the new revision info
-			http.StatusCreated:    edge,
-			http.StatusAccepted:   edge,
-			http.StatusBadRequest: errorResult,
-			http.StatusNotFound:   errorResult,
+			http.StatusCreated:    gr.UnmarshalList(edge),
+			http.StatusAccepted:   gr.UnmarshalList(edge),
+			http.StatusBadRequest: gr.UnmarshalList(errorResult),
+			http.StatusNotFound:   gr.UnmarshalList(errorResult),
 		},
 	)
 
@@ -333,8 +333,8 @@ func (doc *edgeEndpoint) DeleteEdge(edgeHandle string, options *DeleteEdgeOption
 		headers,
 		query,
 		gr.UnmarshalMap{
-			http.StatusBadRequest: errorResult,
-			http.StatusNotFound:   errorResult,
+			http.StatusBadRequest: gr.UnmarshalList(errorResult),
+			http.StatusNotFound:   gr.UnmarshalList(errorResult),
 		},
 	)
 
