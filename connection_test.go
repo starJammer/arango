@@ -23,10 +23,35 @@ func TestConnectionMeetsInterface(t *testing.T) {
 	}
 }
 
+func TestNilUrlFails(t *testing.T) {
+	var err error
+	_, err = NewConnection(nil)
+
+	if err == nil {
+		t.Fatal("Expected error when creating a new connection with a nil url.")
+	}
+}
+
+func TestBadHostError(t *testing.T) {
+	var err error
+	u, err := url.Parse("http://badhost:8529")
+	c, err := NewConnection(u)
+
+	_, err = c.Version(false)
+	if err == nil {
+		t.Fatal("Expected error with bad host.")
+	}
+}
+
+func setupConnection() Connection {
+	u, _ := url.Parse("http://root@localhost:8529")
+	c, _ := NewConnection(u)
+	return c
+}
+
 func TestGetVersion(t *testing.T) {
 	var err error
-	u, err := url.Parse("http://root@localhost:8529")
-	c, err := NewConnection(u)
+	c := setupConnection()
 
 	v, err := c.Version(false)
 
@@ -46,7 +71,17 @@ func TestGetVersion(t *testing.T) {
 		t.Fatal("Unexpected details when none were requested.", v.Details())
 	}
 
-	v, err = c.Version(true)
+}
+
+func TestGetVersionWithDetails(t *testing.T) {
+	var err error
+	c := setupConnection()
+
+	v, err := c.Version(true)
+
+	if err != nil {
+		t.Fatal("Could not get version: ", err)
+	}
 
 	if v.Details() == nil || len(v.Details()) < 1 {
 		t.Fatal("Unable to fetch details.", v.Details())

@@ -146,7 +146,7 @@ type Database interface {
 	GetUser() ([]string, error)
 
 	//GetCurrent -> GET on /_api/database/current
-	GetCurrent() (CurrentResult, error)
+	GetCurrent() (DatabaseDescriptor, error)
 
 	//Post -> POST on /_api/database
 	Post(name string, options *PostDatabaseOptions) error
@@ -547,7 +547,7 @@ func (c CollectionDescriptors) Find(name string) CollectionDescriptor {
 	return nil
 }
 
-type CurrentResult interface {
+type DatabaseDescriptor interface {
 	Id() string
 	Name() string
 	Path() string

@@ -31,10 +31,12 @@ func (e *arangoError) ErrorMessage() string {
 }
 
 func (e *arangoError) Error() string {
-	return fmt.Sprintf("Code: %d, ErrorNum: %d, Message: %s\n",
+	return fmt.Sprintf("isError: %t, code: %d, errorNum: %d, errorMessage: %s",
+		e.IsError(),
 		e.Code(),
 		e.ErrorNum(),
-		e.ErrorMessage())
+		e.ErrorMessage(),
+	)
 }
 
 func (e *arangoError) Id() string {

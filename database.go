@@ -56,8 +56,8 @@ func (d *database) Get() ([]string, error) {
 		nil,
 		gr.UnmarshalMap{
 			http.StatusOK:         gr.UnmarshalList(&result),
-			http.StatusForbidden:  gr.UnmarshalList(errorResult),
 			http.StatusBadRequest: gr.UnmarshalList(errorResult),
+			http.StatusForbidden:  gr.UnmarshalList(errorResult),
 		},
 	)
 
@@ -65,7 +65,7 @@ func (d *database) Get() ([]string, error) {
 		return nil, err
 	}
 
-	if h.StatusCode >= http.StatusBadRequest {
+	if h.StatusCode != http.StatusOK {
 		return nil, errorResult
 	}
 
@@ -96,51 +96,52 @@ func (d *database) GetUser() ([]string, error) {
 		return nil, err
 	}
 
-	if h.StatusCode >= http.StatusBadRequest {
+	if h.StatusCode != http.StatusOK {
 		return nil, errorResult
 	}
 
 	return result.Result, nil
 }
 
-type currentResult struct {
+type databaseDescriptor struct {
 	Namef     string `json:"name"`
 	Idf       string `json:"id"`
 	Pathf     string `json:"path"`
 	IsSystemf bool   `json:"isSystem"`
 }
 
-func (cr *currentResult) Name() string {
+func (cr *databaseDescriptor) Name() string {
 	return cr.Namef
 }
 
-func (cr *currentResult) Id() string {
+func (cr *databaseDescriptor) Id() string {
 	return cr.Idf
 }
 
-func (cr *currentResult) Path() string {
+func (cr *databaseDescriptor) Path() string {
 	return cr.Pathf
 }
 
-func (cr *currentResult) IsSystem() bool {
+func (cr *databaseDescriptor) IsSystem() bool {
 	return cr.IsSystemf
 }
 
-func (d *database) GetCurrent() (CurrentResult, error) {
+func (d *database) GetCurrent() (DatabaseDescriptor, error) {
 
 	var result struct {
-		Result *currentResult `json:"result"`
+		Result *databaseDescriptor `json:"result"`
 	}
 	var errorResult = &arangoError{}
 
+	errList := gr.UnmarshalList(errorResult)
 	h, err := d.client.Get(
 		DatabasePath+"/current",
 		nil,
 		nil,
 		gr.UnmarshalMap{
 			http.StatusOK:         gr.UnmarshalList(&result),
-			http.StatusBadRequest: gr.UnmarshalList(errorResult),
-			http.StatusNotFound:   gr.UnmarshalList(errorResult),
+			http.StatusBadRequest: errList,
+			http.StatusNotFound:   errList,
 		},
 	)
 
@@ -148,7 +149,7 @@ func (d *database) GetCurrent() (CurrentResult, error) {
 		return nil, err
 	}
 
-	if h.StatusCode >= http.StatusBadRequest {
+	if h.StatusCode != http.StatusOK {
 		return nil, errorResult
 	}
 
@@ -163,14 +164,16 @@ func (d *database) Post(name string, opts *PostDatabaseOptions) error {
 	}
 	opts.Name = name
 
+	errList := gr.UnmarshalList(errorResult)
 	h, err := d.client.Post(
 		DatabasePath,
 		nil,
 		nil,
 		opts,
 		gr.UnmarshalMap{
-			http.StatusBadRequest: gr.UnmarshalList(errorResult),
-			http.StatusNotFound:   gr.UnmarshalList(errorResult),
+			http.StatusBadRequest: errList,
+			http.StatusNotFound:   errList,
+			http.StatusConflict:   errList,
 		},
 	)
 
@@ -189,13 +192,14 @@ func (d *database) Delete(name string) error {
 
 	var errorResult = &arangoError{}
 
+	errList := gr.UnmarshalList(errorResult)
 	h, err := d.client.Delete(
 		DatabasePath+"/"+name,
 		nil,
 		nil,
 		gr.UnmarshalMap{
-			http.StatusBadRequest: gr.UnmarshalList(errorResult),
-			http.StatusNotFound:   gr.UnmarshalList(errorResult),
+			http.StatusBadRequest: errList,
+			http.StatusNotFound:   errList,
 		},
 	)
 
