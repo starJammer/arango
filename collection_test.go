@@ -1,11 +1,12 @@
 package arango
 
 import (
+	"net/http"
 	"net/url"
 	"testing"
 )
 
-func TestGetCollection(t *testing.T) {
+func TestCollectionEndpoint(t *testing.T) {
 
 	var db Database = getDatabase("_system")
 	var ce CollectionEndpoint = db.CollectionEndpoint()
@@ -14,11 +15,14 @@ func TestGetCollection(t *testing.T) {
 		t.Fatal("Expected a link back to collections database.")
 	}
 
-}
+	if ce.Database().Name() != db.Name() {
+		t.Fatalf(
+			"Expected db names to match: Actual(%s), Expected(%s)",
+			ce.Database().Name(),
+			db.Name(),
+		)
+	}
 
-func getCE(database string) CollectionEndpoint {
-	var db Database = getDatabase(database)
-	return db.CollectionEndpoint()
 }
 
 func TestGetCollections(t *testing.T) {
@@ -34,52 +38,164 @@ func TestGetCollections(t *testing.T) {
 		t.Fatal("Expected at least one collection.")
 	}
 
-	coll := collections[0]
+	for _, coll := range collections {
+		if !coll.IsSystem() {
+			t.Fatal("Expected only system collections in _system db")
+		}
 
-	if coll.Id() == "" {
-		t.Fatal("Expected an id value for the collection.")
+		if coll.Id() == "" {
+			t.Fatal("Expected an id value for the collection.")
+		}
+
+		if coll.Name() == "" {
+			t.Fatal("Expected a name value for the collection.")
+		}
+
+		if coll.Status() == 0 {
+			t.Fatal("Expected a CollectionStatus value for the collection.")
+		}
+
+		if coll.Type() == 0 {
+			t.Fatal("Expected a CollectionType value for the collection.")
+		}
 	}
 
-	if coll.Name() == "" {
-		t.Fatal("Expected a name value for the collection.")
-	}
+	collections, err = ce.GetCollections(true)
 
-	if coll.Status() == 0 {
-		t.Fatal("Expected a CollectionStatus value for the collection.")
+	if len(collections) > 0 {
+		t.Fatal(
+			"Expected no collections when excluding system collections but got: ",
+			len(collections),
+		)
 	}
-
-	if coll.Type() == 0 {
-		t.Fatal("Expected a CollectionType value for the collection.")
-	}
-
 }
 
-func TestPostGetCollection(t *testing.T) {
-	u, _ := url.Parse("http://root@localhost:8529")
-	c, _ := NewConnection(u)
-	var db Database = c.Database("_system")
-	var ce = db.CollectionEndpoint()
+func TestPostBlankNameCollection(t *testing.T) {
+	var ce = getCE("_system")
 
 	err := ce.PostCollection("", nil)
 
-	if err == nil {
-		t.Fatal("Expected error whet creating collection with no name or options.")
-	}
+	verifyError(
+		err,
+		t,
+		http.StatusBadRequest,
+		"Expected error when creating collection with no name or options.",
+	)
+}
+
+func TestPostBadName(t *testing.T) {
+	var ce = getCE("_system")
+
+	err := ce.PostCollection("_fakesystem", nil)
+
+	verifyError(
+		err,
+		t,
+		http.StatusBadRequest,
+		"Expected error when creating a collection starting with underscore.",
+	)
+}
+
+func TestDeleteBlankNameCollection(t *testing.T) {
+	var ce = getCE("_system")
+
+	err := ce.Delete("")
+	verifyError(
+		err,
+		t,
+		http.StatusBadRequest,
+		"Expected error when deleting blank named collection.",
+	)
+}
+
+func TestDeleteNonExistingCollection(t *testing.T) {
+	var ce = getCE("_system")
+
+	err := ce.Delete("non-existent")
+	verifyError(
+		err,
+		t,
+		http.StatusNotFound,
+		"Expected error when deleting collection that doesn't exist.",
+	)
+}
+
+func TestPostDeleteCollection(t *testing.T) {
+	var ce = getCE("_system")
 
 	opts := DefaultPostCollectionOptions()
 	opts.Name = "test"
 
-	err = ce.PostCollection(opts.Name, nil)
+	err := ce.PostCollection(opts.Name, nil)
 
 	if err != nil {
 		t.Fatal("Unexpected error when creating collection: ", err)
 	}
 
-	colls, err := ce.GetCollections(true)
+	err = ce.Delete(opts.Name)
+
+	if err != nil {
+		t.Fatal("Unexpected error when deleting collection: ", err)
+	}
+
+}
+
+func TestGetBlankNameCollection(t *testing.T) {
+	var ce = getCE("_system")
+
+	d, err := ce.Get("")
+
+	verifyError(
+		err,
+		t,
+		http.StatusNotFound,
+		"Expected error when fetching blank named collection.",
+	)
+
+	if d != nil {
+		t.Fatal("Expected collection descriptor to be nil with an error.")
+	}
+
+}
+
+func TestGetNonExistentCollection(t *testing.T) {
+	var ce = getCE("_system")
+	d, err := ce.Get("bad-name")
+
+	verifyError(
+		err,
+		t,
+		http.StatusNotFound,
+		"Expected error when fetching blank named collection.",
+	)
+
+	if d != nil {
+		t.Fatal("Expected collection descriptor to be nil with an error.")
+	}
+}
+
+func TestIncludedInGetCollections(t *testing.T) {
+	var ce = getCE("_system")
+
+	opts := DefaultPostCollectionOptions()
+	opts.Name = "test"
+	ce.PostCollection(opts.Name, nil)
+	defer ce.Delete("test")
+
+	colls, _ := ce.GetCollections(true)
 
 	if found := colls.Find(opts.Name); found == nil || found.Name() != opts.Name {
 		t.Fatal("Could not find newly created connection.")
 	}
+}
+
+func TestGetCollection(t *testing.T) {
+	var ce = getCE("_system")
+
+	opts := DefaultPostCollectionOptions()
+	opts.Name = "test"
+	ce.PostCollection(opts.Name, nil)
+	defer ce.Delete("test")
 
 	descriptor, err := ce.Get(opts.Name)
 
@@ -107,18 +223,18 @@ func TestPostGetCollection(t *testing.T) {
 		t.Fatalf("Unexpected IsSystem value - Expected(%t) Actual(%t)", false, descriptor.IsSystem())
 	}
 
-	err = ce.Delete(opts.Name)
+}
 
-	if err != nil {
-		t.Fatal("Unexpected error when deleting collection: ", err)
-	}
-
+func TestPostGetEdgeCollection(t *testing.T) {
+	var ce = getCE("_system")
+	opts := DefaultPostCollectionOptions()
 	opts.Type = EDGE_COLLECTION
-	opts.Name = "test"
+	opts.Name = "edge-test"
 
-	err = ce.PostCollection(opts.Name, opts)
+	ce.PostCollection(opts.Name, opts)
+	defer ce.Delete(opts.Name)
 
-	descriptor, err = ce.Get(opts.Name)
+	descriptor, err := ce.Get(opts.Name)
 
 	if err != nil {
 		t.Fatal("Unexpected result from CollectionEndpoint.Get", err)
@@ -128,17 +244,46 @@ func TestPostGetCollection(t *testing.T) {
 		t.Fatal("Expected collection to be of type EDGE: ", descriptor.Type())
 	}
 
-	err = ce.Delete(opts.Name)
-	if err != nil {
-		t.Fatal("Unexpected error when deleting collection: ", err)
+}
+
+func TestGetPropertiesBlankName(t *testing.T) {
+
+	var ce = getCE("_system")
+	d, err := ce.GetProperties("")
+
+	verifyError(
+		err,
+		t,
+		http.StatusNotFound,
+		"Expected error when fetching properties of blank named collection.",
+	)
+
+	if d != nil {
+		t.Fatal("Expected collection descriptor to be nil with an error.")
 	}
+
+}
+
+func TestGetPropertiesNonExistent(t *testing.T) {
+
+	var ce = getCE("_system")
+	d, err := ce.GetProperties("non-existent")
+
+	verifyError(
+		err,
+		t,
+		http.StatusNotFound,
+		"Expected error when fetching properties of non-existent collection.",
+	)
+
+	if d != nil {
+		t.Fatal("Expected collection descriptor to be nil with an error.")
+	}
+
 }
 
 func TestGetCollectionProperties(t *testing.T) {
-	u, _ := url.Parse("http://root@localhost:8529")
-	c, _ := NewConnection(u)
-	var db Database = c.Database("_system")
-	var ce = db.CollectionEndpoint()
+	var ce = getCE("_system")
 
 	opts := DefaultPostCollectionOptions()
 	opts.Name = "test"
@@ -146,10 +291,6 @@ func TestGetCollectionProperties(t *testing.T) {
 	opts.DoCompact = false
 
 	err := ce.PostCollection(opts.Name, opts)
-
-	if err != nil {
-		t.Fatal("Error creating collection: ", err)
-	}
 	defer ce.Delete(opts.Name)
 
 	descriptor, err := ce.GetProperties(opts.Name)
@@ -193,20 +334,47 @@ func TestGetCollectionProperties(t *testing.T) {
 
 }
 
+func TestGetCollectionCountBlankName(t *testing.T) {
+	var ce = getCE("_system")
+
+	d, err := ce.GetCount("")
+
+	verifyError(
+		err,
+		t,
+		http.StatusNotFound,
+		"Expected error when fetching count of blank named collection.",
+	)
+
+	if d != nil {
+		t.Fatal("Expected collection descriptor to be nil with an error.")
+	}
+}
+
+func TestGetCollectionCountNonExistent(t *testing.T) {
+	var ce = getCE("_system")
+
+	d, err := ce.GetCount("non-existent")
+
+	verifyError(
+		err,
+		t,
+		http.StatusNotFound,
+		"Expected error when fetching count of non-existent collection.",
+	)
+
+	if d != nil {
+		t.Fatal("Expected collection descriptor to be nil with an error.")
+	}
+}
+
 func TestGetCollectionCount(t *testing.T) {
-	u, _ := url.Parse("http://root@localhost:8529")
-	c, _ := NewConnection(u)
-	var db Database = c.Database("_system")
-	var ce = db.CollectionEndpoint()
+	var ce = getCE("_system")
 
 	opts := DefaultPostCollectionOptions()
 	opts.Name = "test"
 
 	err := ce.PostCollection(opts.Name, opts)
-
-	if err != nil {
-		t.Fatal("Error creating collection: ", err)
-	}
 	defer ce.Delete(opts.Name)
 
 	descriptor, err := ce.GetCount(opts.Name)
@@ -221,20 +389,46 @@ func TestGetCollectionCount(t *testing.T) {
 
 }
 
+func TestGetCollectionFiguresBlankName(t *testing.T) {
+	var ce = getCE("_system")
+
+	d, err := ce.GetFigures("")
+
+	verifyError(
+		err,
+		t,
+		http.StatusNotFound,
+		"Expected error when fetching figures of blank named collection.",
+	)
+
+	if d != nil {
+		t.Fatal("Expected collection descriptor to be nil with an error.")
+	}
+}
+
+func TestGetCollectionFiguresNonExistent(t *testing.T) {
+	var ce = getCE("_system")
+
+	d, err := ce.GetFigures("non-existent")
+
+	verifyError(
+		err,
+		t,
+		http.StatusNotFound,
+		"Expected error when fetching figures of non-existent collection.",
+	)
+
+	if d != nil {
+		t.Fatal("Expected collection descriptor to be nil with an error.")
+	}
+}
+
 func TestGetCollectionFigures(t *testing.T) {
-	u, _ := url.Parse("http://root@localhost:8529")
-	c, _ := NewConnection(u)
-	var db Database = c.Database("_system")
-	var ce = db.CollectionEndpoint()
+	var ce = getCE("_system")
 
 	opts := DefaultPostCollectionOptions()
 	opts.Name = "test"
-
 	err := ce.PostCollection(opts.Name, opts)
-
-	if err != nil {
-		t.Fatal("Error creating collection: ", err)
-	}
 	defer ce.Delete(opts.Name)
 
 	descriptor, err := ce.GetFigures(opts.Name)
@@ -249,20 +443,46 @@ func TestGetCollectionFigures(t *testing.T) {
 
 }
 
+func TestGetCollectionRevisionBlankName(t *testing.T) {
+	var ce = getCE("_system")
+
+	d, err := ce.GetRevision("")
+
+	verifyError(
+		err,
+		t,
+		http.StatusNotFound,
+		"Expected error when fetching revision of blank named collection.",
+	)
+
+	if d != nil {
+		t.Fatal("Expected collection descriptor to be nil with an error.")
+	}
+}
+
+func TestGetCollectionRevisionNonExistent(t *testing.T) {
+	var ce = getCE("_system")
+
+	d, err := ce.GetRevision("non-existent")
+
+	verifyError(
+		err,
+		t,
+		http.StatusNotFound,
+		"Expected error when fetching revision of non-existent collection.",
+	)
+
+	if d != nil {
+		t.Fatal("Expected collection descriptor to be nil with an error.")
+	}
+}
+
 func TestGetCollectionRevision(t *testing.T) {
-	u, _ := url.Parse("http://root@localhost:8529")
-	c, _ := NewConnection(u)
-	var db Database = c.Database("_system")
-	var ce = db.CollectionEndpoint()
+	var ce = getCE("_system")
 
 	opts := DefaultPostCollectionOptions()
 	opts.Name = "test"
-
 	err := ce.PostCollection(opts.Name, opts)
-
-	if err != nil {
-		t.Fatal("Error creating collection: ", err)
-	}
 	defer ce.Delete(opts.Name)
 
 	descriptor, err := ce.GetRevision(opts.Name)
@@ -277,23 +497,49 @@ func TestGetCollectionRevision(t *testing.T) {
 
 }
 
+func TestGetCollectionChecksumBlankName(t *testing.T) {
+	var ce = getCE("_system")
+
+	d, err := ce.GetChecksum("", nil)
+
+	verifyError(
+		err,
+		t,
+		http.StatusNotFound,
+		"Expected error when fetching checksum of blank named collection.",
+	)
+
+	if d != nil {
+		t.Fatal("Expected collection descriptor to be nil with an error.")
+	}
+}
+
+func TestGetCollectionChecksumNonExistent(t *testing.T) {
+	var ce = getCE("_system")
+
+	d, err := ce.GetChecksum("non-existent", nil)
+
+	verifyError(
+		err,
+		t,
+		http.StatusNotFound,
+		"Expected error when fetching checksum of non-existent collection.",
+	)
+
+	if d != nil {
+		t.Fatal("Expected collection descriptor to be nil with an error.")
+	}
+}
+
 func TestGetCollectionChecksum(t *testing.T) {
-	u, _ := url.Parse("http://root@localhost:8529")
-	c, _ := NewConnection(u)
-	var db Database = c.Database("_system")
-	var ce = db.CollectionEndpoint()
+	var ce = getCE("_system")
 
 	opts := DefaultPostCollectionOptions()
 	opts.Name = "test"
-
 	err := ce.PostCollection(opts.Name, opts)
-
-	if err != nil {
-		t.Fatal("Error creating collection: ", err)
-	}
 	defer ce.Delete(opts.Name)
 
-	descriptor, err := ce.GetChecksum(opts.Name, false, false)
+	descriptor, err := ce.GetChecksum(opts.Name, nil)
 
 	if err != nil {
 		t.Fatal("Unexpected error when getting collection descriptor: ", err)
@@ -308,20 +554,47 @@ func TestGetCollectionChecksum(t *testing.T) {
 
 }
 
+func TestPutLoadBlankName(t *testing.T) {
+	var ce = getCE("_system")
+
+	d, err := ce.PutLoad("", false)
+
+	verifyError(
+		err,
+		t,
+		http.StatusNotFound,
+		"Expected error when putLoading of blank named collection.",
+	)
+
+	if d != nil {
+		t.Fatal("Expected collection descriptor to be nil with an error.")
+	}
+}
+
+func PutLoadNonExistent(t *testing.T) {
+	var ce = getCE("_system")
+
+	d, err := ce.PutLoad("non-existent", false)
+
+	verifyError(
+		err,
+		t,
+		http.StatusNotFound,
+		"Expected error when putLoading of non-existent collection.",
+	)
+
+	if d != nil {
+		t.Fatal("Expected collection descriptor to be nil with an error.")
+	}
+}
+
 func TestPutLoad(t *testing.T) {
-	u, _ := url.Parse("http://root@localhost:8529")
-	c, _ := NewConnection(u)
-	var db Database = c.Database("_system")
-	var ce = db.CollectionEndpoint()
+	var ce = getCE("_system")
 
 	opts := DefaultPostCollectionOptions()
 	opts.Name = "test"
 
-	err := ce.PostCollection(opts.Name, opts)
-
-	if err != nil {
-		t.Fatal("Error creating collection: ", err)
-	}
+	ce.PostCollection(opts.Name, opts)
 	defer ce.Delete(opts.Name)
 
 	descriptor, err := ce.PutLoad(opts.Name, false)
@@ -336,20 +609,47 @@ func TestPutLoad(t *testing.T) {
 
 }
 
+func TestPutUnloadBlankName(t *testing.T) {
+	var ce = getCE("_system")
+
+	d, err := ce.PutUnload("")
+
+	verifyError(
+		err,
+		t,
+		http.StatusNotFound,
+		"Expected error when putunloading of blank named collection.",
+	)
+
+	if d != nil {
+		t.Fatal("Expected collection descriptor to be nil with an error.")
+	}
+}
+
+func PutUnloadNonExistent(t *testing.T) {
+	var ce = getCE("_system")
+
+	d, err := ce.PutUnload("non-existent")
+
+	verifyError(
+		err,
+		t,
+		http.StatusNotFound,
+		"Expected error when putunloading of non-existent collection.",
+	)
+
+	if d != nil {
+		t.Fatal("Expected collection descriptor to be nil with an error.")
+	}
+}
+
 func TestPutUnload(t *testing.T) {
-	u, _ := url.Parse("http://root@localhost:8529")
-	c, _ := NewConnection(u)
-	var db Database = c.Database("_system")
-	var ce = db.CollectionEndpoint()
+	var ce = getCE("_system")
 
 	opts := DefaultPostCollectionOptions()
 	opts.Name = "test"
+	ce.PostCollection(opts.Name, opts)
 
-	err := ce.PostCollection(opts.Name, opts)
-
-	if err != nil {
-		t.Fatal("Error creating collection: ", err)
-	}
 	defer ce.Delete(opts.Name)
 
 	descriptor, err := ce.PutUnload(opts.Name)
@@ -363,62 +663,79 @@ func TestPutUnload(t *testing.T) {
 	}
 }
 
-func TestPutTruncate(t *testing.T) {
-	u, _ := url.Parse("http://root@localhost:8529")
-	c, _ := NewConnection(u)
-	var db Database = c.Database("_system")
-	var ce = db.CollectionEndpoint()
+func TestPutTruncateBlankName(t *testing.T) {
+	var ce = getCE("_system")
 
+	d, err := ce.PutTruncate("")
+
+	verifyError(
+		err,
+		t,
+		http.StatusNotFound,
+		"Expected error when putTruncateing of blank named collection.",
+	)
+
+	if d != nil {
+		t.Fatal("Expected collection descriptor to be nil with an error.")
+	}
+}
+
+func PutTruncateNonExistent(t *testing.T) {
+	var ce = getCE("_system")
+
+	d, err := ce.PutTruncate("non-existent")
+
+	verifyError(
+		err,
+		t,
+		http.StatusNotFound,
+		"Expected error when putTruncateing of non-existent collection.",
+	)
+
+	if d != nil {
+		t.Fatal("Expected collection descriptor to be nil with an error.")
+	}
+}
+
+func TestPutTruncate(t *testing.T) {
+	var ce = getCE("_system")
 	opts := DefaultPostCollectionOptions()
 	opts.Name = "test"
 
-	err := ce.PostCollection(opts.Name, opts)
-
-	if err != nil {
-		t.Fatal("Error creating collection: ", err)
-	}
+	ce.PostCollection(opts.Name, opts)
 	defer ce.Delete(opts.Name)
-	_, err = ce.PutTruncate(opts.Name)
+
+	d, err := ce.PutTruncate(opts.Name)
 
 	if err != nil {
-		t.Fatal("Unexpected error when getting collection descriptor: ", err)
+		t.Fatal("Unexpected error when trucating collection : ", err)
+	}
+
+	if d == nil {
+		t.Fatal("Expected descriptor to be non nil.")
 	}
 
 }
 
 func TestPutProperties(t *testing.T) {
-	u, _ := url.Parse("http://root@localhost:8529")
-	c, _ := NewConnection(u)
-	var db Database = c.Database("_system")
-	var ce = db.CollectionEndpoint()
-
+	var ce = getCE("_system")
 	opts := DefaultPostCollectionOptions()
 	opts.Name = "test"
 	opts.WaitForSync = true
-
-	err := ce.PostCollection(opts.Name, opts)
-
-	if err != nil {
-		t.Fatal("Error creating collection: ", err)
-	}
+	ce.PostCollection(opts.Name, opts)
 	defer ce.Delete(opts.Name)
 
-	descriptor, err := ce.GetProperties(opts.Name)
-	if err != nil {
-		t.Fatal("Unexpected error when getting collection descriptor: ", err)
-	}
+	descriptor, _ := ce.GetProperties(opts.Name)
 
 	if descriptor.WaitForSync() != true {
 		t.Fatal("Expected waitforsync to be true upon creation.")
 	}
 
-	descriptor, err = ce.PutProperties(opts.Name, &CollectionPropertyChange{WaitForSync: false})
+	descriptor, err := ce.PutProperties(opts.Name, &PutPropertiesOptions{WaitForSync: false})
 
 	if err != nil {
-		t.Fatal("Unexpected error when getting collection descriptor: ", err)
+		t.Fatal("Unexpected error when putting prorties.")
 	}
-
-	descriptor, err = ce.PutProperties(opts.Name, &CollectionPropertyChange{WaitForSync: false})
 
 	if descriptor.WaitForSync() != false {
 		t.Fatal("Expected waitforSync to be false now.")

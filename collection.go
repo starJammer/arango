@@ -274,6 +274,13 @@ func (c *collectionEndpoint) Get(name string) (CollectionDescriptor, error) {
 	var descriptor = &collectionDescriptor{}
 	var errorResult = &arangoError{}
 
+	//if name is blank, this is like calling GetCollections(false)
+	//Instead, we make name = "-" so we get an appropriate error
+	//when name is blank.
+	if name == "" {
+		name = "-"
+	}
+
 	h, err := c.client.Get(
 		fmt.Sprintf("/%s", name),
 		nil,
@@ -399,17 +406,21 @@ func (c *collectionEndpoint) GetRevision(name string) (CollectionDescriptor, err
 	return descriptor, nil
 }
 
-func (c *collectionEndpoint) GetChecksum(name string, withRevisions bool, withData bool) (CollectionDescriptor, error) {
+func (c *collectionEndpoint) GetChecksum(name string, opts *GetChecksumOptions) (CollectionDescriptor, error) {
 	var descriptor = &collectionDescriptor{}
 	var errorResult = &arangoError{}
+
+	var query url.Values
+	if opts != nil {
+		query = make(url.Values)
+		query.Add("withRevisions", fmt.Sprintf("%t", opts.WithRevisions))
+		query.Add("withData", fmt.Sprintf("%t", opts.WithData))
+	}
 
 	h, err := c.client.Get(
 		fmt.Sprintf("/%s/checksum", name),
 		nil,
-		url.Values{
-			"withRevisions": []string{fmt.Sprintf("%t", withRevisions)},
-			"withData":      []string{fmt.Sprintf("%t", withData)},
-		},
+		query,
 		gr.UnmarshalMap{
 			http.StatusOK:         gr.UnmarshalList(descriptor),
 			http.StatusBadRequest: gr.UnmarshalList(errorResult),
@@ -512,7 +523,7 @@ func (c *collectionEndpoint) PutTruncate(name string) (CollectionDescriptor, err
 	return descriptor, nil
 }
 
-func (c *collectionEndpoint) PutProperties(name string, properties *CollectionPropertyChange) (CollectionDescriptor, error) {
+func (c *collectionEndpoint) PutProperties(name string, properties *PutPropertiesOptions) (CollectionDescriptor, error) {
 
 	var descriptor = &collectionDescriptor{}
 	var errorResult = &arangoError{}

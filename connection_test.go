@@ -43,12 +43,6 @@ func TestBadHostError(t *testing.T) {
 	}
 }
 
-func setupConnection() Connection {
-	u, _ := url.Parse("http://root@localhost:8529")
-	c, _ := NewConnection(u)
-	return c
-}
-
 func TestGetVersion(t *testing.T) {
 	var err error
 	c := setupConnection()

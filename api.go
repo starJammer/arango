@@ -410,7 +410,7 @@ type DeleteDocumentOptions struct {
 
 type DeleteEdgeOptions DeleteDocumentOptions
 
-type CollectionPropertyChange struct {
+type PutPropertiesOptions struct {
 	WaitForSync bool `json:"waitForSync"`
 	JournalSize int  `json:"journalSize,omitempty"`
 }
@@ -430,6 +430,11 @@ type PostCollectionOptions struct {
 	Type               CollectionType      `json:"type,omitempty"`
 	NumberOfShards     int                 `json:"numberOfShards,omitempty"`
 	ShardKeys          []string            `json:"shardKeys,omitempty"`
+}
+
+type GetChecksumOptions struct {
+	WithRevisions bool
+	WithData      bool
 }
 
 //KeyOptions stores information about how a collection's key is configured.
@@ -582,7 +587,7 @@ type CollectionEndpoint interface {
 	GetRevision(name string) (CollectionDescriptor, error)
 
 	//GetChecksum -> GET on /_api/collection/{name}/checksum
-	GetChecksum(name string, withRevisions bool, withData bool) (CollectionDescriptor, error)
+	GetChecksum(name string, opts *GetChecksumOptions) (CollectionDescriptor, error)
 
 	//PutLoad -> PUT on /_api/collection/{name}/load
 	PutLoad(name string, includeCount bool) (CollectionDescriptor, error)
@@ -594,7 +599,7 @@ type CollectionEndpoint interface {
 	PutTruncate(name string) (CollectionDescriptor, error)
 
 	//PutProperties -> PUT on /_api/collection/{name}/properties
-	PutProperties(name string, properties *CollectionPropertyChange) (CollectionDescriptor, error)
+	PutProperties(name string, options *PutPropertiesOptions) (CollectionDescriptor, error)
 
 	//PutRename -> PUT on /_api/collection/{name}/rename
 	PutRename(name string, newName string) (CollectionDescriptor, error)

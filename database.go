@@ -174,6 +174,7 @@ func (d *database) Post(name string, opts *PostDatabaseOptions) error {
 			http.StatusBadRequest: errList,
 			http.StatusNotFound:   errList,
 			http.StatusConflict:   errList,
+			http.StatusForbidden:  errList,
 		},
 	)
 

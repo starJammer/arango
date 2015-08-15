@@ -5,23 +5,6 @@ import (
 	"testing"
 )
 
-func verifyError(err error, t *testing.T, code int, message string) {
-	if err == nil {
-		t.Fatal(message)
-	}
-	ae, ok := err.(ArangoError)
-	if !ok {
-		t.Fatalf("Expected an ArangoError to be returned. %#v", err)
-	}
-	if !ae.IsError() {
-		t.Fatalf("Actual ae.IsError() == %t, Expected true. ArangoError = %s, Message = %s", ae.IsError(), ae, message)
-	}
-
-	if ae.Code() != code {
-		t.Fatalf("Actual ae.Code() == %d, Expected %d. ArangoError = %s, Message = %s", ae.Code(), code, ae, message)
-	}
-}
-
 func TestGetDatabase(t *testing.T) {
 	c := setupConnection()
 
@@ -31,11 +14,6 @@ func TestGetDatabase(t *testing.T) {
 		t.Fatal("Database name incorrect: ", db.Name())
 	}
 
-}
-
-func getDatabase(name string) Database {
-	c := setupConnection()
-	return c.Database(name)
 }
 
 func TestGetDatabases(t *testing.T) {
@@ -149,6 +127,26 @@ func TestPostGoodNameThenDelete(t *testing.T) {
 	if err != nil {
 		t.Fatal("Unexpected error when deleting a database: ", err)
 	}
+}
+
+func TestCantPostOutsideSystem(t *testing.T) {
+
+	var db Database = getDatabase("_system")
+	var err error
+
+	db.Post("test", nil)
+	defer db.Delete("test")
+
+	testDb := getDatabase("test")
+
+	err = testDb.Post("fail", nil)
+
+	verifyError(
+		err,
+		t,
+		http.StatusForbidden,
+		"Expected to receive error when posting database outside of _system",
+	)
 }
 
 func TestPostGetCurrent(t *testing.T) {
