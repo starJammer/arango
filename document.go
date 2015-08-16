@@ -97,7 +97,11 @@ func (doc *documentEndpoint) PostDocument(
 	return nil
 }
 
-func (doc *documentEndpoint) GetDocument(documentHandle string, documentReceiver interface{}, options *GetDocumentOptions) error {
+func (doc *documentEndpoint) GetDocument(
+	documentHandle string,
+	documentReceiver interface{},
+	options *GetDocumentOptions,
+) error {
 
 	var headers http.Header
 	var query url.Values
@@ -176,13 +180,20 @@ func (doc *documentEndpoint) HeadDocument(documentHandle string, options *HeadDo
 		return "", newArangoError(h.StatusCode, "Malformed request.")
 	}
 
-	if h.StatusCode != http.StatusOK &&
-		h.StatusCode != http.StatusNotModified &&
-		h.StatusCode != http.StatusPreconditionFailed {
+	var revision = strings.Trim(h.Header.Get("Etag"), "\"")
+	if h.StatusCode == http.StatusNotModified {
+		return revision, newArangoError(h.StatusCode, "Document hasn't been modified.")
+	}
+
+	if h.StatusCode == http.StatusPreconditionFailed {
+		return revision, newArangoError(h.StatusCode, "Document's revision different from If-None-Match.")
+	}
+
+	if h.StatusCode != http.StatusOK {
 		return "", newArangoError(h.StatusCode, "Unknown response from arango.")
 	}
 
-	return strings.Trim(h.Header.Get("Etag"), "\""), nil
+	return revision, nil
 }
 
 func (doc *documentEndpoint) PutDocument(documentHandle string, document interface{}, options *PutDocumentOptions) error {

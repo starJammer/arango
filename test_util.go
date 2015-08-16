@@ -21,6 +21,10 @@ func getCE(database string) CollectionEndpoint {
 	return db.CollectionEndpoint()
 }
 
+func getDE(database string) DocumentEndpoint {
+	return getDatabase(database).DocumentEndpoint()
+}
+
 func verifyError(err error, t *testing.T, code int, message string) {
 	if err == nil {
 		t.Fatal(message)

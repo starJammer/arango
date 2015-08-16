@@ -1,49 +1,79 @@
 package arango
 
 import (
-	"net/url"
+	"net/http"
 	"testing"
 )
 
-func TestPostGetHeadPutPatchDocument(t *testing.T) {
-	u, _ := url.Parse("http://root@localhost:8529")
-	c, _ := NewConnection(u)
-	var db Database = c.Database("_system")
-	var collEnd = db.CollectionEndpoint()
-	var docEnd = db.DocumentEndpoint()
+func TestMeetsDocumentEndpoint(t *testing.T) {
+	var _ DocumentEndpoint = getDatabase("_sysem").DocumentEndpoint()
+}
 
-	docs := DefaultPostCollectionOptions()
-	docs.Name = "test"
+func TestGetDocumentsEmptyCollection(t *testing.T) {
+	var ce = getCE("_system")
+	var de = getDE("_system")
 
-	err := collEnd.PostCollection(docs.Name, nil)
+	opts := DefaultPostCollectionOptions()
+	opts.Name = "test"
+	ce.PostCollection(opts.Name, nil)
+	defer ce.Delete(opts.Name)
+
+	docs, err := de.GetDocuments(opts.Name, nil)
+
 	if err != nil {
-		t.Fatal("Error creating collection: ", err)
-	}
-	defer collEnd.Delete(docs.Name)
-
-	//begin actual test
-
-	type document struct {
-		DocumentImplementation
-		Name    string
-		Address string
+		t.Fatal("Unexpected err when getting documents: ", err)
 	}
 
-	documents, err := docEnd.GetDocuments("test", nil)
-	if err != nil {
-		t.Fatal("Unexpected error when fetching all documents in collection \"test\".")
+	if len(docs) > 0 {
+		t.Fatal("Expected no documents in a new collection.")
 	}
-	if len(documents) != 0 {
-		t.Fatal("Expected no documents in collection \"test\"")
-	}
+}
+
+type document struct {
+	DocumentImplementation
+	Name    string
+	Address string
+}
+
+func TestPostNilDocument(t *testing.T) {
+	var ce = getCE("_system")
+	var de = getDE("_system")
+
+	opts := DefaultPostCollectionOptions()
+	opts.Name = "test"
+	ce.PostCollection(opts.Name, nil)
+	defer ce.Delete(opts.Name)
 
 	var doc document
 	doc.Name = "test-document"
 
-	err = docEnd.PostDocument(&doc, docs.Name, nil)
+	err := de.PostDocument(nil, opts.Name, nil)
+
+	verifyError(
+		err,
+		t,
+		http.StatusBadRequest,
+		"Expected to receive error with nil document.",
+	)
+}
+
+func TestPostEmptyDoc(t *testing.T) {
+	var ce = getCE("_system")
+	var de = getDE("_system")
+
+	opts := DefaultPostCollectionOptions()
+	opts.Name = "test"
+	ce.PostCollection(opts.Name, nil)
+	defer ce.Delete(opts.Name)
+
+	var doc struct {
+		DocumentImplementation
+	}
+
+	err := de.PostDocument(&doc, opts.Name, nil)
 
 	if err != nil {
-		t.Fatal("Unexpected error when creating new document: ", err)
+		t.Fatal("Unexpected error when posting empty doc: ", err)
 	}
 
 	if doc.Id() == "" {
@@ -58,196 +88,422 @@ func TestPostGetHeadPutPatchDocument(t *testing.T) {
 		t.Fatal("Expected the Rev of the document to be set.")
 	}
 
-	documents, err = docEnd.GetDocuments("test", nil)
+	err = de.DeleteDocument(doc.Id(), nil)
+
+	if err != nil {
+		t.Fatal("Unexpected error when deleting document.")
+	}
+}
+
+func TestGetDocumentsAfterPost(t *testing.T) {
+	var ce = getCE("_system")
+	var de = getDE("_system")
+
+	opts := DefaultPostCollectionOptions()
+	opts.Name = "test"
+	ce.PostCollection(opts.Name, nil)
+	defer ce.Delete(opts.Name)
+
+	var doc struct {
+		DocumentImplementation
+	}
+
+	de.PostDocument(&doc, opts.Name, nil)
+
+	documents, err := de.GetDocuments(
+		"test",
+		&GetDocumentsOptions{ReturnType: "id"},
+	)
+
 	if err != nil {
 		t.Fatal("Unexpected error when fetching all documents in collection \"test\".")
 	}
+
 	if len(documents) != 1 {
 		t.Fatal("Expected only one document in collection \"test\": ", documents)
 	}
 
-	//attempt to look for a document that shouldn't exist
-	var fetcher *document
-	fetcher = new(document)
-	err = docEnd.GetDocument(doc.Id()+"9999", fetcher, nil)
-
-	if err == nil {
-		t.Fatal("Expected an error because the document didn't exist.")
+	if documents[0] != doc.Id() {
+		t.Fatal("Could not fetch the ids properly. Actual(%s), Expected(%s)")
 	}
+}
 
-	err = docEnd.GetDocument(doc.Id(), fetcher, nil)
+func TestGetDocumentBlankName(t *testing.T) {
+	var ce = getCE("_system")
+	var de = getDE("_system")
+
+	opts := DefaultPostCollectionOptions()
+	opts.Name = "test"
+	ce.PostCollection(opts.Name, nil)
+	defer ce.Delete(opts.Name)
+
+	err := de.GetDocument("", nil, nil)
+
+	verifyError(
+		err,
+		t,
+		http.StatusBadRequest,
+		"Expected error when getting document with blank handle.",
+	)
+}
+
+func TestGetDocumentNonExistent(t *testing.T) {
+	var ce = getCE("_system")
+	var de = getDE("_system")
+
+	opts := DefaultPostCollectionOptions()
+	opts.Name = "test"
+	ce.PostCollection(opts.Name, nil)
+	defer ce.Delete(opts.Name)
+
+	var doc document
+	doc.Name = "test-document"
+
+	de.PostDocument(&doc, opts.Name, nil)
+	err := de.GetDocument("non/1234", nil, nil)
+
+	verifyError(
+		err,
+		t,
+		http.StatusNotFound,
+		"Expected error when getting document with blank handle.",
+	)
+}
+
+func TestGetDocumentBadName(t *testing.T) {
+	var ce = getCE("_system")
+	var de = getDE("_system")
+
+	opts := DefaultPostCollectionOptions()
+	opts.Name = "test"
+	ce.PostCollection(opts.Name, nil)
+	defer ce.Delete(opts.Name)
+
+	var doc document
+	doc.Name = "test-document"
+
+	de.PostDocument(&doc, opts.Name, nil)
+	err := de.GetDocument("bad", nil, nil)
+
+	verifyError(
+		err,
+		t,
+		http.StatusBadRequest,
+		"Expected error when getting document with bad handle format.",
+	)
+}
+
+func TestGetDocumentAfterPost(t *testing.T) {
+	var ce = getCE("_system")
+	var de = getDE("_system")
+
+	opts := DefaultPostCollectionOptions()
+	opts.Name = "test"
+	ce.PostCollection(opts.Name, nil)
+	defer ce.Delete(opts.Name)
+
+	var doc document
+	doc.Name = "name"
+
+	de.PostDocument(&doc, opts.Name, nil)
+	defer de.DeleteDocument(doc.Id(), nil)
+
+	var fetcher document
+
+	err := de.GetDocument(
+		doc.Id(),
+		&fetcher,
+		nil,
+	)
 
 	if err != nil {
-		t.Fatal("Problems fetching document.")
-	}
-
-	if fetcher.Name != doc.Name {
-		t.Fatal("Did not fetch Name attribute properly.")
+		t.Fatal("Unexpected error when fetching a posted document: ", err)
 	}
 
 	if fetcher.Id() != doc.Id() {
-		t.Fatal("Ids are different between saved and fetched document for no reason.")
+		t.Fatalf(
+			"Fetched document has wrong id: Actual(%s), Expected(%s)",
+			fetcher.Id(),
+			doc.Id(),
+		)
+	}
+
+	if fetcher.Key() != doc.Key() {
+		t.Fatalf(
+			"Fetched document has wrong key: Actual(%s), Expected(%s)",
+			fetcher.Key(),
+			doc.Key(),
+		)
 	}
 
 	if fetcher.Rev() != doc.Rev() {
-		t.Fatal("Revs are different between saved and fetched document for no reason.")
+		t.Fatalf(
+			"Fetched document has wrong rev: Actual(%s), Expected(%s)",
+			fetcher.Rev(),
+			doc.Rev(),
+		)
 	}
 
-	err = docEnd.PostDocument(&doc, docs.Name, nil)
-
-	if err == nil {
-		t.Fatal("Expected an error when creating a duplicate document but didn't get one.")
+	if fetcher.Name != doc.Name {
+		t.Fatalf(
+			"Fetched document has wrong Name: Actual(%s), Expected(%s)",
+			fetcher.Name,
+			doc.Name,
+		)
 	}
+}
 
-	if doc.Id() == "" {
-		t.Fatal("Expected the Id of the document to be set even though we double posted.")
+func TestHeadForBlankName(t *testing.T) {
+	var ce = getCE("_system")
+	var de = getDE("_system")
+
+	opts := DefaultPostCollectionOptions()
+	opts.Name = "test"
+	ce.PostCollection(opts.Name, nil)
+	defer ce.Delete(opts.Name)
+
+	rev, err := de.HeadDocument("", nil)
+
+	verifyError(
+		err,
+		t,
+		http.StatusBadRequest,
+		"Expected to receive error for Head with blank name.",
+	)
+
+	if rev != "" {
+		t.Fatal("Expected rev to be blank.")
 	}
+}
 
-	if doc.Key() == "" {
-		t.Fatal("Expected the Key of the document to be set even though we double posted.")
+func TestHeadForNonExistent(t *testing.T) {
+	var ce = getCE("_system")
+	var de = getDE("_system")
+
+	opts := DefaultPostCollectionOptions()
+	opts.Name = "test"
+	ce.PostCollection(opts.Name, nil)
+	defer ce.Delete(opts.Name)
+
+	rev, err := de.HeadDocument("none/123434", nil)
+
+	verifyError(
+		err,
+		t,
+		http.StatusNotFound,
+		"Expected to receive error for Head with non-existent doc",
+	)
+
+	if rev != "" {
+		t.Fatal("Expected rev to be blank.")
 	}
+}
 
-	if doc.Rev() == "" {
-		t.Fatal("Expected the Rev of the document to be set even though we double posted.")
+func TestHeadForBadName(t *testing.T) {
+	var ce = getCE("_system")
+	var de = getDE("_system")
+
+	opts := DefaultPostCollectionOptions()
+	opts.Name = "test"
+	ce.PostCollection(opts.Name, nil)
+	defer ce.Delete(opts.Name)
+
+	rev, err := de.HeadDocument("bad", nil)
+
+	verifyError(
+		err,
+		t,
+		http.StatusBadRequest,
+		"Expected to receive error for Head with bad name.",
+	)
+
+	if rev != "" {
+		t.Fatal("Expected rev to be blank.")
 	}
+}
 
-	err = docEnd.GetDocument(
-		doc.Id(),
-		fetcher,
-		&GetDocumentOptions{IfNoneMatch: doc.Rev()})
+func TestHeadAfterPost(t *testing.T) {
+	var ce = getCE("_system")
+	var de = getDE("_system")
 
+	opts := DefaultPostCollectionOptions()
+	opts.Name = "test"
+	ce.PostCollection(opts.Name, nil)
+	defer ce.Delete(opts.Name)
+
+	var doc document
+	doc.Name = "name"
+
+	de.PostDocument(&doc, opts.Name, nil)
+	defer de.DeleteDocument(doc.Id(), nil)
+
+	rev, err := de.HeadDocument(doc.Id(), nil)
 	if err != nil {
-		t.Fatal("Did not expect an error because the revisions should match.")
+		t.Fatal("Uexpected error")
+	}
+	if rev != doc.Rev() {
+		t.Fatal("Expected rev to equal doc's rev.")
 	}
 
-	revision, err := docEnd.HeadDocument(doc.Id(), nil)
-
+	rev, err = de.HeadDocument(doc.Id(), &HeadDocumentOptions{Rev: doc.Rev()})
 	if err != nil {
-		t.Fatal("Did not expect an error: ", err)
+		t.Fatal("Uexpected error")
+	}
+	if rev != doc.Rev() {
+		t.Fatal("Expected rev to equal doc's rev.")
 	}
 
-	if revision != doc.Rev() {
-		t.Fatalf("Expected HEAD to return correct revision: Expected(%s), Actual(%s)", doc.Rev(), revision)
-	}
-
-	revision, err = docEnd.HeadDocument(doc.Id(), &HeadDocumentOptions{IfMatch: doc.Rev() + doc.Rev()})
-
+	rev, err = de.HeadDocument(doc.Id(), &HeadDocumentOptions{IfMatch: doc.Rev()})
 	if err != nil {
-		t.Fatal("Did not expect an error even though revisions did not match:", err, revision)
+		t.Fatal("Uexpected error")
+	}
+	if rev != doc.Rev() {
+		t.Fatal("Expected rev to equal doc's rev.")
 	}
 
-	if revision != doc.Rev() {
-		t.Fatal("Expected returned revision to match document revision.")
+	rev, err = de.HeadDocument(doc.Id(), &HeadDocumentOptions{IfMatch: "12341234"})
+	verifyError(
+		err,
+		t,
+		http.StatusPreconditionFailed,
+		"Expected a 412 error with the revision.",
+	)
+	if rev != doc.Rev() {
+		t.Fatal("Expected rev to equal doc's rev.")
 	}
 
-	revision, err = docEnd.HeadDocument(doc.Id(), &HeadDocumentOptions{IfNoneMatch: doc.Rev()})
+	rev, err = de.HeadDocument(doc.Id(), &HeadDocumentOptions{IfNoneMatch: doc.Rev()})
+	verifyError(
+		err,
+		t,
+		http.StatusNotModified,
+		"Expected a 304 with the revision.",
+	)
+	if rev != doc.Rev() {
+		t.Fatal("Expected rev to equal doc's rev.")
+	}
 
+	rev, err = de.HeadDocument(doc.Id(), &HeadDocumentOptions{IfNoneMatch: "12341234123412341234"})
 	if err != nil {
-		t.Fatal("Did not expect an error: ", err)
+		t.Fatal("Uexpected error")
 	}
-
-	if revision != doc.Rev() {
-		t.Fatalf("Expected HEAD to return correct revision: Expected(%s), Actual(%s)", doc.Rev(), revision)
+	if rev != doc.Rev() {
+		t.Fatal("Expected rev to equal doc's rev.")
 	}
+}
 
-	var newDoc document
-	newDoc.Address = "address"
+func TestPutDocumentBlankName(t *testing.T) {
+	var ce = getCE("_system")
+	var de = getDE("_system")
 
-	//test IfMatch
-	err = docEnd.PutDocument(doc.Id(), &newDoc, &PutDocumentOptions{IfMatch: doc.Rev() + doc.Rev()})
+	opts := DefaultPostCollectionOptions()
+	opts.Name = "test"
+	ce.PostCollection(opts.Name, nil)
+	defer ce.Delete(opts.Name)
 
-	if err == nil {
-		t.Fatal("Expected an error when putting to a document whose revision doesn't match.")
-	}
+	err := de.PutDocument("", nil, nil)
 
-	//test Rev
-	err = docEnd.PutDocument(doc.Id(), &newDoc, &PutDocumentOptions{Rev: doc.Rev() + doc.Rev()})
+	verifyError(
+		err,
+		t,
+		http.StatusBadRequest,
+		"Expected error during PutDocument with blank handler.",
+	)
+}
 
-	if err == nil {
-		t.Fatal("Expected an error when putting to a document whose revision doesn't match.")
-	}
+func TestPutDocumentNonExistent(t *testing.T) {
+	var ce = getCE("_system")
+	var de = getDE("_system")
 
-	err = docEnd.PutDocument(doc.Id(), &newDoc, nil)
+	opts := DefaultPostCollectionOptions()
+	opts.Name = "test"
+	ce.PostCollection(opts.Name, nil)
+	defer ce.Delete(opts.Name)
 
+	err := de.PutDocument("non/1234", &struct{}{}, nil)
+
+	verifyError(
+		err,
+		t,
+		http.StatusNotFound,
+		"Expected error during PutDocument with non-existent handler.",
+	)
+}
+
+func TestPutDocumentBadHandler(t *testing.T) {
+	var ce = getCE("_system")
+	var de = getDE("_system")
+
+	opts := DefaultPostCollectionOptions()
+	opts.Name = "test"
+	ce.PostCollection(opts.Name, nil)
+	defer ce.Delete(opts.Name)
+
+	err := de.PutDocument("bad", nil, nil)
+
+	verifyError(
+		err,
+		t,
+		http.StatusBadRequest,
+		"Expected error during PutDocument with bad handler.",
+	)
+}
+
+func TestPutDocument(t *testing.T) {
+	var ce = getCE("_system")
+	var de = getDE("_system")
+
+	opts := DefaultPostCollectionOptions()
+	opts.Name = "test"
+	ce.PostCollection(opts.Name, nil)
+	defer ce.Delete(opts.Name)
+
+	var doc *document = new(document)
+	doc.Name = "test"
+
+	de.PostDocument(&doc, opts.Name, nil)
+
+	var other *document = new(document)
+	other.Address = "other"
+
+	err := de.PutDocument(doc.Id(), other, &PutDocumentOptions{Rev: "1111111"})
+	verifyError(
+		err,
+		t,
+		http.StatusPreconditionFailed,
+		"Expected error if Rev doesn't match.",
+	)
+
+	err = de.PutDocument(doc.Id(), other, &PutDocumentOptions{IfMatch: "1111111"})
+	verifyError(
+		err,
+		t,
+		http.StatusPreconditionFailed,
+		"Expected error if Rev doesn't match.",
+	)
+
+	err = de.PutDocument(doc.Id(), other, nil)
 	if err != nil {
-		t.Fatal("Unexpected error when putting a new document:", err)
+		t.Fatal("Unexpected error when putting: ", err)
 	}
 
-	if newDoc.Id() != doc.Id() {
-		t.Fatalf("Expected put document id to be equal to old doc id. Expected(%s), Actual(%s)", doc.Id(), newDoc.Id())
+	var fetcher *document = new(document)
+	de.GetDocument(other.Id(), fetcher, nil)
+
+	if fetcher.Name != "" {
+		t.Fatal("Put failed to remove name.")
 	}
 
-	if newDoc.Rev() == doc.Rev() {
-		t.Fatalf("Expected put document rev to NOT be  equal to old doc rev. Expected(%s), Actual(%s)", doc.Rev(), newDoc.Rev())
+	if fetcher.Address != other.Address {
+		t.Fatalf(
+			"Put failed to set address: Actual(%s), Expected(%s)",
+			fetcher.Address,
+			other.Address,
+		)
 	}
 
-	fetcher = new(document)
-	err = docEnd.GetDocument(doc.Id(), fetcher, nil)
-
-	if fetcher.Name != "" || fetcher.Name == "test-document" {
-		t.Fatal("Expected fetcher.Name to not have a value since we put a document with no Name. Name = ", fetcher.Name)
-	}
-
-	if fetcher.Address != "address" {
-		t.Fatalf("Unexpected value for address after put. Actual(%s)", fetcher.Address)
-	}
-
-	newDoc.Name = "test-document"
-	err = docEnd.PutDocument(doc.Id(), &newDoc, &PutDocumentOptions{Rev: newDoc.Rev() + newDoc.Rev(), Policy: "last"})
-
+	err = de.PutDocument(other.Id(), doc, &PutDocumentOptions{Rev: "12341234", Policy: "last"})
 	if err != nil {
-		t.Fatal("Unexpected error when using \"last\" policy and a mismatching revision: ", err)
-	}
-
-	fetcher = new(document)
-	err = docEnd.GetDocument(doc.Id(), fetcher, nil)
-
-	if fetcher.Name != newDoc.Name || fetcher.Address != newDoc.Address {
-		t.Fatalf("Got unexpected values after putting a new document using last policy: Expected(%v), Actual(%v)", newDoc, fetcher)
-	}
-
-	var patcher struct {
-		Name string
-	}
-
-	patcher.Name = "new-name"
-
-	err = docEnd.PatchDocument(doc.Id(), &patcher, nil)
-
-	if err != nil {
-		t.Fatal("Unexpected error when patching using a map: ", err)
-	}
-
-	fetcher = new(document)
-	err = docEnd.GetDocument(doc.Id(), fetcher, nil)
-
-	if fetcher.Name != "new-name" || fetcher.Address != newDoc.Address {
-		t.Fatalf("Unexpected error when patching only one field. Expected-field-value(%v), Actual(%v)", newDoc.Name, fetcher.Name)
-	}
-
-	//test patching with a map
-	err = docEnd.PatchDocument(doc.Id(), &map[string]interface{}{"Name": "new-name"}, nil)
-
-	if err != nil {
-		t.Fatal("Unexpected error when patching using a map: ", err)
-	}
-
-	fetcher = new(document)
-	err = docEnd.GetDocument(doc.Id(), fetcher, nil)
-
-	if fetcher.Name != "new-name" || fetcher.Address != newDoc.Address {
-		t.Fatalf("Unexpected error when patching with a map. Expected-field-value(%v), Actual(%v)", newDoc.Name, fetcher.Name)
-	}
-
-	err = docEnd.DeleteDocument(doc.Id(), &DeleteDocumentOptions{IfMatch: fetcher.Rev() + fetcher.Rev()})
-
-	if err == nil {
-		t.Fatal("Expected delete with bad revision to fail.")
-	}
-
-	err = docEnd.DeleteDocument(doc.Id(), &DeleteDocumentOptions{IfMatch: fetcher.Rev()})
-
-	if err != nil {
-		t.Fatal("Unexpected error when deleting document: ", err)
+		t.Fatal("Unexpected error when putting with policy = last: ", err)
 	}
 }

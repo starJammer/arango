@@ -224,7 +224,7 @@ func (c *collectionEndpoint) GetCollections(excludeSystemCollections bool) (Coll
 		return nil, err
 	}
 
-	if h.StatusCode != 200 {
+	if h.StatusCode != http.StatusOK {
 		return nil, errorResult
 	}
 
@@ -295,7 +295,7 @@ func (c *collectionEndpoint) Get(name string) (CollectionDescriptor, error) {
 		return nil, err
 	}
 
-	if h.StatusCode != 200 {
+	if h.StatusCode != http.StatusOK {
 		return nil, errorResult
 	}
 
@@ -321,7 +321,7 @@ func (c *collectionEndpoint) GetProperties(name string) (CollectionDescriptor, e
 		return nil, err
 	}
 
-	if h.StatusCode != 200 {
+	if h.StatusCode != http.StatusOK {
 		return nil, errorResult
 	}
 
@@ -347,7 +347,7 @@ func (c *collectionEndpoint) GetCount(name string) (CollectionDescriptor, error)
 		return nil, err
 	}
 
-	if h.StatusCode != 200 {
+	if h.StatusCode != http.StatusOK {
 		return nil, errorResult
 	}
 
@@ -373,7 +373,7 @@ func (c *collectionEndpoint) GetFigures(name string) (CollectionDescriptor, erro
 		return nil, err
 	}
 
-	if h.StatusCode != 200 {
+	if h.StatusCode != http.StatusOK {
 		return nil, errorResult
 	}
 
@@ -399,7 +399,7 @@ func (c *collectionEndpoint) GetRevision(name string) (CollectionDescriptor, err
 		return nil, err
 	}
 
-	if h.StatusCode != 200 {
+	if h.StatusCode != http.StatusOK {
 		return nil, errorResult
 	}
 
@@ -432,7 +432,7 @@ func (c *collectionEndpoint) GetChecksum(name string, opts *GetChecksumOptions) 
 		return nil, err
 	}
 
-	if h.StatusCode != 200 {
+	if h.StatusCode != http.StatusOK {
 		return nil, errorResult
 	}
 
@@ -460,7 +460,7 @@ func (c *collectionEndpoint) PutLoad(name string, includeCount bool) (Collection
 		return nil, err
 	}
 
-	if h.StatusCode != 200 {
+	if h.StatusCode != http.StatusOK {
 		return nil, errorResult
 	}
 
@@ -488,7 +488,7 @@ func (c *collectionEndpoint) PutUnload(name string) (CollectionDescriptor, error
 		return nil, err
 	}
 
-	if h.StatusCode != 200 {
+	if h.StatusCode != http.StatusOK {
 		return nil, errorResult
 	}
 
@@ -516,14 +516,14 @@ func (c *collectionEndpoint) PutTruncate(name string) (CollectionDescriptor, err
 		return nil, err
 	}
 
-	if h.StatusCode != 200 {
+	if h.StatusCode != http.StatusOK {
 		return nil, errorResult
 	}
 
 	return descriptor, nil
 }
 
-func (c *collectionEndpoint) PutProperties(name string, properties *PutPropertiesOptions) (CollectionDescriptor, error) {
+func (c *collectionEndpoint) PutProperties(name string, properties PutPropertiesOptions) (CollectionDescriptor, error) {
 
 	var descriptor = &collectionDescriptor{}
 	var errorResult = &arangoError{}
@@ -532,7 +532,7 @@ func (c *collectionEndpoint) PutProperties(name string, properties *PutPropertie
 		fmt.Sprintf("/%s/properties", name),
 		nil,
 		nil,
-		properties,
+		&properties,
 		gr.UnmarshalMap{
 			http.StatusOK:         gr.UnmarshalList(descriptor),
 			http.StatusBadRequest: gr.UnmarshalList(errorResult),
@@ -544,7 +544,7 @@ func (c *collectionEndpoint) PutProperties(name string, properties *PutPropertie
 		return nil, err
 	}
 
-	if h.StatusCode != 200 {
+	if h.StatusCode != http.StatusOK {
 		return nil, errorResult
 	}
 
@@ -572,7 +572,7 @@ func (c *collectionEndpoint) PutRename(name string, newName string) (CollectionD
 		return nil, err
 	}
 
-	if h.StatusCode != 200 {
+	if h.StatusCode != http.StatusOK {
 		return nil, errorResult
 	}
 
@@ -598,7 +598,7 @@ func (c *collectionEndpoint) PutRotate(name string) error {
 		return err
 	}
 
-	if h.StatusCode != 200 {
+	if h.StatusCode != http.StatusOK {
 		return errorResult
 	}
 

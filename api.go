@@ -411,8 +411,15 @@ type DeleteDocumentOptions struct {
 type DeleteEdgeOptions DeleteDocumentOptions
 
 type PutPropertiesOptions struct {
+	//If the WaitForSync of your collection is true,
+	//make sure to set this to true if you're only
+	//setting JournalSize, otherwise you will
+	//set it to false by mistake.
 	WaitForSync bool `json:"waitForSync"`
-	JournalSize int  `json:"journalSize,omitempty"`
+	//Omitempty because arango expects at least 1048576 bytes (1MB)
+	//If you set it to >0 it will be sent in the request but you
+	//might get an error if it doesn't meet the minimum requirement.
+	JournalSize int `json:"journalSize,omitempty"`
 }
 
 //PostCollectionOptions represent options when creating a new collection.
@@ -599,7 +606,7 @@ type CollectionEndpoint interface {
 	PutTruncate(name string) (CollectionDescriptor, error)
 
 	//PutProperties -> PUT on /_api/collection/{name}/properties
-	PutProperties(name string, options *PutPropertiesOptions) (CollectionDescriptor, error)
+	PutProperties(name string, options PutPropertiesOptions) (CollectionDescriptor, error)
 
 	//PutRename -> PUT on /_api/collection/{name}/rename
 	PutRename(name string, newName string) (CollectionDescriptor, error)

@@ -2,7 +2,6 @@ package arango
 
 import (
 	"net/http"
-	"net/url"
 	"testing"
 )
 
@@ -717,6 +716,40 @@ func TestPutTruncate(t *testing.T) {
 
 }
 
+func TestPutPropertiesBlankNameNilProps(t *testing.T) {
+	var ce = getCE("_system")
+
+	d, err := ce.PutProperties("", PutPropertiesOptions{})
+
+	verifyError(
+		err,
+		t,
+		http.StatusNotFound,
+		"Expected error when putProperties of blank named collection.",
+	)
+
+	if d != nil {
+		t.Fatal("Expected collection descriptor to be nil with an error.")
+	}
+}
+
+func TestPutPropertiesNonExistentNilProps(t *testing.T) {
+	var ce = getCE("_system")
+
+	d, err := ce.PutProperties("non-existent", PutPropertiesOptions{})
+
+	verifyError(
+		err,
+		t,
+		http.StatusNotFound,
+		"Expected error when putProperties of non-existent collection.",
+	)
+
+	if d != nil {
+		t.Fatal("Expected collection descriptor to be nil with an error.")
+	}
+}
+
 func TestPutProperties(t *testing.T) {
 	var ce = getCE("_system")
 	opts := DefaultPostCollectionOptions()
@@ -731,7 +764,7 @@ func TestPutProperties(t *testing.T) {
 		t.Fatal("Expected waitforsync to be true upon creation.")
 	}
 
-	descriptor, err := ce.PutProperties(opts.Name, &PutPropertiesOptions{WaitForSync: false})
+	descriptor, err := ce.PutProperties(opts.Name, PutPropertiesOptions{WaitForSync: false})
 
 	if err != nil {
 		t.Fatal("Unexpected error when putting prorties.")
@@ -742,20 +775,50 @@ func TestPutProperties(t *testing.T) {
 	}
 }
 
+func TestPutRenameBlankNameNilProps(t *testing.T) {
+	var ce = getCE("_system")
+	var newName = "newtestname"
+
+	d, err := ce.PutRename("", newName)
+
+	verifyError(
+		err,
+		t,
+		http.StatusNotFound,
+		"Expected error when PutRename of blank named collection.",
+	)
+
+	if d != nil {
+		t.Fatal("Expected collection descriptor to be nil with an error.")
+	}
+}
+
+func TestPutRenameNonExistentNilProps(t *testing.T) {
+	var ce = getCE("_system")
+	var newName = "newtestname"
+
+	d, err := ce.PutRename("non-existent", newName)
+
+	verifyError(
+		err,
+		t,
+		http.StatusNotFound,
+		"Expected error when PutRename of non-existent collection.",
+	)
+
+	if d != nil {
+		t.Fatal("Expected collection descriptor to be nil with an error.")
+	}
+}
+
 func TestPutRename(t *testing.T) {
-	u, _ := url.Parse("http://root@localhost:8529")
-	c, _ := NewConnection(u)
-	var db Database = c.Database("_system")
-	var ce = db.CollectionEndpoint()
+	var ce = getCE("_system")
 	var newName = "newtestname"
 
 	opts := DefaultPostCollectionOptions()
 	opts.Name = "test"
 
 	err := ce.PostCollection(opts.Name, opts)
-	if err != nil {
-		t.Fatal("Error creating collection: ", err)
-	}
 
 	descriptor, err := ce.PutRename(opts.Name, newName)
 
@@ -767,10 +830,23 @@ func TestPutRename(t *testing.T) {
 		t.Fatal("Collection rename failed: ", descriptor.Name())
 	}
 
-	_, err = ce.GetProperties(opts.Name)
+	_, err = ce.Get(opts.Name)
 
-	if err == nil {
-		t.Fatal("Expected an error when getting properties of old collection.")
+	verifyError(
+		err,
+		t,
+		http.StatusNotFound,
+		"Expected an error when getting properties of old collection.",
+	)
+
+	descriptor, err = ce.Get(newName)
+
+	if err != nil {
+		t.Fatal("Error getting renamed collection: ", err)
+	}
+
+	if descriptor.Name() != newName {
+		t.Fatal("Getting properties rename failed: ", descriptor.Name())
 	}
 
 	err = ce.Delete(newName)

@@ -49,7 +49,7 @@ func (e *arangoError) Key() string {
 	return e.Keyf
 }
 
-func newArangoError(code int, message string) ArangoError {
+func newArangoError(code int, message string) *arangoError {
 	return &arangoError{
 		IsErrorf:      true,
 		Codef:         code,
