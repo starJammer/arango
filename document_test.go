@@ -31,8 +31,8 @@ func TestGetDocumentsEmptyCollection(t *testing.T) {
 
 type document struct {
 	DocumentImplementation
-	Name    string
-	Address string
+	Name    string `json:"Name,omitempty"`
+	Address string `json:"Address,omitempty"`
 }
 
 func TestPostNilDocument(t *testing.T) {
@@ -88,10 +88,103 @@ func TestPostEmptyDoc(t *testing.T) {
 		t.Fatal("Expected the Rev of the document to be set.")
 	}
 
+}
+
+func TestDeleteDocumentBlankName(t *testing.T) {
+	var ce = getCE("_system")
+	var de = getDE("_system")
+
+	opts := DefaultPostCollectionOptions()
+	opts.Name = "test"
+	ce.PostCollection(opts.Name, nil)
+	defer ce.Delete(opts.Name)
+
+	err := de.DeleteDocument("", nil)
+	verifyError(
+		err,
+		t,
+		http.StatusBadRequest,
+		"Expected error when DeleteDocument blank handler.",
+	)
+}
+
+func TestDeleteDocumentNonExistent(t *testing.T) {
+	var ce = getCE("_system")
+	var de = getDE("_system")
+
+	opts := DefaultPostCollectionOptions()
+	opts.Name = "test"
+	ce.PostCollection(opts.Name, nil)
+	defer ce.Delete(opts.Name)
+
+	err := de.DeleteDocument("non/1", nil)
+	verifyError(
+		err,
+		t,
+		http.StatusNotFound,
+		"Expected error when DeleteDocument non-exstent document.",
+	)
+}
+
+func TestDeleteDocumentBadName(t *testing.T) {
+	var ce = getCE("_system")
+	var de = getDE("_system")
+
+	opts := DefaultPostCollectionOptions()
+	opts.Name = "test"
+	ce.PostCollection(opts.Name, nil)
+	defer ce.Delete(opts.Name)
+
+	err := de.DeleteDocument("bad", nil)
+	verifyError(
+		err,
+		t,
+		http.StatusBadRequest,
+		"Expected error when DeleteDocument bad name.",
+	)
+}
+
+func TestDeleteDocument(t *testing.T) {
+	var ce = getCE("_system")
+	var de = getDE("_system")
+
+	opts := DefaultPostCollectionOptions()
+	opts.Name = "test"
+	ce.PostCollection(opts.Name, nil)
+	defer ce.Delete(opts.Name)
+
+	var doc struct {
+		DocumentImplementation
+	}
+
+	de.PostDocument(&doc, opts.Name, nil)
+
+	err := de.DeleteDocument(doc.Id(), &DeleteDocumentOptions{Rev: "1"})
+	verifyError(
+		err,
+		t,
+		http.StatusPreconditionFailed,
+		"Expected 412 error with bad revision.",
+	)
+
+	err = de.DeleteDocument(doc.Id(), &DeleteDocumentOptions{IfMatch: "1"})
+	verifyError(
+		err,
+		t,
+		http.StatusPreconditionFailed,
+		"Expected 412 error with bad IfMatch",
+	)
+
 	err = de.DeleteDocument(doc.Id(), nil)
 
 	if err != nil {
 		t.Fatal("Unexpected error when deleting document.")
+	}
+
+	de.PostDocument(&doc, opts.Name, nil)
+	err = de.DeleteDocument(doc.Id(), &DeleteDocumentOptions{Rev: "1", Policy: "last"})
+	if err != nil {
+		t.Fatal("Unexpected error when deleting with policy = last: ", err)
 	}
 }
 
@@ -449,6 +542,31 @@ func TestPutDocumentBadHandler(t *testing.T) {
 	)
 }
 
+func TestPutDocumentNilDocument(t *testing.T) {
+	var ce = getCE("_system")
+	var de = getDE("_system")
+
+	opts := DefaultPostCollectionOptions()
+	opts.Name = "test"
+	ce.PostCollection(opts.Name, nil)
+	defer ce.Delete(opts.Name)
+
+	var doc *document = new(document)
+	doc.Name = "test"
+
+	de.PostDocument(&doc, opts.Name, nil)
+	defer de.DeleteDocument(doc.Id(), nil)
+
+	err := de.PutDocument(doc.Id(), nil, nil)
+
+	verifyError(
+		err,
+		t,
+		http.StatusBadRequest,
+		"Expected error during PutDocument with blank handler.",
+	)
+}
+
 func TestPutDocument(t *testing.T) {
 	var ce = getCE("_system")
 	var de = getDE("_system")
@@ -462,11 +580,12 @@ func TestPutDocument(t *testing.T) {
 	doc.Name = "test"
 
 	de.PostDocument(&doc, opts.Name, nil)
+	defer de.DeleteDocument(doc.Id(), nil)
 
 	var other *document = new(document)
 	other.Address = "other"
 
-	err := de.PutDocument(doc.Id(), other, &PutDocumentOptions{Rev: "1111111"})
+	err := de.PutDocument(doc.Id(), other, &PutDocumentOptions{Rev: "1"})
 	verifyError(
 		err,
 		t,
@@ -474,12 +593,12 @@ func TestPutDocument(t *testing.T) {
 		"Expected error if Rev doesn't match.",
 	)
 
-	err = de.PutDocument(doc.Id(), other, &PutDocumentOptions{IfMatch: "1111111"})
+	err = de.PutDocument(doc.Id(), other, &PutDocumentOptions{IfMatch: "1"})
 	verifyError(
 		err,
 		t,
 		http.StatusPreconditionFailed,
-		"Expected error if Rev doesn't match.",
+		"Expected error if IfMatch doesn't match.",
 	)
 
 	err = de.PutDocument(doc.Id(), other, nil)
@@ -505,5 +624,163 @@ func TestPutDocument(t *testing.T) {
 	err = de.PutDocument(other.Id(), doc, &PutDocumentOptions{Rev: "12341234", Policy: "last"})
 	if err != nil {
 		t.Fatal("Unexpected error when putting with policy = last: ", err)
+	}
+}
+
+func TestPatchDocumentBlankName(t *testing.T) {
+	var ce = getCE("_system")
+	var de = getDE("_system")
+
+	opts := DefaultPostCollectionOptions()
+	opts.Name = "test"
+	ce.PostCollection(opts.Name, nil)
+	defer ce.Delete(opts.Name)
+
+	err := de.PatchDocument("", nil, nil)
+
+	verifyError(
+		err,
+		t,
+		http.StatusBadRequest,
+		"Expected error during PatchDocument with blank handler.",
+	)
+}
+
+func TestPatchDocumentNonExistent(t *testing.T) {
+	var ce = getCE("_system")
+	var de = getDE("_system")
+
+	opts := DefaultPostCollectionOptions()
+	opts.Name = "test"
+	ce.PostCollection(opts.Name, nil)
+	defer ce.Delete(opts.Name)
+
+	err := de.PatchDocument("non/1234", &struct{}{}, nil)
+
+	verifyError(
+		err,
+		t,
+		http.StatusNotFound,
+		"Expected error during PatchDocument with non-existent handler.",
+	)
+}
+
+func TestPatchDocumentBadHandler(t *testing.T) {
+	var ce = getCE("_system")
+	var de = getDE("_system")
+
+	opts := DefaultPostCollectionOptions()
+	opts.Name = "test"
+	ce.PostCollection(opts.Name, nil)
+	defer ce.Delete(opts.Name)
+
+	err := de.PatchDocument("bad", nil, nil)
+
+	verifyError(
+		err,
+		t,
+		http.StatusBadRequest,
+		"Expected error during PatchDocument with bad handler.",
+	)
+}
+
+func TestPatchDocumentNilDocument(t *testing.T) {
+	var ce = getCE("_system")
+	var de = getDE("_system")
+
+	opts := DefaultPostCollectionOptions()
+	opts.Name = "test"
+	ce.PostCollection(opts.Name, nil)
+	defer ce.Delete(opts.Name)
+
+	var doc *document = new(document)
+	doc.Name = "test"
+
+	de.PostDocument(&doc, opts.Name, nil)
+	defer de.DeleteDocument(doc.Id(), nil)
+
+	err := de.PatchDocument(doc.Id(), nil, nil)
+
+	verifyError(
+		err,
+		t,
+		http.StatusBadRequest,
+		"Expected error during PatchDocument with blank handler.",
+	)
+}
+
+func TestPatchDocument(t *testing.T) {
+	var ce = getCE("_system")
+	var de = getDE("_system")
+
+	opts := DefaultPostCollectionOptions()
+	opts.Name = "test"
+	ce.PostCollection(opts.Name, nil)
+	defer ce.Delete(opts.Name)
+
+	var doc *document = new(document)
+	doc.Name = "test"
+
+	de.PostDocument(&doc, opts.Name, nil)
+	defer de.DeleteDocument(doc.Id(), nil)
+
+	var other *document = new(document)
+	other.Address = "other"
+
+	err := de.PatchDocument(doc.Id(), other, &PatchDocumentOptions{Rev: "1111111"})
+	verifyError(
+		err,
+		t,
+		http.StatusPreconditionFailed,
+		"Expected error if Rev doesn't match.",
+	)
+
+	err = de.PatchDocument(doc.Id(), other, &PatchDocumentOptions{IfMatch: "1111111"})
+	verifyError(
+		err,
+		t,
+		http.StatusPreconditionFailed,
+		"Expected error if IfMatch doesn't match.",
+	)
+
+	err = de.PatchDocument(doc.Id(), other, nil)
+	if err != nil {
+		t.Fatal("Unexpected error when putting: ", err)
+	}
+
+	var fetcher *document = new(document)
+	de.GetDocument(other.Id(), fetcher, nil)
+
+	if fetcher.Name != doc.Name {
+		t.Fatal("Patch failed to preserve  name.")
+	}
+
+	if fetcher.Address != other.Address {
+		t.Fatalf(
+			"Patch failed to set address: Actual(%s), Expected(%s)",
+			fetcher.Address,
+			other.Address,
+		)
+	}
+
+	doc.Name = "secondpatch"
+	doc.Address = "secondpatch"
+	err = de.PatchDocument(other.Id(), doc, &PatchDocumentOptions{Rev: "12341234", Policy: "last"})
+	if err != nil {
+		t.Fatal("Unexpected error when putting with policy = last: ", err)
+	}
+
+	de.GetDocument(doc.Id(), fetcher, nil)
+
+	if fetcher.Name != doc.Name {
+		t.Fatal("Patch failed to preserve  name.")
+	}
+
+	if fetcher.Address != doc.Address {
+		t.Fatalf(
+			"Patch failed to set address: Actual(%s), Expected(%s)",
+			fetcher.Address,
+			doc.Address,
+		)
 	}
 }

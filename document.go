@@ -221,6 +221,8 @@ func (doc *documentEndpoint) PutDocument(documentHandle string, document interfa
 
 	var errorResult = &arangoError{}
 
+	errList := gr.UnmarshalList(errorResult)
+	success := gr.UnmarshalList(document)
 	h, err := doc.client.Put(
 		fmt.Sprintf("/%s", documentHandle),
 		headers,
@@ -229,10 +231,11 @@ func (doc *documentEndpoint) PutDocument(documentHandle string, document interfa
 		gr.UnmarshalMap{
 			//document is used as the successResult so it gets
 			//populated with the new revision info
-			http.StatusCreated:    gr.UnmarshalList(document),
-			http.StatusAccepted:   gr.UnmarshalList(document),
-			http.StatusBadRequest: gr.UnmarshalList(errorResult),
-			http.StatusNotFound:   gr.UnmarshalList(errorResult),
+			http.StatusCreated:            success,
+			http.StatusAccepted:           success,
+			http.StatusBadRequest:         errList,
+			http.StatusNotFound:           errList,
+			http.StatusPreconditionFailed: errList,
 		},
 	)
 
@@ -276,6 +279,9 @@ func (doc *documentEndpoint) PatchDocument(documentHandle string, document inter
 
 	var errorResult = &arangoError{}
 
+	errList := gr.UnmarshalList(errorResult)
+	success := gr.UnmarshalList(document)
+
 	h, err := doc.client.Patch(
 		fmt.Sprintf("/%s", documentHandle),
 		headers,
@@ -285,10 +291,11 @@ func (doc *documentEndpoint) PatchDocument(documentHandle string, document inter
 		gr.UnmarshalMap{
 			//document is used as the successResult so it gets
 			//populated with the new revision info
-			http.StatusCreated:    gr.UnmarshalList(document),
-			http.StatusAccepted:   gr.UnmarshalList(document),
-			http.StatusBadRequest: gr.UnmarshalList(errorResult),
-			http.StatusNotFound:   gr.UnmarshalList(errorResult),
+			http.StatusCreated:            success,
+			http.StatusAccepted:           success,
+			http.StatusBadRequest:         errList,
+			http.StatusNotFound:           errList,
+			http.StatusPreconditionFailed: errList,
 		},
 	)
 
@@ -330,13 +337,16 @@ func (doc *documentEndpoint) DeleteDocument(documentHandle string, options *Dele
 
 	var errorResult = &arangoError{}
 
+	errList := gr.UnmarshalList(errorResult)
+
 	h, err := doc.client.Delete(
 		fmt.Sprintf("/%s", documentHandle),
 		headers,
 		query,
 		gr.UnmarshalMap{
-			http.StatusBadRequest: gr.UnmarshalList(errorResult),
-			http.StatusNotFound:   gr.UnmarshalList(errorResult),
+			http.StatusBadRequest:         errList,
+			http.StatusNotFound:           errList,
+			http.StatusPreconditionFailed: errList,
 		},
 	)
 
