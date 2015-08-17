@@ -185,13 +185,21 @@ func (doc *edgeEndpoint) HeadEdge(edgeHandle string, options *HeadEdgeOptions) (
 		return "", newArangoError(h.StatusCode, "Malformed request.")
 	}
 
-	if h.StatusCode != http.StatusOK &&
-		h.StatusCode != http.StatusNotModified &&
-		h.StatusCode != http.StatusPreconditionFailed {
+	var revision = strings.Trim(h.Header.Get("Etag"), "\"")
+	if h.StatusCode == http.StatusNotModified {
+		return revision, newArangoError(h.StatusCode, "Document hasn't been modified.")
+	}
+
+	if h.StatusCode == http.StatusPreconditionFailed {
+		return revision, newArangoError(h.StatusCode, "Document's revision different from If-None-Match.")
+	}
+
+	if h.StatusCode != http.StatusOK {
 		return "", newArangoError(h.StatusCode, "Unknown response from arango.")
 	}
 
-	return strings.Trim(h.Header.Get("Etag"), "\""), nil
+	return revision, nil
+
 }
 
 func (doc *edgeEndpoint) PutEdge(edgeHandle string, edge interface{}, options *PutEdgeOptions) error {
@@ -219,18 +227,20 @@ func (doc *edgeEndpoint) PutEdge(edgeHandle string, edge interface{}, options *P
 
 	var errorResult = &arangoError{}
 
+	success := gr.UnmarshalList(edge)
+	errList := gr.UnmarshalList(errorResult)
+
 	h, err := doc.client.Put(
 		fmt.Sprintf("/%s", edgeHandle),
 		headers,
 		query,
 		edge, //edge is the body
 		gr.UnmarshalMap{
-			//edge is used as the successResult so it gets
-			//populated with the new revision info
-			http.StatusCreated:    gr.UnmarshalList(edge),
-			http.StatusAccepted:   gr.UnmarshalList(edge),
-			http.StatusBadRequest: gr.UnmarshalList(errorResult),
-			http.StatusNotFound:   gr.UnmarshalList(errorResult),
+			http.StatusCreated:            success,
+			http.StatusAccepted:           success,
+			http.StatusBadRequest:         errList,
+			http.StatusNotFound:           errList,
+			http.StatusPreconditionFailed: errList,
 		},
 	)
 
@@ -274,6 +284,9 @@ func (doc *edgeEndpoint) PatchEdge(edgeHandle string, edge interface{}, options 
 
 	var errorResult = &arangoError{}
 
+	success := gr.UnmarshalList(edge)
+	errList := gr.UnmarshalList(errorResult)
+
 	h, err := doc.client.Patch(
 		fmt.Sprintf("/%s", edgeHandle),
 		headers,
@@ -283,10 +296,11 @@ func (doc *edgeEndpoint) PatchEdge(edgeHandle string, edge interface{}, options 
 		gr.UnmarshalMap{
 			//document is used as the successResult so it gets
 			//populated with the new revision info
-			http.StatusCreated:    gr.UnmarshalList(edge),
-			http.StatusAccepted:   gr.UnmarshalList(edge),
-			http.StatusBadRequest: gr.UnmarshalList(errorResult),
-			http.StatusNotFound:   gr.UnmarshalList(errorResult),
+			http.StatusCreated:            success,
+			http.StatusAccepted:           success,
+			http.StatusBadRequest:         errList,
+			http.StatusNotFound:           errList,
+			http.StatusPreconditionFailed: errList,
 		},
 	)
 
@@ -328,13 +342,16 @@ func (doc *edgeEndpoint) DeleteEdge(edgeHandle string, options *DeleteEdgeOption
 
 	var errorResult = &arangoError{}
 
+	errList := gr.UnmarshalList(errorResult)
+
 	h, err := doc.client.Delete(
 		fmt.Sprintf("/%s", edgeHandle),
 		headers,
 		query,
 		gr.UnmarshalMap{
-			http.StatusBadRequest: gr.UnmarshalList(errorResult),
-			http.StatusNotFound:   gr.UnmarshalList(errorResult),
+			http.StatusBadRequest:         errList,
+			http.StatusNotFound:           errList,
+			http.StatusPreconditionFailed: errList,
 		},
 	)
 

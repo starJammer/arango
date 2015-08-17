@@ -221,16 +221,15 @@ func (doc *documentEndpoint) PutDocument(documentHandle string, document interfa
 
 	var errorResult = &arangoError{}
 
-	errList := gr.UnmarshalList(errorResult)
 	success := gr.UnmarshalList(document)
+	errList := gr.UnmarshalList(errorResult)
+
 	h, err := doc.client.Put(
 		fmt.Sprintf("/%s", documentHandle),
 		headers,
 		query,
 		document, //document is the body
 		gr.UnmarshalMap{
-			//document is used as the successResult so it gets
-			//populated with the new revision info
 			http.StatusCreated:            success,
 			http.StatusAccepted:           success,
 			http.StatusBadRequest:         errList,
@@ -279,8 +278,8 @@ func (doc *documentEndpoint) PatchDocument(documentHandle string, document inter
 
 	var errorResult = &arangoError{}
 
-	errList := gr.UnmarshalList(errorResult)
 	success := gr.UnmarshalList(document)
+	errList := gr.UnmarshalList(errorResult)
 
 	h, err := doc.client.Patch(
 		fmt.Sprintf("/%s", documentHandle),

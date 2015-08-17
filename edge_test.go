@@ -11,14 +11,15 @@ func TestMeetsEdgeEndpoint(t *testing.T) {
 
 func TestGetEdgesEmptyCollection(t *testing.T) {
 	var ce = getCE("_system")
-	var de = getEE("_system")
+	var ee = getEE("_system")
 
 	opts := DefaultPostCollectionOptions()
 	opts.Name = "test"
-	ce.PostCollection(opts.Name, nil)
+	opts.Type = EDGE_COLLECTION
+	ce.PostCollection(opts.Name, opts)
 	defer ce.Delete(opts.Name)
 
-	docs, err := de.GetEdges(opts.Name, nil)
+	docs, err := ee.GetEdges(opts.Name, nil)
 
 	if err != nil {
 		t.Fatal("Unexpected err when getting documents: ", err)
@@ -37,17 +38,17 @@ type edge struct {
 
 func TestPostNilEdge(t *testing.T) {
 	var ce = getCE("_system")
-	var de = getEE("_system")
+	var ee = getEE("_system")
 
 	opts := DefaultPostCollectionOptions()
 	opts.Name = "test"
-	ce.PostCollection(opts.Name, nil)
+	ce.PostCollection(opts.Name, opts)
 	defer ce.Delete(opts.Name)
 
-	var doc document
-	doc.Name = "test-document"
+	var edge document
+	edge.Name = "test-document"
 
-	err := de.PostEdge(nil, opts.Name, nil)
+	err := ee.PostEdge(nil, "test/1", "test/1", opts.Name, nil)
 
 	verifyError(
 		err,
@@ -57,49 +58,143 @@ func TestPostNilEdge(t *testing.T) {
 	)
 }
 
-func TestPostEmptyDoc(t *testing.T) {
+func TestPostBadFromCollection(t *testing.T) {
 	var ce = getCE("_system")
-	var de = getEE("_system")
+	var ee = getEE("_system")
 
 	opts := DefaultPostCollectionOptions()
 	opts.Name = "test"
-	ce.PostCollection(opts.Name, nil)
+	opts.Type = EDGE_COLLECTION
+
+	ce.PostCollection(opts.Name, opts)
 	defer ce.Delete(opts.Name)
 
-	var doc struct {
+	var edge struct {
 		EdgeImplementation
 	}
 
-	err := de.PostEdge(&doc, opts.Name, nil)
+	err := ee.PostEdge(&edge, opts.Name, "fake/1", "test/1", nil)
 
-	if err != nil {
-		t.Fatal("Unexpected error when posting empty doc: ", err)
+	verifyError(
+		err,
+		t,
+		http.StatusNotFound,
+		"Expected error with fake collection name for _from.",
+	)
+}
+
+func TestPostBadToCollection(t *testing.T) {
+	var ce = getCE("_system")
+	var ee = getEE("_system")
+
+	opts := DefaultPostCollectionOptions()
+	opts.Name = "test"
+	opts.Type = EDGE_COLLECTION
+
+	ce.PostCollection(opts.Name, opts)
+	defer ce.Delete(opts.Name)
+
+	var edge struct {
+		EdgeImplementation
 	}
 
-	if doc.Id() == "" {
+	err := ee.PostEdge(&edge, opts.Name, "test/1", "fake/1", nil)
+
+	verifyError(
+		err,
+		t,
+		http.StatusNotFound,
+		"Expected error with fake collection name for _to.",
+	)
+}
+
+func TestPostBlankFrom(t *testing.T) {
+	var ce = getCE("_system")
+	var ee = getEE("_system")
+
+	opts := DefaultPostCollectionOptions()
+	opts.Name = "test"
+	opts.Type = EDGE_COLLECTION
+
+	ce.PostCollection(opts.Name, opts)
+	defer ce.Delete(opts.Name)
+
+	var edge struct {
+		EdgeImplementation
+	}
+
+	err := ee.PostEdge(&edge, opts.Name, "", "test/1", nil)
+
+	verifyError(
+		err,
+		t,
+		http.StatusBadRequest,
+		"Expected error with blank _from",
+	)
+}
+
+func TestPostEmptyEdge(t *testing.T) {
+	var ce = getCE("_system")
+	var ee = getEE("_system")
+
+	opts := DefaultPostCollectionOptions()
+	opts.Name = "test"
+	opts.Type = EDGE_COLLECTION
+
+	ce.PostCollection(opts.Name, opts)
+	defer ce.Delete(opts.Name)
+
+	var edge struct {
+		EdgeImplementation
+	}
+
+	err := ee.PostEdge(&edge, opts.Name, "test/1", "test/1", nil)
+
+	if err != nil {
+		t.Fatal("Unexpected error when posting empty edge: ", err)
+	}
+
+	if edge.Id() == "" {
 		t.Fatal("Expected the Id of the document to be set.")
 	}
 
-	if doc.Key() == "" {
+	if edge.Key() == "" {
 		t.Fatal("Expected the Key of the document to be set.")
 	}
 
-	if doc.Rev() == "" {
+	if edge.Rev() == "" {
 		t.Fatal("Expected the Rev of the document to be set.")
 	}
 
+	if edge.From() != "test/1" {
+		t.Fatalf(
+			"Expected _from to be set after a post: Actual(%s), Expected(%s)",
+			edge.From(),
+			"test/1",
+		)
+	}
+
+	if edge.To() != "test/1" {
+		t.Fatalf(
+			"Expected _to to be set after a post: Actual(%s), Expected(%s)",
+			edge.To(),
+			"test/1",
+		)
+	}
 }
 
 func TestDeleteEdgeBlankName(t *testing.T) {
 	var ce = getCE("_system")
-	var de = getEE("_system")
+	var ee = getEE("_system")
 
 	opts := DefaultPostCollectionOptions()
 	opts.Name = "test"
-	ce.PostCollection(opts.Name, nil)
+	opts.Type = EDGE_COLLECTION
+
+	ce.PostCollection(opts.Name, opts)
 	defer ce.Delete(opts.Name)
 
-	err := de.DeleteEdge("", nil)
+	err := ee.DeleteEdge("", nil)
 	verifyError(
 		err,
 		t,
@@ -110,14 +205,16 @@ func TestDeleteEdgeBlankName(t *testing.T) {
 
 func TestDeleteEdgeNonExistent(t *testing.T) {
 	var ce = getCE("_system")
-	var de = getEE("_system")
+	var ee = getEE("_system")
 
 	opts := DefaultPostCollectionOptions()
 	opts.Name = "test"
-	ce.PostCollection(opts.Name, nil)
+	opts.Type = EDGE_COLLECTION
+
+	ce.PostCollection(opts.Name, opts)
 	defer ce.Delete(opts.Name)
 
-	err := de.DeleteEdge("non/1", nil)
+	err := ee.DeleteEdge("non/1", nil)
 	verifyError(
 		err,
 		t,
@@ -128,14 +225,16 @@ func TestDeleteEdgeNonExistent(t *testing.T) {
 
 func TestDeleteEdgeBadName(t *testing.T) {
 	var ce = getCE("_system")
-	var de = getEE("_system")
+	var ee = getEE("_system")
 
 	opts := DefaultPostCollectionOptions()
 	opts.Name = "test"
-	ce.PostCollection(opts.Name, nil)
+	opts.Type = EDGE_COLLECTION
+
+	ce.PostCollection(opts.Name, opts)
 	defer ce.Delete(opts.Name)
 
-	err := de.DeleteEdge("bad", nil)
+	err := ee.DeleteEdge("bad", nil)
 	verifyError(
 		err,
 		t,
@@ -146,20 +245,22 @@ func TestDeleteEdgeBadName(t *testing.T) {
 
 func TestDeleteEdge(t *testing.T) {
 	var ce = getCE("_system")
-	var de = getEE("_system")
+	var ee = getEE("_system")
 
 	opts := DefaultPostCollectionOptions()
 	opts.Name = "test"
-	ce.PostCollection(opts.Name, nil)
+	opts.Type = EDGE_COLLECTION
+
+	ce.PostCollection(opts.Name, opts)
 	defer ce.Delete(opts.Name)
 
-	var doc struct {
+	var edge struct {
 		EdgeImplementation
 	}
 
-	de.PostEdge(&doc, opts.Name, nil)
+	ee.PostEdge(&edge, opts.Name, "test/1", "test/1", nil)
 
-	err := de.DeleteEdge(doc.Id(), &DeleteEdgeOptions{Rev: "1"})
+	err := ee.DeleteEdge(edge.Id(), &DeleteEdgeOptions{Rev: "1"})
 	verifyError(
 		err,
 		t,
@@ -167,7 +268,7 @@ func TestDeleteEdge(t *testing.T) {
 		"Expected 412 error with bad revision.",
 	)
 
-	err = de.DeleteEdge(doc.Id(), &DeleteEdgeOptions{IfMatch: "1"})
+	err = ee.DeleteEdge(edge.Id(), &DeleteEdgeOptions{IfMatch: "1"})
 	verifyError(
 		err,
 		t,
@@ -175,14 +276,14 @@ func TestDeleteEdge(t *testing.T) {
 		"Expected 412 error with bad IfMatch",
 	)
 
-	err = de.DeleteEdge(doc.Id(), nil)
+	err = ee.DeleteEdge(edge.Id(), nil)
 
 	if err != nil {
 		t.Fatal("Unexpected error when deleting document.")
 	}
 
-	de.PostEdge(&doc, opts.Name, nil)
-	err = de.DeleteEdge(doc.Id(), &DeleteEdgeOptions{Rev: "1", Policy: "last"})
+	ee.PostEdge(&edge, opts.Name, "test/1", "test/1", nil)
+	err = ee.DeleteEdge(edge.Id(), &DeleteEdgeOptions{Rev: "1", Policy: "last"})
 	if err != nil {
 		t.Fatal("Unexpected error when deleting with policy = last: ", err)
 	}
@@ -190,20 +291,22 @@ func TestDeleteEdge(t *testing.T) {
 
 func TestGetEdgesAfterPost(t *testing.T) {
 	var ce = getCE("_system")
-	var de = getEE("_system")
+	var ee = getEE("_system")
 
 	opts := DefaultPostCollectionOptions()
 	opts.Name = "test"
-	ce.PostCollection(opts.Name, nil)
+	opts.Type = EDGE_COLLECTION
+
+	ce.PostCollection(opts.Name, opts)
 	defer ce.Delete(opts.Name)
 
-	var doc struct {
+	var edge struct {
 		EdgeImplementation
 	}
 
-	de.PostEdge(&doc, opts.Name, nil)
+	ee.PostEdge(&edge, opts.Name, "test/1", "test/1", nil)
 
-	documents, err := de.GetEdges(
+	documents, err := ee.GetEdges(
 		"test",
 		&GetEdgesOptions{ReturnType: "id"},
 	)
@@ -216,21 +319,23 @@ func TestGetEdgesAfterPost(t *testing.T) {
 		t.Fatal("Expected only one document in collection \"test\": ", documents)
 	}
 
-	if documents[0] != doc.Id() {
+	if documents[0] != edge.Id() {
 		t.Fatal("Could not fetch the ids properly. Actual(%s), Expected(%s)")
 	}
 }
 
 func TestGetEdgeBlankName(t *testing.T) {
 	var ce = getCE("_system")
-	var de = getEE("_system")
+	var ee = getEE("_system")
 
 	opts := DefaultPostCollectionOptions()
 	opts.Name = "test"
-	ce.PostCollection(opts.Name, nil)
+	opts.Type = EDGE_COLLECTION
+
+	ce.PostCollection(opts.Name, opts)
 	defer ce.Delete(opts.Name)
 
-	err := de.GetEdge("", nil, nil)
+	err := ee.GetEdge("", nil, nil)
 
 	verifyError(
 		err,
@@ -242,18 +347,20 @@ func TestGetEdgeBlankName(t *testing.T) {
 
 func TestGetEdgeNonExistent(t *testing.T) {
 	var ce = getCE("_system")
-	var de = getEE("_system")
+	var ee = getEE("_system")
 
 	opts := DefaultPostCollectionOptions()
 	opts.Name = "test"
-	ce.PostCollection(opts.Name, nil)
+	opts.Type = EDGE_COLLECTION
+
+	ce.PostCollection(opts.Name, opts)
 	defer ce.Delete(opts.Name)
 
-	var doc document
-	doc.Name = "test-document"
+	var edge document
+	edge.Name = "test-document"
 
-	de.PostEdge(&doc, opts.Name, nil)
-	err := de.GetEdge("non/1234", nil, nil)
+	ee.PostEdge(&edge, opts.Name, "test/1", "test/1", nil)
+	err := ee.GetEdge("non/1234", nil, nil)
 
 	verifyError(
 		err,
@@ -265,18 +372,20 @@ func TestGetEdgeNonExistent(t *testing.T) {
 
 func TestGetEdgeBadName(t *testing.T) {
 	var ce = getCE("_system")
-	var de = getEE("_system")
+	var ee = getEE("_system")
 
 	opts := DefaultPostCollectionOptions()
 	opts.Name = "test"
-	ce.PostCollection(opts.Name, nil)
+	opts.Type = EDGE_COLLECTION
+
+	ce.PostCollection(opts.Name, opts)
 	defer ce.Delete(opts.Name)
 
-	var doc document
-	doc.Name = "test-document"
+	var edge document
+	edge.Name = "test-document"
 
-	de.PostEdge(&doc, opts.Name, nil)
-	err := de.GetEdge("bad", nil, nil)
+	ee.PostEdge(&edge, opts.Name, "test/1", "test/1", nil)
+	err := ee.GetEdge("bad", nil, nil)
 
 	verifyError(
 		err,
@@ -288,23 +397,25 @@ func TestGetEdgeBadName(t *testing.T) {
 
 func TestGetEdgeAfterPost(t *testing.T) {
 	var ce = getCE("_system")
-	var de = getEE("_system")
+	var ee = getEE("_system")
 
 	opts := DefaultPostCollectionOptions()
 	opts.Name = "test"
-	ce.PostCollection(opts.Name, nil)
+	opts.Type = EDGE_COLLECTION
+
+	ce.PostCollection(opts.Name, opts)
 	defer ce.Delete(opts.Name)
 
-	var doc document
-	doc.Name = "name"
+	var edge document
+	edge.Name = "name"
 
-	de.PostEdge(&doc, opts.Name, nil)
-	defer de.DeleteEdge(doc.Id(), nil)
+	ee.PostEdge(&edge, opts.Name, "test/1", "test/1", nil)
+	defer ee.DeleteEdge(edge.Id(), nil)
 
 	var fetcher document
 
-	err := de.GetEdge(
-		doc.Id(),
+	err := ee.GetEdge(
+		edge.Id(),
 		&fetcher,
 		nil,
 	)
@@ -313,49 +424,51 @@ func TestGetEdgeAfterPost(t *testing.T) {
 		t.Fatal("Unexpected error when fetching a posted document: ", err)
 	}
 
-	if fetcher.Id() != doc.Id() {
+	if fetcher.Id() != edge.Id() {
 		t.Fatalf(
 			"Fetched document has wrong id: Actual(%s), Expected(%s)",
 			fetcher.Id(),
-			doc.Id(),
+			edge.Id(),
 		)
 	}
 
-	if fetcher.Key() != doc.Key() {
+	if fetcher.Key() != edge.Key() {
 		t.Fatalf(
 			"Fetched document has wrong key: Actual(%s), Expected(%s)",
 			fetcher.Key(),
-			doc.Key(),
+			edge.Key(),
 		)
 	}
 
-	if fetcher.Rev() != doc.Rev() {
+	if fetcher.Rev() != edge.Rev() {
 		t.Fatalf(
 			"Fetched document has wrong rev: Actual(%s), Expected(%s)",
 			fetcher.Rev(),
-			doc.Rev(),
+			edge.Rev(),
 		)
 	}
 
-	if fetcher.Name != doc.Name {
+	if fetcher.Name != edge.Name {
 		t.Fatalf(
 			"Fetched document has wrong Name: Actual(%s), Expected(%s)",
 			fetcher.Name,
-			doc.Name,
+			edge.Name,
 		)
 	}
 }
 
-func TestHeadForBlankName(t *testing.T) {
+func TestEdgeHeadForBlankName(t *testing.T) {
 	var ce = getCE("_system")
-	var de = getEE("_system")
+	var ee = getEE("_system")
 
 	opts := DefaultPostCollectionOptions()
 	opts.Name = "test"
-	ce.PostCollection(opts.Name, nil)
+	opts.Type = EDGE_COLLECTION
+
+	ce.PostCollection(opts.Name, opts)
 	defer ce.Delete(opts.Name)
 
-	rev, err := de.HeadEdge("", nil)
+	rev, err := ee.HeadEdge("", nil)
 
 	verifyError(
 		err,
@@ -369,22 +482,24 @@ func TestHeadForBlankName(t *testing.T) {
 	}
 }
 
-func TestHeadForNonExistent(t *testing.T) {
+func TestEdgeHeadForNonExistent(t *testing.T) {
 	var ce = getCE("_system")
-	var de = getEE("_system")
+	var ee = getEE("_system")
 
 	opts := DefaultPostCollectionOptions()
 	opts.Name = "test"
-	ce.PostCollection(opts.Name, nil)
+	opts.Type = EDGE_COLLECTION
+
+	ce.PostCollection(opts.Name, opts)
 	defer ce.Delete(opts.Name)
 
-	rev, err := de.HeadEdge("none/123434", nil)
+	rev, err := ee.HeadEdge("none/123434", nil)
 
 	verifyError(
 		err,
 		t,
 		http.StatusNotFound,
-		"Expected to receive error for Head with non-existent doc",
+		"Expected to receive error for Head with non-existent edge",
 	)
 
 	if rev != "" {
@@ -392,16 +507,18 @@ func TestHeadForNonExistent(t *testing.T) {
 	}
 }
 
-func TestHeadForBadName(t *testing.T) {
+func TestEdgeHeadForBadName(t *testing.T) {
 	var ce = getCE("_system")
-	var de = getEE("_system")
+	var ee = getEE("_system")
 
 	opts := DefaultPostCollectionOptions()
 	opts.Name = "test"
-	ce.PostCollection(opts.Name, nil)
+	opts.Type = EDGE_COLLECTION
+
+	ce.PostCollection(opts.Name, opts)
 	defer ce.Delete(opts.Name)
 
-	rev, err := de.HeadEdge("bad", nil)
+	rev, err := ee.HeadEdge("bad", nil)
 
 	verifyError(
 		err,
@@ -415,86 +532,90 @@ func TestHeadForBadName(t *testing.T) {
 	}
 }
 
-func TestHeadAfterPost(t *testing.T) {
+func TestEdgeHeadAfterPost(t *testing.T) {
 	var ce = getCE("_system")
-	var de = getEE("_system")
+	var ee = getEE("_system")
 
 	opts := DefaultPostCollectionOptions()
 	opts.Name = "test"
-	ce.PostCollection(opts.Name, nil)
+	opts.Type = EDGE_COLLECTION
+
+	ce.PostCollection(opts.Name, opts)
 	defer ce.Delete(opts.Name)
 
-	var doc document
-	doc.Name = "name"
+	var edge document
+	edge.Name = "name"
 
-	de.PostEdge(&doc, opts.Name, nil)
-	defer de.DeleteEdge(doc.Id(), nil)
+	ee.PostEdge(&edge, opts.Name, "test/1", "test/1", nil)
+	defer ee.DeleteEdge(edge.Id(), nil)
 
-	rev, err := de.HeadEdge(doc.Id(), nil)
+	rev, err := ee.HeadEdge(edge.Id(), nil)
 	if err != nil {
 		t.Fatal("Uexpected error")
 	}
-	if rev != doc.Rev() {
-		t.Fatal("Expected rev to equal doc's rev.")
+	if rev != edge.Rev() {
+		t.Fatal("Expected rev to equal edge's rev.")
 	}
 
-	rev, err = de.HeadEdge(doc.Id(), &HeadEdgeOptions{Rev: doc.Rev()})
+	rev, err = ee.HeadEdge(edge.Id(), &HeadEdgeOptions{Rev: edge.Rev()})
 	if err != nil {
 		t.Fatal("Uexpected error")
 	}
-	if rev != doc.Rev() {
-		t.Fatal("Expected rev to equal doc's rev.")
+	if rev != edge.Rev() {
+		t.Fatal("Expected rev to equal edge's rev.")
 	}
 
-	rev, err = de.HeadEdge(doc.Id(), &HeadEdgeOptions{IfMatch: doc.Rev()})
+	rev, err = ee.HeadEdge(edge.Id(), &HeadEdgeOptions{IfMatch: edge.Rev()})
 	if err != nil {
 		t.Fatal("Uexpected error")
 	}
-	if rev != doc.Rev() {
-		t.Fatal("Expected rev to equal doc's rev.")
+	if rev != edge.Rev() {
+		t.Fatal("Expected rev to equal edge's rev.")
 	}
 
-	rev, err = de.HeadEdge(doc.Id(), &HeadEdgeOptions{IfMatch: "12341234"})
+	rev, err = ee.HeadEdge(edge.Id(), &HeadEdgeOptions{IfMatch: "12341234"})
 	verifyError(
 		err,
 		t,
 		http.StatusPreconditionFailed,
 		"Expected a 412 error with the revision.",
 	)
-	if rev != doc.Rev() {
-		t.Fatal("Expected rev to equal doc's rev.")
+	if rev != edge.Rev() {
+		t.Fatal("Expected rev to equal edge's rev.")
 	}
 
-	rev, err = de.HeadEdge(doc.Id(), &HeadEdgeOptions{IfNoneMatch: doc.Rev()})
+	rev, err = ee.HeadEdge(edge.Id(), &HeadEdgeOptions{IfNoneMatch: edge.Rev()})
 	verifyError(
 		err,
 		t,
 		http.StatusNotModified,
 		"Expected a 304 with the revision.",
 	)
-	if rev != doc.Rev() {
-		t.Fatal("Expected rev to equal doc's rev.")
+	if rev != edge.Rev() {
+		t.Fatal("Expected rev to equal edge's rev.")
 	}
 
-	rev, err = de.HeadEdge(doc.Id(), &HeadEdgeOptions{IfNoneMatch: "12341234123412341234"})
+	rev, err = ee.HeadEdge(edge.Id(), &HeadEdgeOptions{IfNoneMatch: "12341234123412341234"})
 	if err != nil {
 		t.Fatal("Uexpected error")
 	}
-	if rev != doc.Rev() {
-		t.Fatal("Expected rev to equal doc's rev.")
+	if rev != edge.Rev() {
+		t.Fatal("Expected rev to equal edge's rev.")
 	}
 }
 
 func TestPutEdgeBlankName(t *testing.T) {
 	var ce = getCE("_system")
-	var de = getEE("_system")
+	var ee = getEE("_system")
 
 	opts := DefaultPostCollectionOptions()
 	opts.Name = "test"
-	ce.PostCollection(opts.Name, nil)
+	opts.Type = EDGE_COLLECTION
+
+	ce.PostCollection(opts.Name, opts)
 	defer ce.Delete(opts.Name)
 
-	err := de.PutEdge("", nil, nil)
+	err := ee.PutEdge("", nil, nil)
 
 	verifyError(
 		err,
@@ -506,14 +627,16 @@ func TestPutEdgeBlankName(t *testing.T) {
 
 func TestPutEdgeNonExistent(t *testing.T) {
 	var ce = getCE("_system")
-	var de = getEE("_system")
+	var ee = getEE("_system")
 
 	opts := DefaultPostCollectionOptions()
 	opts.Name = "test"
-	ce.PostCollection(opts.Name, nil)
+	opts.Type = EDGE_COLLECTION
+
+	ce.PostCollection(opts.Name, opts)
 	defer ce.Delete(opts.Name)
 
-	err := de.PutEdge("non/1234", &struct{}{}, nil)
+	err := ee.PutEdge("non/1234", &struct{}{}, nil)
 
 	verifyError(
 		err,
@@ -525,14 +648,16 @@ func TestPutEdgeNonExistent(t *testing.T) {
 
 func TestPutEdgeBadHandler(t *testing.T) {
 	var ce = getCE("_system")
-	var de = getEE("_system")
+	var ee = getEE("_system")
 
 	opts := DefaultPostCollectionOptions()
 	opts.Name = "test"
-	ce.PostCollection(opts.Name, nil)
+	opts.Type = EDGE_COLLECTION
+
+	ce.PostCollection(opts.Name, opts)
 	defer ce.Delete(opts.Name)
 
-	err := de.PutEdge("bad", nil, nil)
+	err := ee.PutEdge("bad", nil, nil)
 
 	verifyError(
 		err,
@@ -544,20 +669,22 @@ func TestPutEdgeBadHandler(t *testing.T) {
 
 func TestPutEdgeNilEdge(t *testing.T) {
 	var ce = getCE("_system")
-	var de = getEE("_system")
+	var ee = getEE("_system")
 
 	opts := DefaultPostCollectionOptions()
 	opts.Name = "test"
-	ce.PostCollection(opts.Name, nil)
+	opts.Type = EDGE_COLLECTION
+
+	ce.PostCollection(opts.Name, opts)
 	defer ce.Delete(opts.Name)
 
-	var doc *document = new(document)
-	doc.Name = "test"
+	var edge *document = new(document)
+	edge.Name = "test"
 
-	de.PostEdge(&doc, opts.Name, nil)
-	defer de.DeleteEdge(doc.Id(), nil)
+	ee.PostEdge(&edge, opts.Name, "test/1", "test/1", nil)
+	defer ee.DeleteEdge(edge.Id(), nil)
 
-	err := de.PutEdge(doc.Id(), nil, nil)
+	err := ee.PutEdge(edge.Id(), nil, nil)
 
 	verifyError(
 		err,
@@ -569,23 +696,25 @@ func TestPutEdgeNilEdge(t *testing.T) {
 
 func TestPutEdge(t *testing.T) {
 	var ce = getCE("_system")
-	var de = getEE("_system")
+	var ee = getEE("_system")
 
 	opts := DefaultPostCollectionOptions()
 	opts.Name = "test"
-	ce.PostCollection(opts.Name, nil)
+	opts.Type = EDGE_COLLECTION
+
+	ce.PostCollection(opts.Name, opts)
 	defer ce.Delete(opts.Name)
 
-	var doc *document = new(document)
-	doc.Name = "test"
+	var edge *document = new(document)
+	edge.Name = "test"
 
-	de.PostEdge(&doc, opts.Name, nil)
-	defer de.DeleteEdge(doc.Id(), nil)
+	ee.PostEdge(&edge, opts.Name, "test/1", "test/1", nil)
+	defer ee.DeleteEdge(edge.Id(), nil)
 
 	var other *document = new(document)
 	other.Address = "other"
 
-	err := de.PutEdge(doc.Id(), other, &PutEdgeOptions{Rev: "1"})
+	err := ee.PutEdge(edge.Id(), other, &PutEdgeOptions{Rev: "1"})
 	verifyError(
 		err,
 		t,
@@ -593,7 +722,7 @@ func TestPutEdge(t *testing.T) {
 		"Expected error if Rev doesn't match.",
 	)
 
-	err = de.PutEdge(doc.Id(), other, &PutEdgeOptions{IfMatch: "1"})
+	err = ee.PutEdge(edge.Id(), other, &PutEdgeOptions{IfMatch: "1"})
 	verifyError(
 		err,
 		t,
@@ -601,13 +730,21 @@ func TestPutEdge(t *testing.T) {
 		"Expected error if IfMatch doesn't match.",
 	)
 
-	err = de.PutEdge(doc.Id(), other, nil)
+	err = ee.PutEdge(edge.Id(), other, nil)
 	if err != nil {
 		t.Fatal("Unexpected error when putting: ", err)
 	}
 
+	if other.Rev() == "" || other.Rev() == edge.Rev() {
+		t.Fatalf(
+			"Unexpected value for Rev after putting: Actual(%s), Previous(%s)",
+			other.Rev(),
+			edge.Rev(),
+		)
+	}
+
 	var fetcher *document = new(document)
-	de.GetEdge(other.Id(), fetcher, nil)
+	ee.GetEdge(other.Id(), fetcher, nil)
 
 	if fetcher.Name != "" {
 		t.Fatal("Put failed to remove name.")
@@ -621,7 +758,7 @@ func TestPutEdge(t *testing.T) {
 		)
 	}
 
-	err = de.PutEdge(other.Id(), doc, &PutEdgeOptions{Rev: "12341234", Policy: "last"})
+	err = ee.PutEdge(other.Id(), edge, &PutEdgeOptions{Rev: "12341234", Policy: "last"})
 	if err != nil {
 		t.Fatal("Unexpected error when putting with policy = last: ", err)
 	}
@@ -629,14 +766,16 @@ func TestPutEdge(t *testing.T) {
 
 func TestPatchEdgeBlankName(t *testing.T) {
 	var ce = getCE("_system")
-	var de = getEE("_system")
+	var ee = getEE("_system")
 
 	opts := DefaultPostCollectionOptions()
 	opts.Name = "test"
-	ce.PostCollection(opts.Name, nil)
+	opts.Type = EDGE_COLLECTION
+
+	ce.PostCollection(opts.Name, opts)
 	defer ce.Delete(opts.Name)
 
-	err := de.PatchEdge("", nil, nil)
+	err := ee.PatchEdge("", nil, nil)
 
 	verifyError(
 		err,
@@ -648,14 +787,16 @@ func TestPatchEdgeBlankName(t *testing.T) {
 
 func TestPatchEdgeNonExistent(t *testing.T) {
 	var ce = getCE("_system")
-	var de = getEE("_system")
+	var ee = getEE("_system")
 
 	opts := DefaultPostCollectionOptions()
 	opts.Name = "test"
-	ce.PostCollection(opts.Name, nil)
+	opts.Type = EDGE_COLLECTION
+
+	ce.PostCollection(opts.Name, opts)
 	defer ce.Delete(opts.Name)
 
-	err := de.PatchEdge("non/1234", &struct{}{}, nil)
+	err := ee.PatchEdge("non/1234", &struct{}{}, nil)
 
 	verifyError(
 		err,
@@ -667,14 +808,16 @@ func TestPatchEdgeNonExistent(t *testing.T) {
 
 func TestPatchEdgeBadHandler(t *testing.T) {
 	var ce = getCE("_system")
-	var de = getEE("_system")
+	var ee = getEE("_system")
 
 	opts := DefaultPostCollectionOptions()
 	opts.Name = "test"
-	ce.PostCollection(opts.Name, nil)
+	opts.Type = EDGE_COLLECTION
+
+	ce.PostCollection(opts.Name, opts)
 	defer ce.Delete(opts.Name)
 
-	err := de.PatchEdge("bad", nil, nil)
+	err := ee.PatchEdge("bad", nil, nil)
 
 	verifyError(
 		err,
@@ -686,20 +829,22 @@ func TestPatchEdgeBadHandler(t *testing.T) {
 
 func TestPatchEdgeNilEdge(t *testing.T) {
 	var ce = getCE("_system")
-	var de = getEE("_system")
+	var ee = getEE("_system")
 
 	opts := DefaultPostCollectionOptions()
 	opts.Name = "test"
-	ce.PostCollection(opts.Name, nil)
+	opts.Type = EDGE_COLLECTION
+
+	ce.PostCollection(opts.Name, opts)
 	defer ce.Delete(opts.Name)
 
-	var doc *document = new(document)
-	doc.Name = "test"
+	var edge *document = new(document)
+	edge.Name = "test"
 
-	de.PostEdge(&doc, opts.Name, nil)
-	defer de.DeleteEdge(doc.Id(), nil)
+	ee.PostEdge(&edge, opts.Name, "test/1", "test/1", nil)
+	defer ee.DeleteEdge(edge.Id(), nil)
 
-	err := de.PatchEdge(doc.Id(), nil, nil)
+	err := ee.PatchEdge(edge.Id(), nil, nil)
 
 	verifyError(
 		err,
@@ -711,23 +856,25 @@ func TestPatchEdgeNilEdge(t *testing.T) {
 
 func TestPatchEdge(t *testing.T) {
 	var ce = getCE("_system")
-	var de = getEE("_system")
+	var ee = getEE("_system")
 
 	opts := DefaultPostCollectionOptions()
 	opts.Name = "test"
-	ce.PostCollection(opts.Name, nil)
+	opts.Type = EDGE_COLLECTION
+
+	ce.PostCollection(opts.Name, opts)
 	defer ce.Delete(opts.Name)
 
-	var doc *document = new(document)
-	doc.Name = "test"
+	var edge *document = new(document)
+	edge.Name = "test"
 
-	de.PostEdge(&doc, opts.Name, nil)
-	defer de.DeleteEdge(doc.Id(), nil)
+	ee.PostEdge(&edge, opts.Name, "test/1", "test/1", nil)
+	defer ee.DeleteEdge(edge.Id(), nil)
 
 	var other *document = new(document)
 	other.Address = "other"
 
-	err := de.PatchEdge(doc.Id(), other, &PatchEdgeOptions{Rev: "1111111"})
+	err := ee.PatchEdge(edge.Id(), other, &PatchEdgeOptions{Rev: "1111111"})
 	verifyError(
 		err,
 		t,
@@ -735,7 +882,7 @@ func TestPatchEdge(t *testing.T) {
 		"Expected error if Rev doesn't match.",
 	)
 
-	err = de.PatchEdge(doc.Id(), other, &PatchEdgeOptions{IfMatch: "1111111"})
+	err = ee.PatchEdge(edge.Id(), other, &PatchEdgeOptions{IfMatch: "1111111"})
 	verifyError(
 		err,
 		t,
@@ -743,15 +890,23 @@ func TestPatchEdge(t *testing.T) {
 		"Expected error if IfMatch doesn't match.",
 	)
 
-	err = de.PatchEdge(doc.Id(), other, nil)
+	err = ee.PatchEdge(edge.Id(), other, nil)
 	if err != nil {
 		t.Fatal("Unexpected error when putting: ", err)
 	}
 
-	var fetcher *document = new(document)
-	de.GetEdge(other.Id(), fetcher, nil)
+	if other.Rev() == "" || other.Rev() == edge.Rev() {
+		t.Fatalf(
+			"Unexpected value for Rev after patching: Actual(%s), Previous(%s)",
+			other.Rev(),
+			edge.Rev(),
+		)
+	}
 
-	if fetcher.Name != doc.Name {
+	var fetcher *document = new(document)
+	ee.GetEdge(other.Id(), fetcher, nil)
+
+	if fetcher.Name != edge.Name {
 		t.Fatal("Patch failed to preserve  name.")
 	}
 
@@ -763,24 +918,24 @@ func TestPatchEdge(t *testing.T) {
 		)
 	}
 
-	doc.Name = "secondpatch"
-	doc.Address = "secondpatch"
-	err = de.PatchEdge(other.Id(), doc, &PatchEdgeOptions{Rev: "12341234", Policy: "last"})
+	edge.Name = "secondpatch"
+	edge.Address = "secondpatch"
+	err = ee.PatchEdge(other.Id(), edge, &PatchEdgeOptions{Rev: "12341234", Policy: "last"})
 	if err != nil {
 		t.Fatal("Unexpected error when putting with policy = last: ", err)
 	}
 
-	de.GetEdge(doc.Id(), fetcher, nil)
+	ee.GetEdge(edge.Id(), fetcher, nil)
 
-	if fetcher.Name != doc.Name {
+	if fetcher.Name != edge.Name {
 		t.Fatal("Patch failed to preserve  name.")
 	}
 
-	if fetcher.Address != doc.Address {
+	if fetcher.Address != edge.Address {
 		t.Fatalf(
 			"Patch failed to set address: Actual(%s), Expected(%s)",
 			fetcher.Address,
-			doc.Address,
+			edge.Address,
 		)
 	}
 }

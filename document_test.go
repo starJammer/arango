@@ -606,6 +606,14 @@ func TestPutDocument(t *testing.T) {
 		t.Fatal("Unexpected error when putting: ", err)
 	}
 
+	if other.Rev() == "" || other.Rev() == doc.Rev() {
+		t.Fatalf(
+			"Unexpected value for Rev after putting: Actual(%s), Previous(%s)",
+			other.Rev(),
+			doc.Rev(),
+		)
+	}
+
 	var fetcher *document = new(document)
 	de.GetDocument(other.Id(), fetcher, nil)
 
@@ -746,6 +754,14 @@ func TestPatchDocument(t *testing.T) {
 	err = de.PatchDocument(doc.Id(), other, nil)
 	if err != nil {
 		t.Fatal("Unexpected error when putting: ", err)
+	}
+
+	if other.Rev() == "" || other.Rev() == doc.Rev() {
+		t.Fatalf(
+			"Unexpected value for Rev after patching: Actual(%s), Previous(%s)",
+			other.Rev(),
+			doc.Rev(),
+		)
 	}
 
 	var fetcher *document = new(document)
