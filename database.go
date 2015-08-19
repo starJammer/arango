@@ -55,9 +55,9 @@ func (d *database) Get() ([]string, error) {
 		nil,
 		nil,
 		gr.UnmarshalMap{
-			http.StatusOK:         gr.UnmarshalList(&result),
-			http.StatusBadRequest: gr.UnmarshalList(errorResult),
-			http.StatusForbidden:  gr.UnmarshalList(errorResult),
+			http.StatusOK:         &result,
+			http.StatusBadRequest: errorResult,
+			http.StatusForbidden:  errorResult,
 		},
 	)
 
@@ -86,9 +86,9 @@ func (d *database) GetUser() ([]string, error) {
 		nil,
 		nil,
 		gr.UnmarshalMap{
-			http.StatusOK:         gr.UnmarshalList(&result),
-			http.StatusBadRequest: gr.UnmarshalList(errorResult),
-			http.StatusNotFound:   gr.UnmarshalList(errorResult),
+			http.StatusOK:         &result,
+			http.StatusBadRequest: errorResult,
+			http.StatusNotFound:   errorResult,
 		},
 	)
 
@@ -133,15 +133,14 @@ func (d *database) GetCurrent() (DatabaseDescriptor, error) {
 	}
 	var errorResult = &arangoError{}
 
-	errList := gr.UnmarshalList(errorResult)
 	h, err := d.client.Get(
 		DatabasePath+"/current",
 		nil,
 		nil,
 		gr.UnmarshalMap{
-			http.StatusOK:         gr.UnmarshalList(&result),
-			http.StatusBadRequest: errList,
-			http.StatusNotFound:   errList,
+			http.StatusOK:         &result,
+			http.StatusBadRequest: errorResult,
+			http.StatusNotFound:   errorResult,
 		},
 	)
 
@@ -164,7 +163,7 @@ func (d *database) Post(name string, opts *PostDatabaseOptions) error {
 	}
 	opts.Name = name
 
-	errList := gr.UnmarshalList(errorResult)
+	errList := errorResult
 	h, err := d.client.Post(
 		DatabasePath,
 		nil,
@@ -193,14 +192,13 @@ func (d *database) Delete(name string) error {
 
 	var errorResult = &arangoError{}
 
-	errList := gr.UnmarshalList(errorResult)
 	h, err := d.client.Delete(
 		DatabasePath+"/"+name,
 		nil,
 		nil,
 		gr.UnmarshalMap{
-			http.StatusBadRequest: errList,
-			http.StatusNotFound:   errList,
+			http.StatusBadRequest: errorResult,
+			http.StatusNotFound:   errorResult,
 		},
 	)
 

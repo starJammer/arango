@@ -14,7 +14,8 @@ const (
 
 type CollectionStatus int
 
-//Collection statuses
+//Collection statuses are all the states a
+//collection can be in.
 const (
 	NEW_BORN_STATUS       CollectionStatus = 1
 	UNLOADED_STATUS       CollectionStatus = 2
@@ -24,8 +25,12 @@ const (
 	LOADING_STATUS        CollectionStatus = 6
 )
 
+//Policy represents the different
+//policy types that arango supports when
+//putting or patching a document
 type Policy string
 
+//The two policy types are error and last
 const (
 	ERROR_POLICY Policy = "error"
 	LAST_POLICY  Policy = "last"
@@ -618,11 +623,14 @@ type CollectionEndpoint interface {
 	Delete(name string) error
 }
 
+//PostDatabaseOptions are options when using the PostDatabase method
 type PostDatabaseOptions struct {
 	Name  string `json:"name"`
 	Users []User `json:"users,omitempty"`
 }
 
+//User can be used when posting a new database. It outlines the users
+//that can access the database.
 type User struct {
 	Username string      `json:"username"`
 	Passwd   string      `json:"passwd"`

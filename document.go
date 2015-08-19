@@ -40,9 +40,9 @@ func (doc *documentEndpoint) GetDocuments(
 			"type":       []string{returnType},
 		},
 		gr.UnmarshalMap{
-			http.StatusOK:         gr.UnmarshalList(&result),
-			http.StatusBadRequest: gr.UnmarshalList(errorResult),
-			http.StatusNotFound:   gr.UnmarshalList(errorResult),
+			http.StatusOK:         &result,
+			http.StatusBadRequest: errorResult,
+			http.StatusNotFound:   errorResult,
 		},
 	)
 
@@ -78,10 +78,10 @@ func (doc *documentEndpoint) PostDocument(
 		query,
 		document,
 		gr.UnmarshalMap{
-			http.StatusCreated:    gr.UnmarshalList(document),
-			http.StatusAccepted:   gr.UnmarshalList(document),
-			http.StatusBadRequest: gr.UnmarshalList(errorResult),
-			http.StatusNotFound:   gr.UnmarshalList(errorResult),
+			http.StatusCreated:    document,
+			http.StatusAccepted:   document,
+			http.StatusBadRequest: errorResult,
+			http.StatusNotFound:   errorResult,
 		},
 	)
 
@@ -128,10 +128,10 @@ func (doc *documentEndpoint) GetDocument(
 		headers,
 		query,
 		gr.UnmarshalMap{
-			http.StatusOK:                 gr.UnmarshalList(documentReceiver),
-			http.StatusBadRequest:         gr.UnmarshalList(errorResult),
-			http.StatusNotFound:           gr.UnmarshalList(errorResult),
-			http.StatusPreconditionFailed: gr.UnmarshalList(errorResult),
+			http.StatusOK:                 documentReceiver,
+			http.StatusBadRequest:         errorResult,
+			http.StatusNotFound:           errorResult,
+			http.StatusPreconditionFailed: errorResult,
 		},
 	)
 
@@ -221,20 +221,17 @@ func (doc *documentEndpoint) PutDocument(documentHandle string, document interfa
 
 	var errorResult = &arangoError{}
 
-	success := gr.UnmarshalList(document)
-	errList := gr.UnmarshalList(errorResult)
-
 	h, err := doc.client.Put(
 		fmt.Sprintf("/%s", documentHandle),
 		headers,
 		query,
 		document, //document is the body
 		gr.UnmarshalMap{
-			http.StatusCreated:            success,
-			http.StatusAccepted:           success,
-			http.StatusBadRequest:         errList,
-			http.StatusNotFound:           errList,
-			http.StatusPreconditionFailed: errList,
+			http.StatusCreated:            document,
+			http.StatusAccepted:           document,
+			http.StatusBadRequest:         errorResult,
+			http.StatusNotFound:           errorResult,
+			http.StatusPreconditionFailed: errorResult,
 		},
 	)
 
@@ -278,9 +275,6 @@ func (doc *documentEndpoint) PatchDocument(documentHandle string, document inter
 
 	var errorResult = &arangoError{}
 
-	success := gr.UnmarshalList(document)
-	errList := gr.UnmarshalList(errorResult)
-
 	h, err := doc.client.Patch(
 		fmt.Sprintf("/%s", documentHandle),
 		headers,
@@ -290,11 +284,11 @@ func (doc *documentEndpoint) PatchDocument(documentHandle string, document inter
 		gr.UnmarshalMap{
 			//document is used as the successResult so it gets
 			//populated with the new revision info
-			http.StatusCreated:            success,
-			http.StatusAccepted:           success,
-			http.StatusBadRequest:         errList,
-			http.StatusNotFound:           errList,
-			http.StatusPreconditionFailed: errList,
+			http.StatusCreated:            document,
+			http.StatusAccepted:           document,
+			http.StatusBadRequest:         errorResult,
+			http.StatusNotFound:           errorResult,
+			http.StatusPreconditionFailed: errorResult,
 		},
 	)
 
@@ -336,16 +330,14 @@ func (doc *documentEndpoint) DeleteDocument(documentHandle string, options *Dele
 
 	var errorResult = &arangoError{}
 
-	errList := gr.UnmarshalList(errorResult)
-
 	h, err := doc.client.Delete(
 		fmt.Sprintf("/%s", documentHandle),
 		headers,
 		query,
 		gr.UnmarshalMap{
-			http.StatusBadRequest:         errList,
-			http.StatusNotFound:           errList,
-			http.StatusPreconditionFailed: errList,
+			http.StatusBadRequest:         errorResult,
+			http.StatusNotFound:           errorResult,
+			http.StatusPreconditionFailed: errorResult,
 		},
 	)
 
