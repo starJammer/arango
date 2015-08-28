@@ -8,7 +8,7 @@ import (
 func TestGetDatabase(t *testing.T) {
 	c := setupConnection()
 
-	var db Database = c.Database("_system")
+	var db = c.Database("_system")
 
 	if db.Name() != "_system" {
 		t.Fatal("Database name incorrect: ", db.Name())
@@ -49,26 +49,26 @@ func TestGetCurrent(t *testing.T) {
 		t.Fatal("Could not fetch current db info:", err)
 	}
 
-	if current.Name() != "_system" {
-		t.Fatal("Unexpected name: ", current.Name())
+	if current.Name != "_system" {
+		t.Fatal("Unexpected name: ", current.Name)
 	}
 
-	if current.Id() == "" {
-		t.Fatal("Unexpected id: ", current.Id())
+	if current.Id == "" {
+		t.Fatal("Unexpected id: ", current.Id)
 	}
 
-	if current.Path() == "" {
-		t.Fatal("Unexpected path: ", current.Path())
+	if current.Path == "" {
+		t.Fatal("Unexpected path: ", current.Path)
 	}
 
-	if !current.IsSystem() {
-		t.Fatalf("Unexpected isSystem: %t", current.IsSystem())
+	if !current.IsSystem {
+		t.Fatalf("Unexpected isSystem: %t", current.IsSystem)
 	}
 }
 
 func TestGetCurrentForBadDatabase(t *testing.T) {
 
-	var bad Database = getDatabase("baddatabase")
+	var bad = getDatabase("baddatabase")
 	current, err := bad.GetCurrent()
 	if current != nil {
 		t.Fatalf("Expected current to be nil: %#v", current)
@@ -83,7 +83,7 @@ func TestGetCurrentForBadDatabase(t *testing.T) {
 }
 
 func TestPostWithBlankName(t *testing.T) {
-	var db Database = getDatabase("_system")
+	var db = getDatabase("_system")
 	var err error
 
 	err = db.Post("", nil)
@@ -98,7 +98,7 @@ func TestPostWithBlankName(t *testing.T) {
 
 func TestPostWithExistingDb(t *testing.T) {
 
-	var db Database = getDatabase("_system")
+	var db = getDatabase("_system")
 	var err error
 
 	err = db.Post("_system", nil)
@@ -113,7 +113,7 @@ func TestPostWithExistingDb(t *testing.T) {
 
 func TestPostGoodNameThenDelete(t *testing.T) {
 
-	var db Database = getDatabase("_system")
+	var db = getDatabase("_system")
 	var err error
 
 	err = db.Post("test", nil)
@@ -131,7 +131,7 @@ func TestPostGoodNameThenDelete(t *testing.T) {
 
 func TestCantPostOutsideSystem(t *testing.T) {
 
-	var db Database = getDatabase("_system")
+	var db = getDatabase("_system")
 	var err error
 
 	db.Post("test", nil)
@@ -151,35 +151,35 @@ func TestCantPostOutsideSystem(t *testing.T) {
 
 func TestPostGetCurrent(t *testing.T) {
 
-	var system Database = getDatabase("_system")
+	var system = getDatabase("_system")
 
 	system.Post("test", nil)
 	defer system.Delete("test")
 
-	var test Database = getDatabase("test")
+	var test = getDatabase("test")
 	current, _ := test.GetCurrent()
 
-	if current.Name() != "test" {
-		t.Fatal("Unexpected name: ", current.Name())
+	if current.Name != "test" {
+		t.Fatal("Unexpected name: ", current.Name)
 	}
 
-	if current.Id() == "" {
-		t.Fatal("Unexpected id: ", current.Id())
+	if current.Id == "" {
+		t.Fatal("Unexpected id: ", current.Id)
 	}
 
-	if current.Path() == "" {
-		t.Fatal("Unexpected path: ", current.Path())
+	if current.Path == "" {
+		t.Fatal("Unexpected path: ", current.Path)
 	}
 
-	if current.IsSystem() {
-		t.Fatalf("Unexpected isSystem: %t", current.IsSystem())
+	if current.IsSystem {
+		t.Fatalf("Unexpected isSystem: %t", current.IsSystem)
 	}
 
 }
 
 func TestPostDuplicateDatabaseName(t *testing.T) {
 
-	var db Database = getDatabase("_system")
+	var db = getDatabase("_system")
 	var err error
 
 	_ = db.Post("test", nil)
@@ -196,7 +196,7 @@ func TestPostDuplicateDatabaseName(t *testing.T) {
 
 func TestDeleteBlankName(t *testing.T) {
 
-	var db Database = getDatabase("_system")
+	var db = getDatabase("_system")
 	var err error
 
 	err = db.Delete("")
@@ -210,7 +210,7 @@ func TestDeleteBlankName(t *testing.T) {
 
 func TestDeleteBadName(t *testing.T) {
 
-	var db Database = getDatabase("_system")
+	var db = getDatabase("_system")
 	var err error
 
 	err = db.Delete("badname")

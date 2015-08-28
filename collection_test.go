@@ -7,8 +7,8 @@ import (
 
 func TestCollectionEndpoint(t *testing.T) {
 
-	var db Database = getDatabase("_system")
-	var ce CollectionEndpoint = db.CollectionEndpoint()
+	var db = getDatabase("_system")
+	var ce = db.CollectionEndpoint()
 
 	if ce.Database() == nil {
 		t.Fatal("Expected a link back to collections database.")
@@ -38,23 +38,23 @@ func TestGetCollections(t *testing.T) {
 	}
 
 	for _, coll := range collections {
-		if !coll.IsSystem() {
+		if !coll.IsSystem {
 			t.Fatal("Expected only system collections in _system db")
 		}
 
-		if coll.Id() == "" {
+		if coll.Id == "" {
 			t.Fatal("Expected an id value for the collection.")
 		}
 
-		if coll.Name() == "" {
+		if coll.Name == "" {
 			t.Fatal("Expected a name value for the collection.")
 		}
 
-		if coll.Status() == 0 {
+		if coll.Status == 0 {
 			t.Fatal("Expected a CollectionStatus value for the collection.")
 		}
 
-		if coll.Type() == 0 {
+		if coll.Type == 0 {
 			t.Fatal("Expected a CollectionType value for the collection.")
 		}
 	}
@@ -183,7 +183,7 @@ func TestIncludedInGetCollections(t *testing.T) {
 
 	colls, _ := ce.GetCollections(true)
 
-	if found := colls.Find(opts.Name); found == nil || found.Name() != opts.Name {
+	if found := colls.Find(opts.Name); found == nil || found.Name != opts.Name {
 		t.Fatal("Could not find newly created connection.")
 	}
 }
@@ -202,24 +202,24 @@ func TestGetCollection(t *testing.T) {
 		t.Fatal("Unexpected error when getting collection descriptor: ", err)
 	}
 
-	if descriptor.Id() == "" {
+	if descriptor.Id == "" {
 		t.Fatal("No id present in newly created collection.")
 	}
 
-	if descriptor.Name() != opts.Name {
-		t.Fatalf("Unexpected collection name - Expected(%s) Actual(%s)", opts.Name, descriptor.Name())
+	if descriptor.Name != opts.Name {
+		t.Fatalf("Unexpected collection name - Expected(%s) Actual(%s)", opts.Name, descriptor.Name)
 	}
 
-	if descriptor.Status() != LOADED_STATUS {
-		t.Fatalf("Unexpected collection status - Expected(%d) Actual(%d)", LOADED_STATUS, descriptor.Status())
+	if descriptor.Status != LOADED_STATUS {
+		t.Fatalf("Unexpected collection status - Expected(%d) Actual(%d)", LOADED_STATUS, descriptor.Status)
 	}
 
-	if descriptor.Type() != DOCUMENT_COLLECTION {
-		t.Fatalf("Unexpected collection type - Expected(%d) Actual(%d)", DOCUMENT_COLLECTION, descriptor.Type())
+	if descriptor.Type != DOCUMENT_COLLECTION {
+		t.Fatalf("Unexpected collection type - Expected(%d) Actual(%d)", DOCUMENT_COLLECTION, descriptor.Type)
 	}
 
-	if descriptor.IsSystem() != false {
-		t.Fatalf("Unexpected IsSystem value - Expected(%t) Actual(%t)", false, descriptor.IsSystem())
+	if descriptor.IsSystem != false {
+		t.Fatalf("Unexpected IsSystem value - Expected(%t) Actual(%t)", false, descriptor.IsSystem)
 	}
 
 }
@@ -239,8 +239,8 @@ func TestPostGetEdgeCollection(t *testing.T) {
 		t.Fatal("Unexpected result from CollectionEndpoint.Get", err)
 	}
 
-	if descriptor.Type() != EDGE_COLLECTION {
-		t.Fatal("Expected collection to be of type EDGE: ", descriptor.Type())
+	if descriptor.Type != EDGE_COLLECTION {
+		t.Fatal("Expected collection to be of type EDGE: ", descriptor.Type)
 	}
 
 }
@@ -298,37 +298,37 @@ func TestGetCollectionProperties(t *testing.T) {
 		t.Fatal("Unexpected error when getting collection descriptor: ", err)
 	}
 
-	if descriptor.WaitForSync() != true {
+	if descriptor.WaitForSync != true {
 		t.Fatal("Expected waitForSync to be true.")
 	}
 
-	if descriptor.DoCompact() != false {
+	if descriptor.DoCompact != false {
 		t.Fatal("Expected doCompact to be false.")
 	}
 
-	if descriptor.JournalSize() == 0 {
+	if descriptor.JournalSize == 0 {
 		t.Fatal("Expected positive value for journal size.")
 	}
 
-	if descriptor.KeyOptions() == nil {
+	if descriptor.KeyOptions == nil {
 		t.Fatal("Expected some key options.")
 
-		k := descriptor.KeyOptions()
-		if k.Type() == "" {
+		k := descriptor.KeyOptions
+		if k.Type == "" {
 			t.Fatal("Expected a value for keyoptions type")
 		}
 	}
 
-	if descriptor.IsVolatile() != false {
+	if descriptor.IsVolatile != false {
 		t.Fatal("Expected isVolatile to be false.")
 	}
 
-	if descriptor.NumberOfShards() != 0 {
-		t.Fatal("Expected numberOfShards to be 0: ", descriptor.NumberOfShards())
+	if descriptor.NumberOfShards != 0 {
+		t.Fatal("Expected numberOfShards to be 0: ", descriptor.NumberOfShards)
 	}
 
-	if len(descriptor.ShardKeys()) != 0 {
-		t.Fatal("Expected ShardKeys to have a length of zero.: ", descriptor.ShardKeys())
+	if len(descriptor.ShardKeys) != 0 {
+		t.Fatal("Expected ShardKeys to have a length of zero.: ", descriptor.ShardKeys)
 	}
 
 }
@@ -382,7 +382,7 @@ func TestGetCollectionCount(t *testing.T) {
 		t.Fatal("Unexpected error when getting collection descriptor: ", err)
 	}
 
-	if descriptor.Count() != 0 {
+	if descriptor.Count != 0 {
 		t.Fatal("Expected to get a count of 0.")
 	}
 
@@ -436,7 +436,7 @@ func TestGetCollectionFigures(t *testing.T) {
 		t.Fatal("Unexpected error when getting collection descriptor: ", err)
 	}
 
-	if descriptor.Figures() == nil {
+	if descriptor.Figures == nil {
 		t.Fatal("Expected figures to be non-nil.")
 	}
 
@@ -490,7 +490,7 @@ func TestGetCollectionRevision(t *testing.T) {
 		t.Fatal("Unexpected error when getting collection descriptor: ", err)
 	}
 
-	if descriptor.Revision() == "" {
+	if descriptor.Revision == "" {
 		t.Fatal("Expected revision to be non-blank.")
 	}
 
@@ -547,7 +547,7 @@ func TestGetCollectionChecksum(t *testing.T) {
 	//checksum for new collections is 0.
 	//Test checksum for collections with docs within
 	//later
-	if descriptor.Checksum() != 0 {
+	if descriptor.Checksum != 0 {
 		t.Fatal("Expected checksum to be non-zero.")
 	}
 
@@ -602,7 +602,7 @@ func TestPutLoad(t *testing.T) {
 		t.Fatal("Unexpected error when getting collection descriptor: ", err)
 	}
 
-	if descriptor.Status() != LOADED_STATUS {
+	if descriptor.Status != LOADED_STATUS {
 		t.Fatal("Expected collection to be in loaded state.")
 	}
 
@@ -657,8 +657,8 @@ func TestPutUnload(t *testing.T) {
 		t.Fatal("Unexpected error when getting collection descriptor: ", err)
 	}
 
-	if descriptor.Status() == LOADED_STATUS {
-		t.Fatal("Expected collection to not be in loaded state: ", descriptor.Status())
+	if descriptor.Status == LOADED_STATUS {
+		t.Fatal("Expected collection to not be in loaded state: ", descriptor.Status)
 	}
 }
 
@@ -760,7 +760,7 @@ func TestPutProperties(t *testing.T) {
 
 	descriptor, _ := ce.GetProperties(opts.Name)
 
-	if descriptor.WaitForSync() != true {
+	if descriptor.WaitForSync != true {
 		t.Fatal("Expected waitforsync to be true upon creation.")
 	}
 
@@ -770,7 +770,7 @@ func TestPutProperties(t *testing.T) {
 		t.Fatal("Unexpected error when putting prorties.")
 	}
 
-	if descriptor.WaitForSync() != false {
+	if descriptor.WaitForSync != false {
 		t.Fatal("Expected waitforSync to be false now.")
 	}
 }
@@ -826,8 +826,8 @@ func TestPutRename(t *testing.T) {
 		t.Fatal("Error during rename: ", err)
 	}
 
-	if descriptor.Name() != newName {
-		t.Fatal("Collection rename failed: ", descriptor.Name())
+	if descriptor.Name != newName {
+		t.Fatal("Collection rename failed: ", descriptor.Name)
 	}
 
 	_, err = ce.Get(opts.Name)
@@ -845,8 +845,8 @@ func TestPutRename(t *testing.T) {
 		t.Fatal("Error getting renamed collection: ", err)
 	}
 
-	if descriptor.Name() != newName {
-		t.Fatal("Getting properties rename failed: ", descriptor.Name())
+	if descriptor.Name != newName {
+		t.Fatal("Getting properties rename failed: ", descriptor.Name)
 	}
 
 	err = ce.Delete(newName)

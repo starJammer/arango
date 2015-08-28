@@ -7,209 +7,93 @@ import (
 	"net/url"
 )
 
-type collectionDescriptor struct {
-	Idf             string           `json:"id"`
-	Namef           string           `json:"name"`
-	IsSystemf       bool             `json:"isSystem"`
-	Statusf         CollectionStatus `json:"status"`
-	Typef           CollectionType   `json:"type"`
-	WaitForSyncf    bool             `json:"waitForSync"`
-	DoCompactf      bool             `json:"doCompact"`
-	JournalSizef    int              `json:"journalSize"`
-	KeyOptionsf     *keyOptions      `json:"keyOptions"`
-	IsVolatilef     bool             `json:"isVolatile"`
-	NumberOfShardsf int              `json:"numberOfShards"`
-	ShardKeysf      []string         `json:"shardKeys"`
-	Countf          int              `json:"count"`
-	Figuresf        *figures         `json:"figures"`
-	Revisionf       string           `json:"revision"`
-	Checksumf       int              `json:"checksum"`
+type CollectionDescriptors []CollectionDescriptor
+
+func (c CollectionDescriptors) Find(name string) *CollectionDescriptor {
+	for _, d := range c {
+		if d.Name == name {
+			return &d
+		}
+	}
+	return nil
 }
 
-type figures struct {
-	Alivef                     *statHolder `json:"alive"`
-	Deadf                      *statHolder `json:"dead"`
-	Datafilesf                 *statHolder `json:"datafiles"`
-	Journalsf                  *statHolder `json:"journals"`
-	Compactorsf                *statHolder `json:"compactors"`
-	Shapefilesf                *statHolder `json:"shapefiles"`
-	Shapesf                    *statHolder `json:"shapes"`
-	Attributesf                *statHolder `json:"attributes"`
-	Indexesf                   *statHolder `json:"indexes"`
-	LastTickf                  string      `json:"lastTick"`
-	UncollectedLogfileEntriesf int         `json:"uncollectedLogfileEntries"`
+type CollectionDescriptor struct {
+	Id             string           `json:"id"`
+	Name           string           `json:"name"`
+	IsSystem       bool             `json:"isSystem"`
+	Status         CollectionStatus `json:"status"`
+	Type           CollectionType   `json:"type"`
+	WaitForSync    bool             `json:"waitForSync"`
+	DoCompact      bool             `json:"doCompact"`
+	JournalSize    int              `json:"journalSize"`
+	KeyOptions     *KeyOptions      `json:"keyOptions"`
+	IsVolatile     bool             `json:"isVolatile"`
+	NumberOfShards int              `json:"numberOfShards"`
+	ShardKeys      []string         `json:"shardKeys"`
+	Count          int              `json:"count"`
+	Figures        *Figures         `json:"figures"`
+	Revision       string           `json:"revision"`
+	Checksum       int              `json:"checksum"`
 }
 
-func (f *figures) Alive() Alive {
-	return f.Alivef
+type Figures struct {
+	Alive                     Alive      `json:"alive"`
+	Dead                      Dead       `json:"dead"`
+	Datafiles                 Datafiles  `json:"datafiles"`
+	Journals                  Journals   `json:"journals"`
+	Compactors                Compactors `json:"compactors"`
+	Shapefiles                Shapefiles `json:"shapefiles"`
+	Shapes                    Shapes     `json:"shapes"`
+	Attributes                Attributes `json:"attributes"`
+	Indexes                   Indexes    `json:"indexes"`
+	LastTick                  string     `json:"lastTick"`
+	UncollectedLogfileEntries int        `json:"uncollectedLogfileEntries"`
 }
 
-func (f *figures) Dead() Dead {
-	return f.Deadf
+type StatHolder struct {
+	Count    int `json:"count"`
+	Size     int `json:"size"`
+	Deletion int `json:"deletion"`
+	FileSize int `json:"fileSize"`
 }
 
-func (f *figures) Datafiles() Datafiles {
-	return f.Datafilesf
+type Alive StatHolder
+type Dead StatHolder
+type Datafiles StatHolder
+type Journals StatHolder
+type Compactors StatHolder
+type Shapefiles StatHolder
+type Shapes StatHolder
+type Attributes StatHolder
+type Indexes StatHolder
+
+type KeyOptions struct {
+	Type          string `json:"type,omitempty"`
+	AllowUserKeys bool   `json:"allowUserKeys"`
+	Increment     int    `json:"increment"`
+	Offset        int    `json:"offset"`
 }
 
-func (f *figures) Journals() Journals {
-	return f.Journalsf
+type CollectionEndpoint struct {
+	client   *gr.Client
+	database *Database
 }
 
-func (f *figures) Compactors() Compactors {
-	return f.Compactorsf
-}
-
-func (f *figures) Shapefiles() Shapefiles {
-	return f.Shapefilesf
-}
-
-func (f *figures) Shapes() Shapes {
-	return f.Shapesf
-}
-
-func (f *figures) Attributes() Attributes {
-	return f.Attributesf
-}
-
-func (f *figures) Indexes() Indexes {
-	return f.Indexesf
-}
-
-func (f *figures) MaxTick() string {
-	return f.LastTickf
-}
-
-func (f *figures) UncollectedLogfileEntries() int {
-	return f.UncollectedLogfileEntriesf
-}
-
-type statHolder struct {
-	Countf    int `json:"count"`
-	Sizef     int `json:"size"`
-	Deletionf int `json:"deletion"`
-	FileSizef int `json:"fileSize"`
-}
-
-func (s *statHolder) Count() int {
-	return s.Countf
-}
-
-func (s *statHolder) Size() int {
-	return s.Sizef
-}
-
-func (s *statHolder) Deletion() int {
-	return s.Deletionf
-}
-
-func (s *statHolder) FileSize() int {
-	return s.FileSizef
-}
-
-type keyOptions struct {
-	Typef          string `json:"type,omitempty"`
-	AllowUserKeysf bool   `json:"allowUserKeys"`
-	Incrementf     int    `json:"increment"`
-	Offsetf        int    `json:"offset"`
-}
-
-func (k *keyOptions) Type() string {
-	return k.Typef
-}
-
-func (k *keyOptions) AllowUserKeys() bool {
-	return k.AllowUserKeysf
-}
-
-func (k *keyOptions) Increment() int {
-	return k.Incrementf
-}
-
-func (k *keyOptions) Offset() int {
-	return k.Offsetf
-}
-
-func (c *collectionDescriptor) Id() string {
-	return c.Idf
-}
-
-func (c *collectionDescriptor) Name() string {
-	return c.Namef
-}
-
-func (c *collectionDescriptor) IsSystem() bool {
-	return c.IsSystemf
-}
-
-func (c *collectionDescriptor) Status() CollectionStatus {
-	return c.Statusf
-}
-
-func (c *collectionDescriptor) Type() CollectionType {
-	return c.Typef
-}
-
-func (c *collectionDescriptor) WaitForSync() bool {
-	return c.WaitForSyncf
-}
-
-func (c *collectionDescriptor) DoCompact() bool {
-	return c.DoCompactf
-}
-
-func (c *collectionDescriptor) JournalSize() int {
-	return c.JournalSizef
-}
-
-func (c *collectionDescriptor) KeyOptions() KeyOptions {
-	return c.KeyOptionsf
-}
-
-func (c *collectionDescriptor) IsVolatile() bool {
-	return c.IsVolatilef
-}
-
-func (c *collectionDescriptor) NumberOfShards() int {
-	return c.NumberOfShardsf
-}
-
-func (c *collectionDescriptor) ShardKeys() []string {
-	return c.ShardKeysf
-}
-
-func (c *collectionDescriptor) Count() int {
-	return c.Countf
-}
-
-func (c *collectionDescriptor) Figures() Figures {
-	return c.Figuresf
-}
-
-func (c *collectionDescriptor) Revision() string {
-	return c.Revisionf
-}
-
-func (c *collectionDescriptor) Checksum() int {
-	return c.Checksumf
-}
-
-type collectionEndpoint struct {
-	client   gr.Client
-	database *database
-}
-
-func (c *collectionEndpoint) Database() Database {
+//Database gets the related database endpoint
+//for this collection endpoint
+func (c *CollectionEndpoint) Database() *Database {
 	return c.database
 }
 
-func (c *collectionEndpoint) GetCollections(excludeSystemCollections bool) (CollectionDescriptors, error) {
+//GetCollections -> GET on  /_api/collection
+func (c *CollectionEndpoint) GetCollections(excludeSystemCollections bool) (CollectionDescriptors, error) {
 
 	var result struct {
-		Collections []*collectionDescriptor `json:"collections"`
+		Collections []CollectionDescriptor `json:"collections"`
 	}
 
-	var errorResult = &arangoError{}
+	var errorResult = ArangoError{}
 
 	h, err := c.client.Get(
 		"",
@@ -228,18 +112,49 @@ func (c *collectionEndpoint) GetCollections(excludeSystemCollections bool) (Coll
 		return nil, errorResult
 	}
 
-	var collections []CollectionDescriptor = make([]CollectionDescriptor, len(result.Collections))
-	for i, d := range result.Collections {
-		collections[i] = d
-	}
-
-	return collections, nil
+	return result.Collections, nil
 }
 
-func (c *collectionEndpoint) PostCollection(name string, options *PostCollectionOptions) error {
+//PostCollectionOptions represent options when creating a new collection.
+//Look at the documentation for the POST to /_api/collection
+//for information on the default, optional, and required
+//attributes.
+type PostCollectionOptions struct {
+	Name               string              `json:"name"`
+	WaitForSync        bool                `json:"waitForSync,omitempty"`
+	DoCompact          bool                `json:"doCompact"`
+	JournalSize        int                 `json:"journalSize,omitempty"`
+	IsSystem           bool                `json:"isSystem,omitempty"`
+	IsVolatile         bool                `json:"isVolatile,omitempty"`
+	KeyCreationOptions *KeyCreationOptions `json:"keyOptions,omitempty"`
+	Type               CollectionType      `json:"type,omitempty"`
+	NumberOfShards     int                 `json:"numberOfShards,omitempty"`
+	ShardKeys          []string            `json:"shardKeys,omitempty"`
+}
 
-	var descriptor = &collectionDescriptor{}
-	var errorResult = &arangoError{}
+//KeyOptions stores information about how a collection's key is configured.
+//It is used during collection creation to specify how the new collection's
+//key should be setup.
+type KeyCreationOptions struct {
+	Type          string `json:"type,omitempty"`
+	AllowUserKeys bool   `json:"allowUserKeys"`
+	Increment     int    `json:"increment"`
+	Offset        int    `json:"offset"`
+}
+
+//DefaultPostCollectionOptions creates a default set of collection options
+func DefaultPostCollectionOptions() *PostCollectionOptions {
+	return &PostCollectionOptions{
+		DoCompact: true,
+		Type:      DOCUMENT_COLLECTION,
+	}
+}
+
+//PostCollection -> POST on /_api/collection
+func (c *CollectionEndpoint) PostCollection(name string, options *PostCollectionOptions) error {
+
+	var descriptor = &CollectionDescriptor{}
+	var errorResult = ArangoError{}
 
 	if options == nil {
 		options = DefaultPostCollectionOptions()
@@ -253,8 +168,8 @@ func (c *collectionEndpoint) PostCollection(name string, options *PostCollection
 		options,
 		gr.UnmarshalMap{
 			http.StatusOK:         descriptor,
-			http.StatusBadRequest: errorResult,
-			http.StatusNotFound:   errorResult,
+			http.StatusBadRequest: &errorResult,
+			http.StatusNotFound:   &errorResult,
 		},
 	)
 
@@ -269,10 +184,11 @@ func (c *collectionEndpoint) PostCollection(name string, options *PostCollection
 	return nil
 }
 
-func (c *collectionEndpoint) Get(name string) (CollectionDescriptor, error) {
+//Get -> GET on /_api/collection/{name}
+func (c *CollectionEndpoint) Get(name string) (*CollectionDescriptor, error) {
 
-	var descriptor = &collectionDescriptor{}
-	var errorResult = &arangoError{}
+	var descriptor = &CollectionDescriptor{}
+	var errorResult = ArangoError{}
 
 	//if name is blank, this is like calling GetCollections(false)
 	//Instead, we make name = "-" so we get an appropriate error
@@ -287,7 +203,7 @@ func (c *collectionEndpoint) Get(name string) (CollectionDescriptor, error) {
 		nil,
 		gr.UnmarshalMap{
 			http.StatusOK:       descriptor,
-			http.StatusNotFound: errorResult,
+			http.StatusNotFound: &errorResult,
 		},
 	)
 
@@ -302,10 +218,11 @@ func (c *collectionEndpoint) Get(name string) (CollectionDescriptor, error) {
 	return descriptor, nil
 }
 
-func (c *collectionEndpoint) GetProperties(name string) (CollectionDescriptor, error) {
+//GetProperties -> GET on /_api/collection/{name}/properties
+func (c *CollectionEndpoint) GetProperties(name string) (*CollectionDescriptor, error) {
 
-	var descriptor = &collectionDescriptor{}
-	var errorResult = &arangoError{}
+	var descriptor = &CollectionDescriptor{}
+	var errorResult = ArangoError{}
 
 	h, err := c.client.Get(
 		fmt.Sprintf("/%s/properties", name),
@@ -313,7 +230,7 @@ func (c *collectionEndpoint) GetProperties(name string) (CollectionDescriptor, e
 		nil,
 		gr.UnmarshalMap{
 			http.StatusOK:       descriptor,
-			http.StatusNotFound: errorResult,
+			http.StatusNotFound: &errorResult,
 		},
 	)
 
@@ -328,9 +245,10 @@ func (c *collectionEndpoint) GetProperties(name string) (CollectionDescriptor, e
 	return descriptor, nil
 }
 
-func (c *collectionEndpoint) GetCount(name string) (CollectionDescriptor, error) {
-	var descriptor = &collectionDescriptor{}
-	var errorResult = &arangoError{}
+//GetCount -> GET on /_api/collection/{name}/count
+func (c *CollectionEndpoint) GetCount(name string) (*CollectionDescriptor, error) {
+	var descriptor = &CollectionDescriptor{}
+	var errorResult = ArangoError{}
 
 	h, err := c.client.Get(
 		fmt.Sprintf("/%s/count", name),
@@ -338,8 +256,8 @@ func (c *collectionEndpoint) GetCount(name string) (CollectionDescriptor, error)
 		nil,
 		gr.UnmarshalMap{
 			http.StatusOK:         descriptor,
-			http.StatusBadRequest: errorResult,
-			http.StatusNotFound:   errorResult,
+			http.StatusBadRequest: &errorResult,
+			http.StatusNotFound:   &errorResult,
 		},
 	)
 
@@ -354,9 +272,10 @@ func (c *collectionEndpoint) GetCount(name string) (CollectionDescriptor, error)
 	return descriptor, nil
 }
 
-func (c *collectionEndpoint) GetFigures(name string) (CollectionDescriptor, error) {
-	var descriptor = &collectionDescriptor{}
-	var errorResult = &arangoError{}
+//GetFigures -> GET on /_api/collection/{name}/figures
+func (c *CollectionEndpoint) GetFigures(name string) (*CollectionDescriptor, error) {
+	var descriptor = &CollectionDescriptor{}
+	var errorResult = ArangoError{}
 
 	h, err := c.client.Get(
 		fmt.Sprintf("/%s/figures", name),
@@ -364,8 +283,8 @@ func (c *collectionEndpoint) GetFigures(name string) (CollectionDescriptor, erro
 		nil,
 		gr.UnmarshalMap{
 			http.StatusOK:         descriptor,
-			http.StatusBadRequest: errorResult,
-			http.StatusNotFound:   errorResult,
+			http.StatusBadRequest: &errorResult,
+			http.StatusNotFound:   &errorResult,
 		},
 	)
 
@@ -380,9 +299,10 @@ func (c *collectionEndpoint) GetFigures(name string) (CollectionDescriptor, erro
 	return descriptor, nil
 }
 
-func (c *collectionEndpoint) GetRevision(name string) (CollectionDescriptor, error) {
-	var descriptor = &collectionDescriptor{}
-	var errorResult = &arangoError{}
+//GetRevision -> GET on /_api/collection/{name}/revision
+func (c *CollectionEndpoint) GetRevision(name string) (*CollectionDescriptor, error) {
+	var descriptor = &CollectionDescriptor{}
+	var errorResult = ArangoError{}
 
 	h, err := c.client.Get(
 		fmt.Sprintf("/%s/revision", name),
@@ -390,8 +310,8 @@ func (c *collectionEndpoint) GetRevision(name string) (CollectionDescriptor, err
 		nil,
 		gr.UnmarshalMap{
 			http.StatusOK:         descriptor,
-			http.StatusBadRequest: errorResult,
-			http.StatusNotFound:   errorResult,
+			http.StatusBadRequest: &errorResult,
+			http.StatusNotFound:   &errorResult,
 		},
 	)
 
@@ -406,9 +326,15 @@ func (c *collectionEndpoint) GetRevision(name string) (CollectionDescriptor, err
 	return descriptor, nil
 }
 
-func (c *collectionEndpoint) GetChecksum(name string, opts *GetChecksumOptions) (CollectionDescriptor, error) {
-	var descriptor = &collectionDescriptor{}
-	var errorResult = &arangoError{}
+type GetChecksumOptions struct {
+	WithRevisions bool
+	WithData      bool
+}
+
+//GetChecksum -> GET on /_api/collection/{name}/checksum
+func (c *CollectionEndpoint) GetChecksum(name string, opts *GetChecksumOptions) (*CollectionDescriptor, error) {
+	var descriptor = &CollectionDescriptor{}
+	var errorResult = ArangoError{}
 
 	var query url.Values
 	if opts != nil {
@@ -423,8 +349,8 @@ func (c *collectionEndpoint) GetChecksum(name string, opts *GetChecksumOptions) 
 		query,
 		gr.UnmarshalMap{
 			http.StatusOK:         descriptor,
-			http.StatusBadRequest: errorResult,
-			http.StatusNotFound:   errorResult,
+			http.StatusBadRequest: &errorResult,
+			http.StatusNotFound:   &errorResult,
 		},
 	)
 
@@ -439,10 +365,11 @@ func (c *collectionEndpoint) GetChecksum(name string, opts *GetChecksumOptions) 
 	return descriptor, nil
 }
 
-func (c *collectionEndpoint) PutLoad(name string, includeCount bool) (CollectionDescriptor, error) {
+//PutLoad -> PUT on /_api/collection/{name}/load
+func (c *CollectionEndpoint) PutLoad(name string, includeCount bool) (*CollectionDescriptor, error) {
 
-	var descriptor = &collectionDescriptor{}
-	var errorResult = &arangoError{}
+	var descriptor = &CollectionDescriptor{}
+	var errorResult = ArangoError{}
 
 	h, err := c.client.Put(
 		fmt.Sprintf("/%s/load", name),
@@ -451,8 +378,8 @@ func (c *collectionEndpoint) PutLoad(name string, includeCount bool) (Collection
 		map[string]string{"count": fmt.Sprintf("%t", includeCount)},
 		gr.UnmarshalMap{
 			http.StatusOK:         descriptor,
-			http.StatusBadRequest: errorResult,
-			http.StatusNotFound:   errorResult,
+			http.StatusBadRequest: &errorResult,
+			http.StatusNotFound:   &errorResult,
 		},
 	)
 
@@ -467,10 +394,11 @@ func (c *collectionEndpoint) PutLoad(name string, includeCount bool) (Collection
 	return descriptor, nil
 }
 
-func (c *collectionEndpoint) PutUnload(name string) (CollectionDescriptor, error) {
+//PutUnload -> PUT on /_api/collection/{name}/unload
+func (c *CollectionEndpoint) PutUnload(name string) (*CollectionDescriptor, error) {
 
-	var descriptor = &collectionDescriptor{}
-	var errorResult = &arangoError{}
+	var descriptor = &CollectionDescriptor{}
+	var errorResult = ArangoError{}
 
 	h, err := c.client.Put(
 		fmt.Sprintf("/%s/unload", name),
@@ -479,8 +407,8 @@ func (c *collectionEndpoint) PutUnload(name string) (CollectionDescriptor, error
 		nil,
 		gr.UnmarshalMap{
 			http.StatusOK:         descriptor,
-			http.StatusBadRequest: errorResult,
-			http.StatusNotFound:   errorResult,
+			http.StatusBadRequest: &errorResult,
+			http.StatusNotFound:   &errorResult,
 		},
 	)
 
@@ -495,10 +423,11 @@ func (c *collectionEndpoint) PutUnload(name string) (CollectionDescriptor, error
 	return descriptor, nil
 }
 
-func (c *collectionEndpoint) PutTruncate(name string) (CollectionDescriptor, error) {
+//PutTruncate -> PUT on /_api/collection/{name}/truncate
+func (c *CollectionEndpoint) PutTruncate(name string) (*CollectionDescriptor, error) {
 
-	var descriptor = &collectionDescriptor{}
-	var errorResult = &arangoError{}
+	var descriptor = &CollectionDescriptor{}
+	var errorResult = ArangoError{}
 
 	h, err := c.client.Put(
 		fmt.Sprintf("/%s/truncate", name),
@@ -507,8 +436,8 @@ func (c *collectionEndpoint) PutTruncate(name string) (CollectionDescriptor, err
 		nil,
 		gr.UnmarshalMap{
 			http.StatusOK:         descriptor,
-			http.StatusBadRequest: errorResult,
-			http.StatusNotFound:   errorResult,
+			http.StatusBadRequest: &errorResult,
+			http.StatusNotFound:   &errorResult,
 		},
 	)
 
@@ -523,10 +452,23 @@ func (c *collectionEndpoint) PutTruncate(name string) (CollectionDescriptor, err
 	return descriptor, nil
 }
 
-func (c *collectionEndpoint) PutProperties(name string, properties PutPropertiesOptions) (CollectionDescriptor, error) {
+type PutPropertiesOptions struct {
+	//If the WaitForSync of your collection is true,
+	//make sure to set this to true if you're only
+	//setting JournalSize, otherwise you will
+	//set it to false by mistake.
+	WaitForSync bool `json:"waitForSync"`
+	//Omitempty because arango expects at least 1048576 bytes (1MB)
+	//If you set it to >0 it will be sent in the request but you
+	//might get an error if it doesn't meet the minimum requirement.
+	JournalSize int `json:"journalSize,omitempty"`
+}
 
-	var descriptor = &collectionDescriptor{}
-	var errorResult = &arangoError{}
+//PutProperties -> PUT on /_api/collection/{name}/properties
+func (c *CollectionEndpoint) PutProperties(name string, properties PutPropertiesOptions) (*CollectionDescriptor, error) {
+
+	var descriptor = &CollectionDescriptor{}
+	var errorResult = ArangoError{}
 
 	h, err := c.client.Put(
 		fmt.Sprintf("/%s/properties", name),
@@ -535,8 +477,8 @@ func (c *collectionEndpoint) PutProperties(name string, properties PutProperties
 		&properties,
 		gr.UnmarshalMap{
 			http.StatusOK:         descriptor,
-			http.StatusBadRequest: errorResult,
-			http.StatusNotFound:   errorResult,
+			http.StatusBadRequest: &errorResult,
+			http.StatusNotFound:   &errorResult,
 		},
 	)
 
@@ -551,10 +493,11 @@ func (c *collectionEndpoint) PutProperties(name string, properties PutProperties
 	return descriptor, nil
 }
 
-func (c *collectionEndpoint) PutRename(name string, newName string) (CollectionDescriptor, error) {
+//PutRename -> PUT on /_api/collection/{name}/rename
+func (c *CollectionEndpoint) PutRename(name string, newName string) (*CollectionDescriptor, error) {
 
-	var descriptor = &collectionDescriptor{}
-	var errorResult = &arangoError{}
+	var descriptor = &CollectionDescriptor{}
+	var errorResult = ArangoError{}
 
 	h, err := c.client.Put(
 		fmt.Sprintf("/%s/rename", name),
@@ -563,8 +506,8 @@ func (c *collectionEndpoint) PutRename(name string, newName string) (CollectionD
 		map[string]string{"name": newName},
 		gr.UnmarshalMap{
 			http.StatusOK:         descriptor,
-			http.StatusBadRequest: errorResult,
-			http.StatusNotFound:   errorResult,
+			http.StatusBadRequest: &errorResult,
+			http.StatusNotFound:   &errorResult,
 		},
 	)
 
@@ -579,9 +522,10 @@ func (c *collectionEndpoint) PutRename(name string, newName string) (CollectionD
 	return descriptor, nil
 }
 
-func (c *collectionEndpoint) PutRotate(name string) error {
+//PutRotate -> PUT on /_api/collection/{name}/rotate
+func (c *CollectionEndpoint) PutRotate(name string) error {
 
-	var errorResult = &arangoError{}
+	var errorResult = ArangoError{}
 
 	h, err := c.client.Put(
 		fmt.Sprintf("/%s/rotate", name),
@@ -589,8 +533,8 @@ func (c *collectionEndpoint) PutRotate(name string) error {
 		nil,
 		nil,
 		gr.UnmarshalMap{
-			http.StatusBadRequest: errorResult,
-			http.StatusNotFound:   errorResult,
+			http.StatusBadRequest: &errorResult,
+			http.StatusNotFound:   &errorResult,
 		},
 	)
 
@@ -605,17 +549,18 @@ func (c *collectionEndpoint) PutRotate(name string) error {
 	return nil
 }
 
-func (c *collectionEndpoint) Delete(name string) error {
+//Delete -> DELETE on /_api/collection/{name}
+func (c *CollectionEndpoint) Delete(name string) error {
 
-	var errorResult = &arangoError{}
+	var errorResult = ArangoError{}
 
 	h, err := c.client.Delete(
 		fmt.Sprintf("/%s", name),
 		nil,
 		nil,
 		gr.UnmarshalMap{
-			http.StatusBadRequest: errorResult,
-			http.StatusNotFound:   errorResult,
+			http.StatusBadRequest: &errorResult,
+			http.StatusNotFound:   &errorResult,
 		},
 	)
 

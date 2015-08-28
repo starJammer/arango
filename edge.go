@@ -8,11 +8,16 @@ import (
 	"strings"
 )
 
-type edgeEndpoint struct {
-	client gr.Client
+type EdgeEndpoint struct {
+	client *gr.Client
 }
 
-func (doc *edgeEndpoint) GetEdges(
+type GetEdgesOptions GetDocumentsOptions
+
+//GetEdges -> GET on /_api/edge
+//If pased in returnType is "" then the default should be used.
+//Default is "path"
+func (e *EdgeEndpoint) GetEdges(
 	collection string,
 	opts *GetEdgesOptions,
 ) ([]string, error) {
@@ -27,12 +32,12 @@ func (doc *edgeEndpoint) GetEdges(
 		returnType = "path"
 	}
 
-	var errorResult = &arangoError{}
+	var errorResult = ArangoError{}
 	var result struct {
 		Edges []string `json:"documents"`
 	}
 
-	h, err := doc.client.Get(
+	h, err := e.client.Get(
 		"",
 		nil,
 		url.Values{
@@ -41,8 +46,8 @@ func (doc *edgeEndpoint) GetEdges(
 		},
 		gr.UnmarshalMap{
 			http.StatusOK:         &result,
-			http.StatusBadRequest: errorResult,
-			http.StatusNotFound:   errorResult,
+			http.StatusBadRequest: &errorResult,
+			http.StatusNotFound:   &errorResult,
 		},
 	)
 
@@ -57,7 +62,13 @@ func (doc *edgeEndpoint) GetEdges(
 	return result.Edges, nil
 }
 
-func (doc *edgeEndpoint) PostEdge(
+type PostEdgeOptions PostDocumentOptions
+
+//PostEdge -> POST on /_api/edge
+//PostEdgeOptions are optional.
+//The same edge is populated with _id, _key, _rev attributes
+//if possible on a successful POST of the edge.
+func (e *EdgeEndpoint) PostEdge(
 	edge interface{},
 	collection string,
 	from string,
@@ -65,7 +76,7 @@ func (doc *edgeEndpoint) PostEdge(
 	options *PostEdgeOptions,
 ) error {
 
-	var errorResult = &arangoError{}
+	var errorResult = ArangoError{}
 
 	var query = url.Values{}
 	query.Add("collection", collection)
@@ -76,7 +87,7 @@ func (doc *edgeEndpoint) PostEdge(
 		query.Add("waitForSync", fmt.Sprintf("%t", options.WaitForSync))
 	}
 
-	h, err := doc.client.Post(
+	h, err := e.client.Post(
 		"",
 		nil,
 		query,
@@ -84,8 +95,8 @@ func (doc *edgeEndpoint) PostEdge(
 		gr.UnmarshalMap{
 			http.StatusCreated:    edge,
 			http.StatusAccepted:   edge,
-			http.StatusBadRequest: errorResult,
-			http.StatusNotFound:   errorResult,
+			http.StatusBadRequest: &errorResult,
+			http.StatusNotFound:   &errorResult,
 		},
 	)
 
@@ -106,7 +117,24 @@ func (doc *edgeEndpoint) PostEdge(
 	return nil
 }
 
-func (doc *edgeEndpoint) GetEdge(edgeHandle string, edgeReceiver interface{}, options *GetEdgeOptions) error {
+type GetEdgeOptions GetDocumentOptions
+
+//GetEdge -> GET on /_api/edge/{edge-handle}
+//edgeReceiver is where the edge will be json.Unmarshaled into.
+//GetEdgeOptions are optional and can be nil.
+//EdgeReceiver cannot be populated if you provide an
+//If-None-Match option and the server returns a 304 because the edge
+//revision matches If-None-Match. See arango docs for more info.
+//In this case, no error is returned and the edgeReceiver isn't
+//altered at all because the server didn't return any edge
+//attributes.
+//
+//EdgeReceiver IS NOT populated if you provide an
+//If-Match option and the server returns a 412 because the edge
+//revision does not match If-Match.  In this case, use the
+//error that is returned to get the latest revision number
+//by calling error.Rev()
+func (e *EdgeEndpoint) GetEdge(edgeHandle string, edgeReceiver interface{}, options *GetEdgeOptions) error {
 
 	var headers http.Header
 	var query url.Values
@@ -126,17 +154,17 @@ func (doc *edgeEndpoint) GetEdge(edgeHandle string, edgeReceiver interface{}, op
 		}
 	}
 
-	var errorResult = &arangoError{}
+	var errorResult = ArangoError{}
 
-	h, err := doc.client.Get(
+	h, err := e.client.Get(
 		fmt.Sprintf("/%s", edgeHandle),
 		headers,
 		query,
 		gr.UnmarshalMap{
 			http.StatusOK:                 edgeReceiver,
-			http.StatusBadRequest:         errorResult,
-			http.StatusNotFound:           errorResult,
-			http.StatusPreconditionFailed: errorResult,
+			http.StatusBadRequest:         &errorResult,
+			http.StatusNotFound:           &errorResult,
+			http.StatusPreconditionFailed: &errorResult,
 		},
 	)
 
@@ -151,7 +179,14 @@ func (doc *edgeEndpoint) GetEdge(edgeHandle string, edgeReceiver interface{}, op
 	return nil
 }
 
-func (doc *edgeEndpoint) HeadEdge(edgeHandle string, options *HeadEdgeOptions) (string, error) {
+type HeadEdgeOptions HeadDocumentOptions
+
+//HeadEdge -> HEAD on /_api/edge/{edge-handle}
+//Returns the current revision of the edge.
+//If the edge doesn't exist the returned revision is blank.
+//In all other cases, the current revision is returned and
+//the error is nil.
+func (e *EdgeEndpoint) HeadEdge(edgeHandle string, options *HeadEdgeOptions) (string, error) {
 
 	var headers http.Header
 	var query url.Values
@@ -171,7 +206,7 @@ func (doc *edgeEndpoint) HeadEdge(edgeHandle string, options *HeadEdgeOptions) (
 		}
 	}
 
-	h, err := doc.client.Head(
+	h, err := e.client.Head(
 		fmt.Sprintf("/%s", edgeHandle),
 		headers,
 		query,
@@ -202,7 +237,10 @@ func (doc *edgeEndpoint) HeadEdge(edgeHandle string, options *HeadEdgeOptions) (
 
 }
 
-func (doc *edgeEndpoint) PutEdge(edgeHandle string, edge interface{}, options *PutEdgeOptions) error {
+type PutEdgeOptions PutDocumentOptions
+
+//PutEdge -> PUT on /_api/edge/{edge-handle}
+func (e *EdgeEndpoint) PutEdge(edgeHandle string, edge interface{}, options *PutEdgeOptions) error {
 
 	var headers http.Header
 	var query url.Values
@@ -225,9 +263,9 @@ func (doc *edgeEndpoint) PutEdge(edgeHandle string, edge interface{}, options *P
 
 	}
 
-	var errorResult = &arangoError{}
+	var errorResult = ArangoError{}
 
-	h, err := doc.client.Put(
+	h, err := e.client.Put(
 		fmt.Sprintf("/%s", edgeHandle),
 		headers,
 		query,
@@ -235,9 +273,9 @@ func (doc *edgeEndpoint) PutEdge(edgeHandle string, edge interface{}, options *P
 		gr.UnmarshalMap{
 			http.StatusCreated:            edge,
 			http.StatusAccepted:           edge,
-			http.StatusBadRequest:         errorResult,
-			http.StatusNotFound:           errorResult,
-			http.StatusPreconditionFailed: errorResult,
+			http.StatusBadRequest:         &errorResult,
+			http.StatusNotFound:           &errorResult,
+			http.StatusPreconditionFailed: &errorResult,
 		},
 	)
 
@@ -254,7 +292,18 @@ func (doc *edgeEndpoint) PutEdge(edgeHandle string, edge interface{}, options *P
 
 }
 
-func (doc *edgeEndpoint) PatchEdge(edgeHandle string, edge interface{}, options *PatchEdgeOptions) error {
+type PatchEdgeOptions PatchDocumentOptions
+
+func DefaultPatchEdgeOptions() *PatchEdgeOptions {
+	return &PatchEdgeOptions{
+		KeepNull:     true,
+		MergeObjects: true,
+		WaitForSync:  false,
+	}
+}
+
+//PatchEdge -> PATCH on /_api/edge/{edge-handle}
+func (e *EdgeEndpoint) PatchEdge(edgeHandle string, edge interface{}, options *PatchEdgeOptions) error {
 
 	var headers http.Header
 	var query url.Values
@@ -279,9 +328,9 @@ func (doc *edgeEndpoint) PatchEdge(edgeHandle string, edge interface{}, options 
 
 	}
 
-	var errorResult = &arangoError{}
+	var errorResult = ArangoError{}
 
-	h, err := doc.client.Patch(
+	h, err := e.client.Patch(
 		fmt.Sprintf("/%s", edgeHandle),
 		headers,
 		query,
@@ -290,9 +339,9 @@ func (doc *edgeEndpoint) PatchEdge(edgeHandle string, edge interface{}, options 
 		gr.UnmarshalMap{
 			http.StatusCreated:            edge,
 			http.StatusAccepted:           edge,
-			http.StatusBadRequest:         errorResult,
-			http.StatusNotFound:           errorResult,
-			http.StatusPreconditionFailed: errorResult,
+			http.StatusBadRequest:         &errorResult,
+			http.StatusNotFound:           &errorResult,
+			http.StatusPreconditionFailed: &errorResult,
 		},
 	)
 
@@ -309,7 +358,10 @@ func (doc *edgeEndpoint) PatchEdge(edgeHandle string, edge interface{}, options 
 
 }
 
-func (doc *edgeEndpoint) DeleteEdge(edgeHandle string, options *DeleteEdgeOptions) error {
+type DeleteEdgeOptions DeleteDocumentOptions
+
+//DeleteEdge -> DELETE on /_api/edge/{edge-handle}
+func (e *EdgeEndpoint) DeleteEdge(edgeHandle string, options *DeleteEdgeOptions) error {
 
 	var headers http.Header
 	var query url.Values
@@ -332,16 +384,16 @@ func (doc *edgeEndpoint) DeleteEdge(edgeHandle string, options *DeleteEdgeOption
 
 	}
 
-	var errorResult = &arangoError{}
+	var errorResult = ArangoError{}
 
-	h, err := doc.client.Delete(
+	h, err := e.client.Delete(
 		fmt.Sprintf("/%s", edgeHandle),
 		headers,
 		query,
 		gr.UnmarshalMap{
-			http.StatusBadRequest:         errorResult,
-			http.StatusNotFound:           errorResult,
-			http.StatusPreconditionFailed: errorResult,
+			http.StatusBadRequest:         &errorResult,
+			http.StatusNotFound:           &errorResult,
+			http.StatusPreconditionFailed: &errorResult,
 		},
 	)
 
@@ -355,4 +407,37 @@ func (doc *edgeEndpoint) DeleteEdge(edgeHandle string, options *DeleteEdgeOption
 	}
 
 	return nil
+}
+
+//EdgeImplementation is an embeddable type that
+//you can use to easily gain access to arango
+//specific attributes for edges. These include
+//the _id, _key, and _rev attributes from the
+//DocumentImplementation as well as the _to and
+//_from attributes for edges.
+type EdgeImplementation struct {
+	DocumentImplementation
+	ArangoFrom string `json:"_from,omitempty"`
+	ArangoTo   string `json:"_to,omitempty"`
+}
+
+type Edge interface {
+	SetFrom(string)
+	SetTo(string)
+}
+
+func (e *EdgeImplementation) From() string {
+	return e.ArangoFrom
+}
+
+func (e *EdgeImplementation) SetFrom(from string) {
+	e.ArangoFrom = from
+}
+
+func (e *EdgeImplementation) To() string {
+	return e.ArangoTo
+}
+
+func (e *EdgeImplementation) SetTo(to string) {
+	e.ArangoTo = to
 }

@@ -5,18 +5,21 @@ import (
 	"net/http"
 )
 
-type database struct {
-	connection Connection
-	client     gr.Client
+type Database struct {
+	connection *Connection
+	client     *gr.Client
 	name       string
 }
 
-func (d *database) Name() string {
+//Name returns the name of the database that this endpoint accesses.
+//In other words, what was Connection.Database called with?
+func (d *Database) Name() string {
 	return d.name
 }
 
-func (d *database) CollectionEndpoint() CollectionEndpoint {
-	cl := &collectionEndpoint{}
+//Collection gets the collection endpoint.
+func (d *Database) CollectionEndpoint() *CollectionEndpoint {
+	cl := &CollectionEndpoint{}
 	cl.client = d.client.Clone()
 	cl.client.BaseUrl().Path += CollectionPath
 	cl.database = d
@@ -24,31 +27,46 @@ func (d *database) CollectionEndpoint() CollectionEndpoint {
 	return cl
 }
 
-func (d *database) DocumentEndpoint() DocumentEndpoint {
-	doc := &documentEndpoint{}
+//DocumentEndPoint gets the document endpoint
+func (d *Database) DocumentEndpoint() *DocumentEndpoint {
+	doc := &DocumentEndpoint{}
 	doc.client = d.client.Clone()
 	doc.client.BaseUrl().Path += DocumentPath
 
 	return doc
 }
 
-func (d *database) EdgeEndpoint() EdgeEndpoint {
-	edge := &edgeEndpoint{}
+//EdgeEndPoint gets the document endpoint
+func (d *Database) EdgeEndpoint() *EdgeEndpoint {
+	edge := &EdgeEndpoint{}
 	edge.client = d.client.Clone()
 	edge.client.BaseUrl().Path += EdgePath
 
 	return edge
 }
 
-func (d *database) Connection() Connection {
+//SimpleEndPoint gets the simple endpoint for simple queries
+func (d *Database) SimpleEndpoint() *SimpleEndpoint {
+	return nil
+}
+
+//CursorEndpoint gets the cursor endpoint
+func (d *Database) CursorEndpoint() *CursorEndpoint {
+	return nil
+}
+
+//Connection returns connection associated with this database.
+//It should be non-nil
+func (d *Database) Connection() *Connection {
 	return d.connection
 }
 
-func (d *database) Get() ([]string, error) {
+//Get -> GET on /_api/database
+func (d *Database) Get() ([]string, error) {
 	var result struct {
 		Result []string `json:"result"`
 	}
-	var errorResult = &arangoError{}
+	var errorResult = ArangoError{}
 
 	h, err := d.client.Get(
 		DatabasePath,
@@ -56,8 +74,8 @@ func (d *database) Get() ([]string, error) {
 		nil,
 		gr.UnmarshalMap{
 			http.StatusOK:         &result,
-			http.StatusBadRequest: errorResult,
-			http.StatusForbidden:  errorResult,
+			http.StatusBadRequest: &errorResult,
+			http.StatusForbidden:  &errorResult,
 		},
 	)
 
@@ -73,13 +91,14 @@ func (d *database) Get() ([]string, error) {
 
 }
 
-func (d *database) GetUser() ([]string, error) {
+//GetUser -> GET on /_api/database/user
+func (d *Database) GetUser() ([]string, error) {
 
 	var result struct {
 		Result []string `json:"result"`
 	}
 
-	var errorResult = &arangoError{}
+	var errorResult = ArangoError{}
 
 	h, err := d.client.Get(
 		DatabasePath+"/user",
@@ -87,8 +106,8 @@ func (d *database) GetUser() ([]string, error) {
 		nil,
 		gr.UnmarshalMap{
 			http.StatusOK:         &result,
-			http.StatusBadRequest: errorResult,
-			http.StatusNotFound:   errorResult,
+			http.StatusBadRequest: &errorResult,
+			http.StatusNotFound:   &errorResult,
 		},
 	)
 
@@ -103,35 +122,20 @@ func (d *database) GetUser() ([]string, error) {
 	return result.Result, nil
 }
 
-type databaseDescriptor struct {
-	Namef     string `json:"name"`
-	Idf       string `json:"id"`
-	Pathf     string `json:"path"`
-	IsSystemf bool   `json:"isSystem"`
+type DatabaseDescriptor struct {
+	Name     string `json:"name"`
+	Id       string `json:"id"`
+	Path     string `json:"path"`
+	IsSystem bool   `json:"isSystem"`
 }
 
-func (cr *databaseDescriptor) Name() string {
-	return cr.Namef
-}
-
-func (cr *databaseDescriptor) Id() string {
-	return cr.Idf
-}
-
-func (cr *databaseDescriptor) Path() string {
-	return cr.Pathf
-}
-
-func (cr *databaseDescriptor) IsSystem() bool {
-	return cr.IsSystemf
-}
-
-func (d *database) GetCurrent() (DatabaseDescriptor, error) {
+//GetCurrent -> GET on /_api/database/current
+func (d *Database) GetCurrent() (*DatabaseDescriptor, error) {
 
 	var result struct {
-		Result *databaseDescriptor `json:"result"`
+		Result *DatabaseDescriptor `json:"result"`
 	}
-	var errorResult = &arangoError{}
+	var errorResult = ArangoError{}
 
 	h, err := d.client.Get(
 		DatabasePath+"/current",
@@ -139,8 +143,8 @@ func (d *database) GetCurrent() (DatabaseDescriptor, error) {
 		nil,
 		gr.UnmarshalMap{
 			http.StatusOK:         &result,
-			http.StatusBadRequest: errorResult,
-			http.StatusNotFound:   errorResult,
+			http.StatusBadRequest: &errorResult,
+			http.StatusNotFound:   &errorResult,
 		},
 	)
 
@@ -155,25 +159,40 @@ func (d *database) GetCurrent() (DatabaseDescriptor, error) {
 	return result.Result, nil
 }
 
-func (d *database) Post(name string, opts *PostDatabaseOptions) error {
+//PostDatabaseOptions are options when using the PostDatabase method
+type PostDatabaseOptions struct {
+	Name  string `json:"name"`
+	Users []User `json:"users,omitempty"`
+}
 
-	var errorResult = &arangoError{}
+//User can be used when posting a new database. It outlines the users
+//that can access the database.
+type User struct {
+	Username string      `json:"username"`
+	Passwd   string      `json:"passwd"`
+	Active   bool        `json:"active"`
+	Extra    interface{} `json:"extra"`
+}
+
+//Post -> POST on /_api/database
+func (d *Database) Post(name string, opts *PostDatabaseOptions) error {
+
+	var errorResult = ArangoError{}
 	if opts == nil {
 		opts = new(PostDatabaseOptions)
 	}
 	opts.Name = name
 
-	errList := errorResult
 	h, err := d.client.Post(
 		DatabasePath,
 		nil,
 		nil,
 		opts,
 		gr.UnmarshalMap{
-			http.StatusBadRequest: errList,
-			http.StatusNotFound:   errList,
-			http.StatusConflict:   errList,
-			http.StatusForbidden:  errList,
+			http.StatusBadRequest: &errorResult,
+			http.StatusNotFound:   &errorResult,
+			http.StatusConflict:   &errorResult,
+			http.StatusForbidden:  &errorResult,
 		},
 	)
 
@@ -188,17 +207,18 @@ func (d *database) Post(name string, opts *PostDatabaseOptions) error {
 	return nil
 }
 
-func (d *database) Delete(name string) error {
+//Delete -> DELETE on /_api/database/{name}
+func (d *Database) Delete(name string) error {
 
-	var errorResult = &arangoError{}
+	var errorResult = ArangoError{}
 
 	h, err := d.client.Delete(
 		DatabasePath+"/"+name,
 		nil,
 		nil,
 		gr.UnmarshalMap{
-			http.StatusBadRequest: errorResult,
-			http.StatusNotFound:   errorResult,
+			http.StatusBadRequest: &errorResult,
+			http.StatusNotFound:   &errorResult,
 		},
 	)
 

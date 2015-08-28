@@ -8,11 +8,18 @@ import (
 	"strings"
 )
 
-type documentEndpoint struct {
-	client gr.Client
+type DocumentEndpoint struct {
+	client *gr.Client
 }
 
-func (doc *documentEndpoint) GetDocuments(
+type GetDocumentsOptions struct {
+	ReturnType string
+}
+
+//GetDocuments -> GET on /_api/document
+//If pased in returnType is "" then the default should be used.
+//Default is "path"
+func (doc *DocumentEndpoint) GetDocuments(
 	collection string,
 	opts *GetDocumentsOptions,
 ) ([]string, error) {
@@ -27,7 +34,7 @@ func (doc *documentEndpoint) GetDocuments(
 		returnType = "path"
 	}
 
-	var errorResult = &arangoError{}
+	var errorResult = ArangoError{}
 	var result struct {
 		Documents []string `json:"documents"`
 	}
@@ -41,8 +48,8 @@ func (doc *documentEndpoint) GetDocuments(
 		},
 		gr.UnmarshalMap{
 			http.StatusOK:         &result,
-			http.StatusBadRequest: errorResult,
-			http.StatusNotFound:   errorResult,
+			http.StatusBadRequest: &errorResult,
+			http.StatusNotFound:   &errorResult,
 		},
 	)
 
@@ -57,13 +64,22 @@ func (doc *documentEndpoint) GetDocuments(
 	return result.Documents, nil
 }
 
-func (doc *documentEndpoint) PostDocument(
+type PostDocumentOptions struct {
+	CreateCollection bool //default is false
+	WaitForSync      bool //default is false
+}
+
+//PostDocument -> POST on /_api/document
+//PostDocumentOptions are optional.
+//The same document is populated with _id, _key, _rev attributes
+//if possible on a successful POST of the document.
+func (doc *DocumentEndpoint) PostDocument(
 	document interface{},
 	collection string,
 	options *PostDocumentOptions,
 ) error {
 
-	var errorResult = &arangoError{}
+	var errorResult = ArangoError{}
 
 	var query = url.Values{}
 	query.Add("collection", collection)
@@ -80,8 +96,8 @@ func (doc *documentEndpoint) PostDocument(
 		gr.UnmarshalMap{
 			http.StatusCreated:    document,
 			http.StatusAccepted:   document,
-			http.StatusBadRequest: errorResult,
-			http.StatusNotFound:   errorResult,
+			http.StatusBadRequest: &errorResult,
+			http.StatusNotFound:   &errorResult,
 		},
 	)
 
@@ -97,7 +113,32 @@ func (doc *documentEndpoint) PostDocument(
 	return nil
 }
 
-func (doc *documentEndpoint) GetDocument(
+type GetDocumentOptions struct {
+	//Rev is used in the query
+	Rev string
+	//IfMatch is a header equivalent of IfMatch
+	IfMatch string
+
+	//IfNoneMatch is header
+	IfNoneMatch string
+}
+
+//GetDocument -> GET on /_api/document/{document-handle}
+//documentReceiver is where the document will be json.Unmarshaled into.
+//GetDocumentOptions are optional and can be nil.
+//DocumentReceiver cannot be populated if you provide an
+//If-None-Match option and the server returns a 304 because the document
+//revision matches If-None-Match. See arango docs for more info.
+//In this case, no error is returned and the documentReceiver isn't
+//altered at all because the server didn't return any document
+//attributes.
+//
+//DocumentReceiver IS NOT populated if you provide an
+//If-Match option and the server returns a 412 because the document
+//revision does not match If-Match.  In this case, use the
+//error that is returned to get the latest revision number
+//by calling error.Rev()
+func (doc *DocumentEndpoint) GetDocument(
 	documentHandle string,
 	documentReceiver interface{},
 	options *GetDocumentOptions,
@@ -121,7 +162,7 @@ func (doc *documentEndpoint) GetDocument(
 		}
 	}
 
-	var errorResult = &arangoError{}
+	var errorResult = ArangoError{}
 
 	h, err := doc.client.Get(
 		fmt.Sprintf("/%s", documentHandle),
@@ -129,9 +170,9 @@ func (doc *documentEndpoint) GetDocument(
 		query,
 		gr.UnmarshalMap{
 			http.StatusOK:                 documentReceiver,
-			http.StatusBadRequest:         errorResult,
-			http.StatusNotFound:           errorResult,
-			http.StatusPreconditionFailed: errorResult,
+			http.StatusBadRequest:         &errorResult,
+			http.StatusNotFound:           &errorResult,
+			http.StatusPreconditionFailed: &errorResult,
 		},
 	)
 
@@ -146,7 +187,14 @@ func (doc *documentEndpoint) GetDocument(
 	return nil
 }
 
-func (doc *documentEndpoint) HeadDocument(documentHandle string, options *HeadDocumentOptions) (string, error) {
+type HeadDocumentOptions GetDocumentOptions
+
+//HeadDocument -> HEAD on /_api/document/{document-handle}
+//Returns the current revision of the document.
+//If the document doesn't exist the returned revision is blank.
+//In all other cases, the current revision is returned and
+//the error is nil.
+func (doc *DocumentEndpoint) HeadDocument(documentHandle string, options *HeadDocumentOptions) (string, error) {
 
 	var headers http.Header
 	var query url.Values
@@ -196,7 +244,15 @@ func (doc *documentEndpoint) HeadDocument(documentHandle string, options *HeadDo
 	return revision, nil
 }
 
-func (doc *documentEndpoint) PutDocument(documentHandle string, document interface{}, options *PutDocumentOptions) error {
+type PutDocumentOptions struct {
+	WaitForSync bool
+	Rev         string
+	Policy      Policy
+	IfMatch     string
+}
+
+//PutDocument -> PUT on /_api/document/{document-handle}
+func (doc *DocumentEndpoint) PutDocument(documentHandle string, document interface{}, options *PutDocumentOptions) error {
 
 	var headers http.Header
 	var query url.Values
@@ -219,7 +275,7 @@ func (doc *documentEndpoint) PutDocument(documentHandle string, document interfa
 
 	}
 
-	var errorResult = &arangoError{}
+	var errorResult = ArangoError{}
 
 	h, err := doc.client.Put(
 		fmt.Sprintf("/%s", documentHandle),
@@ -229,9 +285,9 @@ func (doc *documentEndpoint) PutDocument(documentHandle string, document interfa
 		gr.UnmarshalMap{
 			http.StatusCreated:            document,
 			http.StatusAccepted:           document,
-			http.StatusBadRequest:         errorResult,
-			http.StatusNotFound:           errorResult,
-			http.StatusPreconditionFailed: errorResult,
+			http.StatusBadRequest:         &errorResult,
+			http.StatusNotFound:           &errorResult,
+			http.StatusPreconditionFailed: &errorResult,
 		},
 	)
 
@@ -248,7 +304,26 @@ func (doc *documentEndpoint) PutDocument(documentHandle string, document interfa
 
 }
 
-func (doc *documentEndpoint) PatchDocument(documentHandle string, document interface{}, options *PatchDocumentOptions) error {
+type PatchDocumentOptions struct {
+	KeepNull     bool
+	MergeObjects bool
+
+	WaitForSync bool
+	Rev         string
+	Policy      Policy
+	IfMatch     string
+}
+
+func DefaultPatchDocumentOptions() *PatchDocumentOptions {
+	return &PatchDocumentOptions{
+		KeepNull:     true,
+		MergeObjects: true,
+		WaitForSync:  false,
+	}
+}
+
+//PatchDocument -> PATCH on /_api/document/{document-handle}
+func (doc *DocumentEndpoint) PatchDocument(documentHandle string, document interface{}, options *PatchDocumentOptions) error {
 
 	var headers http.Header
 	var query url.Values
@@ -273,7 +348,7 @@ func (doc *documentEndpoint) PatchDocument(documentHandle string, document inter
 
 	}
 
-	var errorResult = &arangoError{}
+	var errorResult = ArangoError{}
 
 	h, err := doc.client.Patch(
 		fmt.Sprintf("/%s", documentHandle),
@@ -286,9 +361,9 @@ func (doc *documentEndpoint) PatchDocument(documentHandle string, document inter
 			//populated with the new revision info
 			http.StatusCreated:            document,
 			http.StatusAccepted:           document,
-			http.StatusBadRequest:         errorResult,
-			http.StatusNotFound:           errorResult,
-			http.StatusPreconditionFailed: errorResult,
+			http.StatusBadRequest:         &errorResult,
+			http.StatusNotFound:           &errorResult,
+			http.StatusPreconditionFailed: &errorResult,
 		},
 	)
 
@@ -305,7 +380,15 @@ func (doc *documentEndpoint) PatchDocument(documentHandle string, document inter
 
 }
 
-func (doc *documentEndpoint) DeleteDocument(documentHandle string, options *DeleteDocumentOptions) error {
+type DeleteDocumentOptions struct {
+	Rev         string
+	Policy      Policy
+	WaitForSync string
+	IfMatch     string
+}
+
+//DeleteDocument -> DELETE on /_api/document/{document-handle}
+func (doc *DocumentEndpoint) DeleteDocument(documentHandle string, options *DeleteDocumentOptions) error {
 
 	var headers http.Header
 	var query url.Values
@@ -328,16 +411,16 @@ func (doc *documentEndpoint) DeleteDocument(documentHandle string, options *Dele
 
 	}
 
-	var errorResult = &arangoError{}
+	var errorResult = ArangoError{}
 
 	h, err := doc.client.Delete(
 		fmt.Sprintf("/%s", documentHandle),
 		headers,
 		query,
 		gr.UnmarshalMap{
-			http.StatusBadRequest:         errorResult,
-			http.StatusNotFound:           errorResult,
-			http.StatusPreconditionFailed: errorResult,
+			http.StatusBadRequest:         &errorResult,
+			http.StatusNotFound:           &errorResult,
+			http.StatusPreconditionFailed: &errorResult,
 		},
 	)
 
@@ -351,4 +434,38 @@ func (doc *documentEndpoint) DeleteDocument(documentHandle string, options *Dele
 	}
 
 	return nil
+}
+
+//DocumentImplementation is an embeddable type that
+//you can use to easily gain access to arango specific
+//data. It will help capture the _id, _key, and _rev
+//attributes from responses made by  arangodb
+type DocumentImplementation struct {
+	ArangoId  string `json:"_id,omitempty"`
+	ArangoRev string `json:"_rev,omitempty"`
+	ArangoKey string `json:"_key,omitempty"`
+}
+
+func (d *DocumentImplementation) Id() string {
+	return d.ArangoId
+}
+
+func (d *DocumentImplementation) SetId(id string) {
+	d.ArangoId = id
+}
+
+func (d *DocumentImplementation) Rev() string {
+	return d.ArangoRev
+}
+
+func (d DocumentImplementation) SetRev(rev string) {
+	d.ArangoRev = rev
+}
+
+func (d DocumentImplementation) Key() string {
+	return d.ArangoKey
+}
+
+func (d DocumentImplementation) SetKey(key string) {
+	d.ArangoKey = key
 }

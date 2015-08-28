@@ -5,10 +5,6 @@ import (
 	"testing"
 )
 
-func TestMeetsDocumentEndpoint(t *testing.T) {
-	var _ DocumentEndpoint = getDatabase("_sysem").DocumentEndpoint()
-}
-
 func TestGetDocumentsEmptyCollection(t *testing.T) {
 	var ce = getCE("_system")
 	var de = getDE("_system")

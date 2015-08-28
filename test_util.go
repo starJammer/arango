@@ -5,27 +5,27 @@ import (
 	"testing"
 )
 
-func setupConnection() Connection {
+func setupConnection() *Connection {
 	u, _ := url.Parse("http://root@localhost:8529")
 	c, _ := NewConnection(u)
 	return c
 }
 
-func getDatabase(name string) Database {
+func getDatabase(name string) *Database {
 	c := setupConnection()
 	return c.Database(name)
 }
 
-func getCE(database string) CollectionEndpoint {
-	var db Database = getDatabase(database)
+func getCE(database string) *CollectionEndpoint {
+	var db = getDatabase(database)
 	return db.CollectionEndpoint()
 }
 
-func getDE(database string) DocumentEndpoint {
+func getDE(database string) *DocumentEndpoint {
 	return getDatabase(database).DocumentEndpoint()
 }
 
-func getEE(database string) EdgeEndpoint {
+func getEE(database string) *EdgeEndpoint {
 	return getDatabase(database).EdgeEndpoint()
 }
 
@@ -37,11 +37,11 @@ func verifyError(err error, t *testing.T, code int, message string) {
 	if !ok {
 		t.Fatalf("Expected an ArangoError to be returned. %#v", err)
 	}
-	if !ae.IsError() {
-		t.Fatalf("Actual ae.IsError() == %t, Expected true. ArangoError = %s, Message = %s", ae.IsError(), ae, message)
+	if !ae.IsError {
+		t.Fatalf("Actual ae.IsError() == %t, Expected true. ArangoError = %s, Message = %s", ae.IsError, ae, message)
 	}
 
-	if ae.Code() != code {
-		t.Fatalf("Actual ae.Code() == %d, Expected %d. ArangoError = %s, Message = %s", ae.Code(), code, ae, message)
+	if ae.Code != code {
+		t.Fatalf("Actual ae.Code() == %d, Expected %d. ArangoError = %s, Message = %s", ae.Code, code, ae, message)
 	}
 }

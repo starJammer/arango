@@ -7,8 +7,10 @@ import (
 	"net/url"
 )
 
-type connection struct {
-	client gr.Client
+//Connection represents a RESTFUL gateway to an arangodb server
+//Use NewConnection  to create it.
+type Connection struct {
+	client *gr.Client
 }
 
 //NewConnection creates a new Connection that will
@@ -18,9 +20,9 @@ type connection struct {
 //the server's base url. If you include a path it will
 //be stripped/ignored.
 //Ex. http://localhost:8529.
-func NewConnection(serverUrl *url.URL) (Connection, error) {
+func NewConnection(serverUrl *url.URL) (*Connection, error) {
 
-	c := &connection{}
+	c := &Connection{}
 
 	client, err := gr.New(serverUrl)
 	if err != nil {
@@ -33,26 +35,14 @@ func NewConnection(serverUrl *url.URL) (Connection, error) {
 	return c, nil
 }
 
-type version struct {
-	S string            `json:"server"`
-	V string            `json:"version"`
-	D map[string]string `json:"details"`
+type Version struct {
+	Server  string            `json:"server"`
+	Version string            `json:"version"`
+	Details map[string]string `json:"details"`
 }
 
-func (v *version) Version() string {
-	return v.V
-}
-
-func (v *version) Server() string {
-	return v.S
-}
-
-func (v *version) Details() map[string]string {
-	return v.D
-}
-
-func (c *connection) Version(details bool) (Version, error) {
-	v := &version{}
+func (c *Connection) Version(details bool) (*Version, error) {
+	v := &Version{}
 
 	params := url.Values{}
 	if details {
@@ -78,8 +68,13 @@ func (c *connection) Version(details bool) (Version, error) {
 	return v, nil
 }
 
-func (c *connection) Database(name string) Database {
-	db := &database{}
+//Database returns a RESTFUL gateway to the database
+//endpoint. The url used would be the url for the connection
+//plus the adequate path for this database.
+//Ex. http://localhost:8529/_db/{name}/_api/database where
+//{name} is the passed in database name.
+func (c *Connection) Database(name string) *Database {
+	db := &Database{}
 	db.connection = c
 	db.name = name
 	db.client = c.client.Clone()
@@ -88,6 +83,6 @@ func (c *connection) Database(name string) Database {
 	return db
 }
 
-func (c *connection) GetGrestClient() gr.Client {
+func (c *Connection) GetGrestClient() *gr.Client {
 	return c.client
 }

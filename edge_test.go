@@ -5,10 +5,6 @@ import (
 	"testing"
 )
 
-func TestMeetsEdgeEndpoint(t *testing.T) {
-	var _ EdgeEndpoint = getDatabase("_sysem").EdgeEndpoint()
-}
-
 func TestGetEdgesEmptyCollection(t *testing.T) {
 	var ce = getCE("_system")
 	var ee = getEE("_system")

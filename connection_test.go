@@ -5,24 +5,6 @@ import (
 	"testing"
 )
 
-func TestArangoErrorMeetsInterface(t *testing.T) {
-	var _ ArangoError = &arangoError{}
-}
-
-func TestConnectionMeetsInterface(t *testing.T) {
-	var err error
-	u, err := url.Parse("http://localhost:8529")
-	c, err := NewConnection(u)
-
-	if err != nil {
-		t.Fatal("Could not create a connection: ", err)
-	}
-
-	if _, ok := c.(HasGrestClient); !ok {
-		t.Fatal("Expected this implementation to use grestclient.")
-	}
-}
-
 func TestNilUrlFails(t *testing.T) {
 	var err error
 	_, err = NewConnection(nil)
@@ -53,16 +35,16 @@ func TestGetVersion(t *testing.T) {
 		t.Fatal("Could not get version: ", err)
 	}
 
-	if v.Server() != "arango" {
-		t.Fatal("Unexpected server value: ", v.Server())
+	if v.Server != "arango" {
+		t.Fatal("Unexpected server value: ", v.Server)
 	}
 
-	if v.Version() != "2.6.2" {
-		t.Fatal("Unexpected version value: ", v.Version())
+	if v.Version != "2.6.5" {
+		t.Fatal("Unexpected version value: ", v.Version)
 	}
 
-	if v.Details() != nil || len(v.Details()) > 0 {
-		t.Fatal("Unexpected details when none were requested.", v.Details())
+	if v.Details != nil || len(v.Details) > 0 {
+		t.Fatal("Unexpected details when none were requested.", v.Details)
 	}
 
 }
@@ -77,7 +59,7 @@ func TestGetVersionWithDetails(t *testing.T) {
 		t.Fatal("Could not get version: ", err)
 	}
 
-	if v.Details() == nil || len(v.Details()) < 1 {
-		t.Fatal("Unable to fetch details.", v.Details())
+	if v.Details == nil || len(v.Details) < 1 {
+		t.Fatal("Unable to fetch details.", v.Details)
 	}
 }
