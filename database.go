@@ -9,6 +9,12 @@ type Database struct {
 	connection *Connection
 	client     *gr.Client
 	name       string
+
+	ce   *CollectionEndpoint
+	de   *DocumentEndpoint
+	se   *SimpleEndpoint
+	ee   *EdgeEndpoint
+	curE *CursorEndpoint
 }
 
 //Name returns the name of the database that this endpoint accesses.
@@ -19,40 +25,77 @@ func (d *Database) Name() string {
 
 //Collection gets the collection endpoint.
 func (d *Database) CollectionEndpoint() *CollectionEndpoint {
+	if d.ce != nil {
+		return d.ce
+	}
+
 	cl := &CollectionEndpoint{}
 	cl.client = d.client.Clone()
 	cl.client.BaseUrl().Path += CollectionPath
 	cl.database = d
+	d.ce = cl
 
-	return cl
+	return d.ce
 }
 
 //DocumentEndPoint gets the document endpoint
 func (d *Database) DocumentEndpoint() *DocumentEndpoint {
+
+	if d.de != nil {
+		return d.de
+	}
+
 	doc := &DocumentEndpoint{}
 	doc.client = d.client.Clone()
 	doc.client.BaseUrl().Path += DocumentPath
+	doc.database = d
+	d.de = doc
 
-	return doc
+	return d.de
 }
 
 //EdgeEndPoint gets the document endpoint
 func (d *Database) EdgeEndpoint() *EdgeEndpoint {
+	if d.ee != nil {
+		return d.ee
+	}
+
 	edge := &EdgeEndpoint{}
 	edge.client = d.client.Clone()
 	edge.client.BaseUrl().Path += EdgePath
+	edge.database = d
+	d.ee = edge
 
-	return edge
+	return d.ee
 }
 
 //SimpleEndPoint gets the simple endpoint for simple queries
 func (d *Database) SimpleEndpoint() *SimpleEndpoint {
-	return nil
+	if d.se != nil {
+		return d.se
+	}
+	s := &SimpleEndpoint{}
+	s.client = d.client.Clone()
+	s.client.BaseUrl().Path += SimplePath
+	s.database = d
+	d.se = s
+
+	return d.se
 }
 
 //CursorEndpoint gets the cursor endpoint
 func (d *Database) CursorEndpoint() *CursorEndpoint {
-	return nil
+	if d.curE != nil {
+		return d.curE
+	}
+
+	c := &CursorEndpoint{}
+	c.client = d.client.Clone()
+	c.client.BaseUrl().Path += CursorPath
+	c.database = d
+	d.curE = c
+
+	return d.curE
 }
 
 //Connection returns connection associated with this database.

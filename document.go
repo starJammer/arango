@@ -9,11 +9,16 @@ import (
 )
 
 type DocumentEndpoint struct {
-	client *gr.Client
+	client   *gr.Client
+	database *Database
 }
 
 type GetDocumentsOptions struct {
 	ReturnType string
+}
+
+func (doc *DocumentEndpoint) Database() *Database {
+	return doc.database
 }
 
 //GetDocuments -> GET on /_api/document

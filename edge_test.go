@@ -5,6 +5,23 @@ import (
 	"testing"
 )
 
+func TestEEHasDatabase(t *testing.T) {
+	var db = getDatabase("_system")
+	var ee = db.EdgeEndpoint()
+
+	if ee.Database() == nil {
+		t.Fatal("Expected ee to have database reference.")
+	}
+
+	if ee.Database().Name() != db.Name() {
+		t.Fatal(
+			"EE database name(%s), Expected database name (%s)",
+			ee.Database().Name(),
+			db.Name(),
+		)
+	}
+}
+
 func TestGetEdgesEmptyCollection(t *testing.T) {
 	var ce = getCE("_system")
 	var ee = getEE("_system")

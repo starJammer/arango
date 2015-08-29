@@ -9,10 +9,15 @@ import (
 )
 
 type EdgeEndpoint struct {
-	client *gr.Client
+	client   *gr.Client
+	database *Database
 }
 
 type GetEdgesOptions GetDocumentsOptions
+
+func (e *EdgeEndpoint) Database() *Database {
+	return e.database
+}
 
 //GetEdges -> GET on /_api/edge
 //If pased in returnType is "" then the default should be used.

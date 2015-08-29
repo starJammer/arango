@@ -5,6 +5,23 @@ import (
 	"testing"
 )
 
+func TestDEHasDatabase(t *testing.T) {
+	var db = getDatabase("_system")
+	var de = db.DocumentEndpoint()
+
+	if de.Database() == nil {
+		t.Fatal("Expected ee to have database reference.")
+	}
+
+	if de.Database().Name() != db.Name() {
+		t.Fatal(
+			"DE database name(%s), Expected database name (%s)",
+			de.Database().Name(),
+			db.Name(),
+		)
+	}
+}
+
 func TestGetDocumentsEmptyCollection(t *testing.T) {
 	var ce = getCE("_system")
 	var de = getDE("_system")
