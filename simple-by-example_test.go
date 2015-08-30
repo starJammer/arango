@@ -22,6 +22,23 @@ func TestByExampleBlankCollection(t *testing.T) {
 	)
 }
 
+func TestByExampleBadCollection(t *testing.T) {
+	var se = getSE("_system")
+
+	cursor, err := se.ByExample("bad", map[string]int{"count": -1}, nil)
+
+	if cursor != nil {
+		t.Fatal("Expected a nil cursor.")
+	}
+
+	verifyError(
+		err,
+		t,
+		http.StatusNotFound,
+		"Expected 404 with bad collection name.",
+	)
+}
+
 func TestByExampleGetsNothing(t *testing.T) {
 	byExampleDataInit()
 	var se = getSE("_system")
@@ -55,7 +72,10 @@ func TestByExampleFetchesOneOnly(t *testing.T) {
 	}
 
 	if cursor.Count() != 1 {
-		t.Fatal("Expected : cursor.Count() == 1")
+		t.Fatalf(
+			"Actual cursor.Count() == %d, Expected : cursor.Count() == 1",
+			cursor.Count(),
+		)
 	}
 
 	var fetcher countDocument
@@ -66,11 +86,127 @@ func TestByExampleFetchesOneOnly(t *testing.T) {
 	}
 
 	if fetcher.Count != 1 {
-		t.Fatal("Fetched the wrong document.")
+		t.Fatal("Fetched the wrong document: ", fetcher)
 	}
 
 	if fetcher.Letter != "a" {
 		t.Fatal("Expected letter to be filled.")
+	}
+
+	if cursor.HasMore() {
+		t.Fatal("Expected : cursor.HasMore() == false")
+	}
+
+	err = cursor.Next(&fetcher)
+
+	if err != EOC {
+		t.Fatal("Expected end of cursor error when trying to read next.")
+	}
+
+}
+
+func TestByExampleFetchesMultiple(t *testing.T) {
+	var se = getSE("_system")
+
+	cursor, err := se.ByExample("test", map[string]string{"letter": "a"}, nil)
+
+	if err != nil {
+		t.Fatal("Uexpected error when searching by example: ", err)
+	}
+
+	if !cursor.HasMore() {
+		t.Fatal("Expected : cursor.HasMore() == true")
+	}
+
+	if cursor.Count() != 5 {
+		t.Fatalf(
+			"Actual cursor.Count() == %d, Expected : cursor.Count() == 5",
+			cursor.Count(),
+		)
+	}
+
+	var fetcher countDocument
+	var seenCounts = map[int]struct{}{}
+
+	for cursor.HasMore() {
+		err = cursor.Next(&fetcher)
+		if err != nil {
+			t.Fatal("Unexpected error when reading Next:", err)
+		}
+		if fetcher.Count > 4 {
+			t.Fatal("Fetched the wrong document.")
+		}
+		if _, ok := seenCounts[fetcher.Count]; ok {
+			t.Fatal(
+				"Fetched the same document twice for same reason: %s",
+				fetcher,
+			)
+		}
+
+		seenCounts[fetcher.Count] = struct{}{}
+
+		if fetcher.Letter != "a" {
+			t.Fatal("Expected letter to be filled.")
+		}
+	}
+
+	if cursor.HasMore() {
+		t.Fatal("Expected : cursor.HasMore() == false")
+	}
+
+	err = cursor.Next(&fetcher)
+
+	if err != EOC {
+		t.Fatal("Expected end of cursor error when trying to read next.")
+	}
+}
+
+func TestSimpleByExampleLimitAndBatchSize(t *testing.T) {
+	var se = getSE("_system")
+
+	cursor, err := se.ByExample(
+		"test",
+		map[string]string{"letter": "b"},
+		&ByExampleOptions{
+			Limit:     2,
+			BatchSize: 1,
+		},
+	)
+
+	if err != nil {
+		t.Fatal("Uexpected error when searching by example: ", err)
+	}
+
+	if !cursor.HasMore() {
+		t.Fatal("Expected : cursor.HasMore() == true")
+	}
+
+	if cursor.Count() != 2 {
+		t.Fatalf(
+			"Actual cursor.Count() == %d, Expected : cursor.Count() == 2",
+			cursor.Count(),
+		)
+	}
+
+	var fetcher countDocument
+	var seenCounts = map[int]struct{}{}
+
+	for cursor.HasMore() {
+		err = cursor.Next(&fetcher)
+
+		if err != nil {
+			t.Fatal("Unexpected error when reading Next:", err)
+		}
+
+		seenCounts[fetcher.Count] = struct{}{}
+
+		if fetcher.Letter != "b" {
+			t.Fatal("Expected letter to be filled.")
+		}
+	}
+
+	if len(seenCounts) != 2 {
+		t.Fatal("Cursor did not have a limit of 2 documents.")
 	}
 
 	if cursor.HasMore() {
@@ -108,7 +244,7 @@ func byExampleDataInit() {
 			Count:  i,
 			Letter: "a",
 		}
-		if i >= 4 {
+		if i >= 5 {
 			doc.Letter = "b"
 		}
 
