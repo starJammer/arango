@@ -37,10 +37,13 @@ func verifyError(err error, t *testing.T, code int, message string) {
 	if err == nil {
 		t.Fatal(message)
 	}
+
 	ae, ok := err.(ArangoError)
+
 	if !ok {
 		t.Fatalf("Expected an ArangoError to be returned. %#v", err)
 	}
+
 	if !ae.IsError {
 		t.Fatalf("Actual ae.IsError() == %t, Expected true. ArangoError = %s, Message = %s", ae.IsError, ae, message)
 	}

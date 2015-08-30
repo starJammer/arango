@@ -112,10 +112,22 @@ func (c *Cursor) Next(v interface{}) error {
 	return nil
 }
 
+//Count returns the total number of results in the
+//cursor. Count should be <= Limit if you use a limit when
+//searching.
 func (c *Cursor) Count() int {
 	return c.cursor.Count
 }
 
+//Id returns this cursor's Id. Only cursors that couldn't
+//return all the available data in one call will have an
+//id that will let them go back to arango and fetch the rest
+//of the data.
+func (c *Cursor) Id() string {
+	return c.cursor.Id
+}
+
+//Put -> PUT on /_api/simple/by-example
 func (ce *CursorEndpoint) Put(cursorIdentifier string) (*Cursor, error) {
 	var c cursor
 	err := ce.put(cursorIdentifier, &c)

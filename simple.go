@@ -66,3 +66,41 @@ func (s *SimpleEndpoint) ByExample(collection string, example interface{}, opts 
 
 	return &Cursor{cursor: cursor, ce: s.Database().CursorEndpoint()}, nil
 }
+
+//FirstExample -> PUT on /_api/simple/first-example
+//result is where the returned document will be unmarshalled into
+func (s *SimpleEndpoint) FirstExample(collection string, example interface{}, result interface{}) error {
+	var body byExampleObject
+	body.Collection = collection
+	body.Example = example
+
+	var errorResult = ArangoError{}
+
+	var response struct {
+		Document interface{} `json:"document"`
+	}
+
+	response.Document = result
+
+	h, err := s.client.Put(
+		"/first-example",
+		nil,
+		nil,
+		body,
+		gr.UnmarshalMap{
+			http.StatusOK:         &response,
+			http.StatusBadRequest: &errorResult,
+			http.StatusNotFound:   &errorResult,
+		},
+	)
+
+	if err != nil {
+		return err
+	}
+
+	if h.StatusCode != http.StatusOK {
+		return errorResult
+	}
+
+	return nil
+}

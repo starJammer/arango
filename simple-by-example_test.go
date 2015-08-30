@@ -49,6 +49,13 @@ func TestByExampleGetsNothing(t *testing.T) {
 		t.Fatal("Uexpected error when searching by example: ", err)
 	}
 
+	if cursor.Id() != "" {
+		t.Fatalf(
+			"Expected cursor to NOT have an Id (%s)",
+			cursor.Id(),
+		)
+	}
+
 	if cursor.HasMore() {
 		t.Fatal("Unexpected : cursor.HasMore() == true")
 	}
@@ -65,6 +72,13 @@ func TestByExampleFetchesOneOnly(t *testing.T) {
 
 	if err != nil {
 		t.Fatal("Uexpected error when searching by example: ", err)
+	}
+
+	if cursor.Id() != "" {
+		t.Fatalf(
+			"Expected cursor to NOT have an Id (%s)",
+			cursor.Id(),
+		)
 	}
 
 	if !cursor.HasMore() {
@@ -114,6 +128,13 @@ func TestByExampleFetchesMultiple(t *testing.T) {
 		t.Fatal("Uexpected error when searching by example: ", err)
 	}
 
+	if cursor.Id() != "" {
+		t.Fatalf(
+			"Expected cursor to NOT have an Id (%s)",
+			cursor.Id(),
+		)
+	}
+
 	if !cursor.HasMore() {
 		t.Fatal("Expected : cursor.HasMore() == true")
 	}
@@ -161,6 +182,59 @@ func TestByExampleFetchesMultiple(t *testing.T) {
 	}
 }
 
+func TestSimpleByExampleBadLimit(t *testing.T) {
+	var se = getSE("_system")
+
+	cursor, err := se.ByExample(
+		"test",
+		map[string]string{"letter": "b"},
+		&ByExampleOptions{
+			Limit:     -1,
+			BatchSize: 1,
+		},
+	)
+
+	verifyError(
+		err,
+		t,
+		http.StatusBadRequest,
+		"Expected an error with negative numbers for Limit",
+	)
+
+	if cursor != nil {
+		t.Fatal("Expected cursor to be nil.")
+	}
+}
+
+func TestSimpleByExampleBadBatchSize(t *testing.T) {
+	var se = getSE("_system")
+
+	cursor, err := se.ByExample(
+		"test",
+		map[string]string{"letter": "b"},
+		&ByExampleOptions{
+			Limit:     2,
+			BatchSize: -1,
+		},
+	)
+
+	if err != nil {
+		t.Fatal("Unexpected error: ", err)
+	}
+
+	if cursor == nil {
+		t.Fatal("Expected a cursor even with negative batch size.")
+	}
+
+	if cursor.Count() != 2 {
+		t.Fatalf(
+			"Actual cursor.Count() == %d, Expected cursor.Count() == 2",
+			cursor.Count(),
+		)
+	}
+
+}
+
 func TestSimpleByExampleLimitAndBatchSize(t *testing.T) {
 	var se = getSE("_system")
 
@@ -172,6 +246,12 @@ func TestSimpleByExampleLimitAndBatchSize(t *testing.T) {
 			BatchSize: 1,
 		},
 	)
+
+	if cursor.Id() == "" {
+		t.Fatal(
+			"Expected cursor to have an Id but it didn't.",
+		)
+	}
 
 	if err != nil {
 		t.Fatal("Uexpected error when searching by example: ", err)
@@ -221,7 +301,7 @@ func TestSimpleByExampleLimitAndBatchSize(t *testing.T) {
 
 }
 
-func TestFinalTest(t *testing.T) {
+func TestFinalByExampleTest(t *testing.T) {
 	destroyByExampleDataInit()
 }
 
