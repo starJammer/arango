@@ -31,6 +31,12 @@ type cursor struct {
 	lastError error
 }
 
+type PostCursorOptions struct {
+	Count     int
+	BatchSize int
+	Ttl       int
+}
+
 //HasMore will return whether or not this cursor still
 //has more data to be read. HasMore will return true
 //if and only if there is more data, either locally,
@@ -76,6 +82,11 @@ func (c *Cursor) hasMore() (bool, error) {
 
 	return false, nil
 
+}
+
+//HasNext is an alias for HasMore
+func (c *Cursor) HasNext() bool {
+	return c.HasMore()
 }
 
 //Next will unmarshal the next item in the cursor
@@ -125,6 +136,11 @@ func (c *Cursor) Count() int {
 //of the data.
 func (c *Cursor) Id() string {
 	return c.cursor.Id
+}
+
+func (ce *CursorEndpoint) Post(query string, opts *PostCursorOptions) (*Cursor, error) {
+
+	return nil, nil
 }
 
 //Put -> PUT on /_api/simple/by-example
