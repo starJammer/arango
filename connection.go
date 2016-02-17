@@ -48,14 +48,13 @@ func (c *Connection) Version(details bool) (*Version, error) {
 	if details {
 		params.Add("details", "true")
 	}
-	h, err := c.client.Get(
-		VersionPath,
-		nil,
-		params,
-		gr.UnmarshalMap{
+	h, err := c.client.Get(&gr.Request{
+		Path:  VersionPath,
+		Query: params,
+		UnmarshalMap: gr.UnmarshalMap{
 			http.StatusOK: v,
 		},
-	)
+	})
 
 	if err != nil {
 		return nil, err

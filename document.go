@@ -44,19 +44,18 @@ func (doc *DocumentEndpoint) GetDocuments(
 		Documents []string `json:"documents"`
 	}
 
-	h, err := doc.client.Get(
-		"",
-		nil,
-		url.Values{
+	h, err := doc.client.Get(&gr.Request{
+		Path: "",
+		Query: url.Values{
 			"collection": []string{collection},
 			"type":       []string{returnType},
 		},
-		gr.UnmarshalMap{
+		UnmarshalMap: gr.UnmarshalMap{
 			http.StatusOK:         &result,
 			http.StatusBadRequest: &errorResult,
 			http.StatusNotFound:   &errorResult,
 		},
-	)
+	})
 
 	if err != nil {
 		return nil, err
@@ -93,18 +92,18 @@ func (doc *DocumentEndpoint) PostDocument(
 		query.Add("waitForSync", fmt.Sprintf("%t", options.WaitForSync))
 	}
 
-	h, err := doc.client.Post(
-		"",
-		nil,
-		query,
-		document,
-		gr.UnmarshalMap{
+	h, err := doc.client.Post(&gr.Request{
+		Path:    "",
+		Headers: nil,
+		Query:   query,
+		Body:    document,
+		UnmarshalMap: gr.UnmarshalMap{
 			http.StatusCreated:    document,
 			http.StatusAccepted:   document,
 			http.StatusBadRequest: &errorResult,
 			http.StatusNotFound:   &errorResult,
 		},
-	)
+	})
 
 	if err != nil {
 		return err
@@ -169,17 +168,17 @@ func (doc *DocumentEndpoint) GetDocument(
 
 	var errorResult = ArangoError{}
 
-	h, err := doc.client.Get(
-		fmt.Sprintf("/%s", documentHandle),
-		headers,
-		query,
-		gr.UnmarshalMap{
+	h, err := doc.client.Get(&gr.Request{
+		Path:    fmt.Sprintf("/%s", documentHandle),
+		Headers: headers,
+		Query:   query,
+		UnmarshalMap: gr.UnmarshalMap{
 			http.StatusOK:                 documentReceiver,
 			http.StatusBadRequest:         &errorResult,
 			http.StatusNotFound:           &errorResult,
 			http.StatusPreconditionFailed: &errorResult,
 		},
-	)
+	})
 
 	if err != nil {
 		return err

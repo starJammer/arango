@@ -111,16 +111,14 @@ func (d *Database) Get() ([]string, error) {
 	}
 	var errorResult = ArangoError{}
 
-	h, err := d.client.Get(
-		DatabasePath,
-		nil,
-		nil,
-		gr.UnmarshalMap{
+	h, err := d.client.Get(&gr.Request{
+		Path: DatabasePath,
+		UnmarshalMap: gr.UnmarshalMap{
 			http.StatusOK:         &result,
 			http.StatusBadRequest: &errorResult,
 			http.StatusForbidden:  &errorResult,
 		},
-	)
+	})
 
 	if err != nil {
 		return nil, err
@@ -143,16 +141,14 @@ func (d *Database) GetUser() ([]string, error) {
 
 	var errorResult = ArangoError{}
 
-	h, err := d.client.Get(
-		DatabasePath+"/user",
-		nil,
-		nil,
-		gr.UnmarshalMap{
+	h, err := d.client.Get(&gr.Request{
+		Path: DatabasePath + "/user",
+		UnmarshalMap: gr.UnmarshalMap{
 			http.StatusOK:         &result,
 			http.StatusBadRequest: &errorResult,
 			http.StatusNotFound:   &errorResult,
 		},
-	)
+	})
 
 	if err != nil {
 		return nil, err
@@ -180,16 +176,14 @@ func (d *Database) GetCurrent() (*DatabaseDescriptor, error) {
 	}
 	var errorResult = ArangoError{}
 
-	h, err := d.client.Get(
-		DatabasePath+"/current",
-		nil,
-		nil,
-		gr.UnmarshalMap{
+	h, err := d.client.Get(&gr.Request{
+		Path: DatabasePath + "/current",
+		UnmarshalMap: gr.UnmarshalMap{
 			http.StatusOK:         &result,
 			http.StatusBadRequest: &errorResult,
 			http.StatusNotFound:   &errorResult,
 		},
-	)
+	})
 
 	if err != nil {
 		return nil, err
@@ -226,18 +220,16 @@ func (d *Database) Post(name string, opts *PostDatabaseOptions) error {
 	}
 	opts.Name = name
 
-	h, err := d.client.Post(
-		DatabasePath,
-		nil,
-		nil,
-		opts,
-		gr.UnmarshalMap{
+	h, err := d.client.Post(&gr.Request{
+		Path: DatabasePath,
+		Body: opts,
+		UnmarshalMap: gr.UnmarshalMap{
 			http.StatusBadRequest: &errorResult,
 			http.StatusNotFound:   &errorResult,
 			http.StatusConflict:   &errorResult,
 			http.StatusForbidden:  &errorResult,
 		},
-	)
+	})
 
 	if err != nil {
 		return err

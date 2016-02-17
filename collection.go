@@ -95,14 +95,13 @@ func (c *CollectionEndpoint) GetCollections(excludeSystemCollections bool) (Coll
 
 	var errorResult = ArangoError{}
 
-	h, err := c.client.Get(
-		"",
-		nil,
-		url.Values{"excludeSystem": []string{fmt.Sprintf("%t", excludeSystemCollections)}},
-		gr.UnmarshalMap{
+	h, err := c.client.Get(&gr.Request{
+		Path:  "",
+		Query: url.Values{"excludeSystem": []string{fmt.Sprintf("%t", excludeSystemCollections)}},
+		UnmarshalMap: gr.UnmarshalMap{
 			http.StatusOK: &result,
 		},
-	)
+	})
 
 	if err != nil {
 		return nil, err
@@ -161,17 +160,15 @@ func (c *CollectionEndpoint) PostCollection(name string, options *PostCollection
 	}
 	options.Name = name
 
-	h, err := c.client.Post(
-		"",
-		nil,
-		nil,
-		options,
-		gr.UnmarshalMap{
+	h, err := c.client.Post(&gr.Request{
+		Path: "",
+		Body: options,
+		UnmarshalMap: gr.UnmarshalMap{
 			http.StatusOK:         descriptor,
 			http.StatusBadRequest: &errorResult,
 			http.StatusNotFound:   &errorResult,
 		},
-	)
+	})
 
 	if err != nil {
 		return err
@@ -197,15 +194,13 @@ func (c *CollectionEndpoint) Get(name string) (*CollectionDescriptor, error) {
 		name = "-"
 	}
 
-	h, err := c.client.Get(
-		fmt.Sprintf("/%s", name),
-		nil,
-		nil,
-		gr.UnmarshalMap{
+	h, err := c.client.Get(&gr.Request{
+		Path: fmt.Sprintf("/%s", name),
+		UnmarshalMap: gr.UnmarshalMap{
 			http.StatusOK:       descriptor,
 			http.StatusNotFound: &errorResult,
 		},
-	)
+	})
 
 	if err != nil {
 		return nil, err
@@ -224,15 +219,13 @@ func (c *CollectionEndpoint) GetProperties(name string) (*CollectionDescriptor, 
 	var descriptor = &CollectionDescriptor{}
 	var errorResult = ArangoError{}
 
-	h, err := c.client.Get(
-		fmt.Sprintf("/%s/properties", name),
-		nil,
-		nil,
-		gr.UnmarshalMap{
+	h, err := c.client.Get(&gr.Request{
+		Path: fmt.Sprintf("/%s/properties", name),
+		UnmarshalMap: gr.UnmarshalMap{
 			http.StatusOK:       descriptor,
 			http.StatusNotFound: &errorResult,
 		},
-	)
+	})
 
 	if err != nil {
 		return nil, err
@@ -250,16 +243,14 @@ func (c *CollectionEndpoint) GetCount(name string) (*CollectionDescriptor, error
 	var descriptor = &CollectionDescriptor{}
 	var errorResult = ArangoError{}
 
-	h, err := c.client.Get(
-		fmt.Sprintf("/%s/count", name),
-		nil,
-		nil,
-		gr.UnmarshalMap{
+	h, err := c.client.Get(&gr.Request{
+		Path: fmt.Sprintf("/%s/count", name),
+		UnmarshalMap: gr.UnmarshalMap{
 			http.StatusOK:         descriptor,
 			http.StatusBadRequest: &errorResult,
 			http.StatusNotFound:   &errorResult,
 		},
-	)
+	})
 
 	if err != nil {
 		return nil, err
@@ -277,16 +268,14 @@ func (c *CollectionEndpoint) GetFigures(name string) (*CollectionDescriptor, err
 	var descriptor = &CollectionDescriptor{}
 	var errorResult = ArangoError{}
 
-	h, err := c.client.Get(
-		fmt.Sprintf("/%s/figures", name),
-		nil,
-		nil,
-		gr.UnmarshalMap{
+	h, err := c.client.Get(&gr.Request{
+		Path: fmt.Sprintf("/%s/figures", name),
+		UnmarshalMap: gr.UnmarshalMap{
 			http.StatusOK:         descriptor,
 			http.StatusBadRequest: &errorResult,
 			http.StatusNotFound:   &errorResult,
 		},
-	)
+	})
 
 	if err != nil {
 		return nil, err
@@ -304,16 +293,14 @@ func (c *CollectionEndpoint) GetRevision(name string) (*CollectionDescriptor, er
 	var descriptor = &CollectionDescriptor{}
 	var errorResult = ArangoError{}
 
-	h, err := c.client.Get(
-		fmt.Sprintf("/%s/revision", name),
-		nil,
-		nil,
-		gr.UnmarshalMap{
+	h, err := c.client.Get(&gr.Request{
+		Path: fmt.Sprintf("/%s/revision", name),
+		UnmarshalMap: gr.UnmarshalMap{
 			http.StatusOK:         descriptor,
 			http.StatusBadRequest: &errorResult,
 			http.StatusNotFound:   &errorResult,
 		},
-	)
+	})
 
 	if err != nil {
 		return nil, err
@@ -343,16 +330,15 @@ func (c *CollectionEndpoint) GetChecksum(name string, opts *GetChecksumOptions) 
 		query.Add("withData", fmt.Sprintf("%t", opts.WithData))
 	}
 
-	h, err := c.client.Get(
-		fmt.Sprintf("/%s/checksum", name),
-		nil,
-		query,
-		gr.UnmarshalMap{
+	h, err := c.client.Get(&gr.Request{
+		Path:  fmt.Sprintf("/%s/checksum", name),
+		Query: query,
+		UnmarshalMap: gr.UnmarshalMap{
 			http.StatusOK:         descriptor,
 			http.StatusBadRequest: &errorResult,
 			http.StatusNotFound:   &errorResult,
 		},
-	)
+	})
 
 	if err != nil {
 		return nil, err

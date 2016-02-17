@@ -42,19 +42,19 @@ func (e *EdgeEndpoint) GetEdges(
 		Edges []string `json:"documents"`
 	}
 
-	h, err := e.client.Get(
-		"",
-		nil,
-		url.Values{
+	h, err := e.client.Get(&gr.Request{
+		Path:    "",
+		Headers: nil,
+		Query: url.Values{
 			"collection": []string{collection},
 			"type":       []string{returnType},
 		},
-		gr.UnmarshalMap{
+		UnmarshalMap: gr.UnmarshalMap{
 			http.StatusOK:         &result,
 			http.StatusBadRequest: &errorResult,
 			http.StatusNotFound:   &errorResult,
 		},
-	)
+	})
 
 	if err != nil {
 		return nil, err
@@ -92,18 +92,17 @@ func (e *EdgeEndpoint) PostEdge(
 		query.Add("waitForSync", fmt.Sprintf("%t", options.WaitForSync))
 	}
 
-	h, err := e.client.Post(
-		"",
-		nil,
-		query,
-		edge,
-		gr.UnmarshalMap{
+	h, err := e.client.Post(&gr.Request{
+		Path:  "",
+		Query: query,
+		Body:  edge,
+		UnmarshalMap: gr.UnmarshalMap{
 			http.StatusCreated:    edge,
 			http.StatusAccepted:   edge,
 			http.StatusBadRequest: &errorResult,
 			http.StatusNotFound:   &errorResult,
 		},
-	)
+	})
 
 	if err != nil {
 		return err
@@ -161,17 +160,17 @@ func (e *EdgeEndpoint) GetEdge(edgeHandle string, edgeReceiver interface{}, opti
 
 	var errorResult = ArangoError{}
 
-	h, err := e.client.Get(
-		fmt.Sprintf("/%s", edgeHandle),
-		headers,
-		query,
-		gr.UnmarshalMap{
+	h, err := e.client.Get(&gr.Request{
+		Path:    fmt.Sprintf("/%s", edgeHandle),
+		Headers: headers,
+		Query:   query,
+		UnmarshalMap: gr.UnmarshalMap{
 			http.StatusOK:                 edgeReceiver,
 			http.StatusBadRequest:         &errorResult,
 			http.StatusNotFound:           &errorResult,
 			http.StatusPreconditionFailed: &errorResult,
 		},
-	)
+	})
 
 	if err != nil {
 		return err
