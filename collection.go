@@ -357,17 +357,15 @@ func (c *CollectionEndpoint) PutLoad(name string, includeCount bool) (*Collectio
 	var descriptor = &CollectionDescriptor{}
 	var errorResult = ArangoError{}
 
-	h, err := c.client.Put(
-		fmt.Sprintf("/%s/load", name),
-		nil,
-		nil,
-		map[string]string{"count": fmt.Sprintf("%t", includeCount)},
-		gr.UnmarshalMap{
+	h, err := c.client.Put(&gr.Request{
+		Path: fmt.Sprintf("/%s/load", name),
+		Body: map[string]string{"count": fmt.Sprintf("%t", includeCount)},
+		UnmarshalMap: gr.UnmarshalMap{
 			http.StatusOK:         descriptor,
 			http.StatusBadRequest: &errorResult,
 			http.StatusNotFound:   &errorResult,
 		},
-	)
+	})
 
 	if err != nil {
 		return nil, err
@@ -386,17 +384,14 @@ func (c *CollectionEndpoint) PutUnload(name string) (*CollectionDescriptor, erro
 	var descriptor = &CollectionDescriptor{}
 	var errorResult = ArangoError{}
 
-	h, err := c.client.Put(
-		fmt.Sprintf("/%s/unload", name),
-		nil,
-		nil,
-		nil,
-		gr.UnmarshalMap{
+	h, err := c.client.Put(&gr.Request{
+		Path: fmt.Sprintf("/%s/unload", name),
+		UnmarshalMap: gr.UnmarshalMap{
 			http.StatusOK:         descriptor,
 			http.StatusBadRequest: &errorResult,
 			http.StatusNotFound:   &errorResult,
 		},
-	)
+	})
 
 	if err != nil {
 		return nil, err
@@ -415,17 +410,14 @@ func (c *CollectionEndpoint) PutTruncate(name string) (*CollectionDescriptor, er
 	var descriptor = &CollectionDescriptor{}
 	var errorResult = ArangoError{}
 
-	h, err := c.client.Put(
-		fmt.Sprintf("/%s/truncate", name),
-		nil,
-		nil,
-		nil,
-		gr.UnmarshalMap{
+	h, err := c.client.Put(&gr.Request{
+		Path: fmt.Sprintf("/%s/truncate", name),
+		UnmarshalMap: gr.UnmarshalMap{
 			http.StatusOK:         descriptor,
 			http.StatusBadRequest: &errorResult,
 			http.StatusNotFound:   &errorResult,
 		},
-	)
+	})
 
 	if err != nil {
 		return nil, err
@@ -456,17 +448,15 @@ func (c *CollectionEndpoint) PutProperties(name string, properties PutProperties
 	var descriptor = &CollectionDescriptor{}
 	var errorResult = ArangoError{}
 
-	h, err := c.client.Put(
-		fmt.Sprintf("/%s/properties", name),
-		nil,
-		nil,
-		&properties,
-		gr.UnmarshalMap{
+	h, err := c.client.Put(&gr.Request{
+		Path: fmt.Sprintf("/%s/properties", name),
+		Body: &properties,
+		UnmarshalMap: gr.UnmarshalMap{
 			http.StatusOK:         descriptor,
 			http.StatusBadRequest: &errorResult,
 			http.StatusNotFound:   &errorResult,
 		},
-	)
+	})
 
 	if err != nil {
 		return nil, err
@@ -485,7 +475,7 @@ func (c *CollectionEndpoint) PutRename(name string, newName string) (*Collection
 	var descriptor = &CollectionDescriptor{}
 	var errorResult = ArangoError{}
 
-	h, err := c.client.Put(
+	h, err := c.client.Put(&gr.Request{
 		fmt.Sprintf("/%s/rename", name),
 		nil,
 		nil,
@@ -495,7 +485,7 @@ func (c *CollectionEndpoint) PutRename(name string, newName string) (*Collection
 			http.StatusBadRequest: &errorResult,
 			http.StatusNotFound:   &errorResult,
 		},
-	)
+	})
 
 	if err != nil {
 		return nil, err
@@ -513,16 +503,13 @@ func (c *CollectionEndpoint) PutRotate(name string) error {
 
 	var errorResult = ArangoError{}
 
-	h, err := c.client.Put(
-		fmt.Sprintf("/%s/rotate", name),
-		nil,
-		nil,
-		nil,
-		gr.UnmarshalMap{
+	h, err := c.client.Put(&gr.Request{
+		Path: fmt.Sprintf("/%s/rotate", name),
+		UnmarshalMap: gr.UnmarshalMap{
 			http.StatusBadRequest: &errorResult,
 			http.StatusNotFound:   &errorResult,
 		},
-	)
+	})
 
 	if err != nil {
 		return err
@@ -540,15 +527,13 @@ func (c *CollectionEndpoint) Delete(name string) error {
 
 	var errorResult = ArangoError{}
 
-	h, err := c.client.Delete(
-		fmt.Sprintf("/%s", name),
-		nil,
-		nil,
-		gr.UnmarshalMap{
+	h, err := c.client.Delete(&gr.Request{
+		Path: fmt.Sprintf("/%s", name),
+		UnmarshalMap: gr.UnmarshalMap{
 			http.StatusBadRequest: &errorResult,
 			http.StatusNotFound:   &errorResult,
 		},
-	)
+	})
 
 	if err != nil {
 		return err

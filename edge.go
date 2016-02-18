@@ -210,11 +210,11 @@ func (e *EdgeEndpoint) HeadEdge(edgeHandle string, options *HeadEdgeOptions) (st
 		}
 	}
 
-	h, err := e.client.Head(
-		fmt.Sprintf("/%s", edgeHandle),
-		headers,
-		query,
-	)
+	h, err := e.client.Head(&gr.Request{
+		Path:    fmt.Sprintf("/%s", edgeHandle),
+		Headers: headers,
+		Query:   query,
+	})
 
 	if err != nil {
 		return "", err
@@ -269,19 +269,19 @@ func (e *EdgeEndpoint) PutEdge(edgeHandle string, edge interface{}, options *Put
 
 	var errorResult = ArangoError{}
 
-	h, err := e.client.Put(
-		fmt.Sprintf("/%s", edgeHandle),
-		headers,
-		query,
-		edge, //edge is the body
-		gr.UnmarshalMap{
+	h, err := e.client.Put(&gr.Request{
+		Path:    fmt.Sprintf("/%s", edgeHandle),
+		Headers: headers,
+		Query:   query,
+		Body:    edge, //edge is the body
+		UnmarshalMap: gr.UnmarshalMap{
 			http.StatusCreated:            edge,
 			http.StatusAccepted:           edge,
 			http.StatusBadRequest:         &errorResult,
 			http.StatusNotFound:           &errorResult,
 			http.StatusPreconditionFailed: &errorResult,
 		},
-	)
+	})
 
 	if err != nil {
 		return err
@@ -334,20 +334,20 @@ func (e *EdgeEndpoint) PatchEdge(edgeHandle string, edge interface{}, options *P
 
 	var errorResult = ArangoError{}
 
-	h, err := e.client.Patch(
-		fmt.Sprintf("/%s", edgeHandle),
-		headers,
-		query,
+	h, err := e.client.Patch(&gr.Request{
+		Path:    fmt.Sprintf("/%s", edgeHandle),
+		Headers: headers,
+		Query:   query,
 		//edge is the body
-		edge,
-		gr.UnmarshalMap{
+		Body: edge,
+		UnmarshalMap: gr.UnmarshalMap{
 			http.StatusCreated:            edge,
 			http.StatusAccepted:           edge,
 			http.StatusBadRequest:         &errorResult,
 			http.StatusNotFound:           &errorResult,
 			http.StatusPreconditionFailed: &errorResult,
 		},
-	)
+	})
 
 	if err != nil {
 		return err
@@ -390,16 +390,16 @@ func (e *EdgeEndpoint) DeleteEdge(edgeHandle string, options *DeleteEdgeOptions)
 
 	var errorResult = ArangoError{}
 
-	h, err := e.client.Delete(
-		fmt.Sprintf("/%s", edgeHandle),
-		headers,
-		query,
-		gr.UnmarshalMap{
+	h, err := e.client.Delete(&gr.Request{
+		Path:    fmt.Sprintf("/%s", edgeHandle),
+		Headers: headers,
+		Query:   query,
+		UnmarshalMap: gr.UnmarshalMap{
 			http.StatusBadRequest:         &errorResult,
 			http.StatusNotFound:           &errorResult,
 			http.StatusPreconditionFailed: &errorResult,
 		},
-	)
+	})
 
 	if err != nil {
 		return err

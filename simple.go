@@ -43,18 +43,16 @@ func (s *SimpleEndpoint) ByExample(collection string, example interface{}, opts 
 
 	var cursor cursor
 
-	h, err := s.client.Put(
-		"/by-example",
-		nil,
-		nil,
-		body,
-		gr.UnmarshalMap{
+	h, err := s.client.Put(&gr.Request{
+		Path: "/by-example",
+		Body: body,
+		UnmarshalMap: gr.UnmarshalMap{
 			http.StatusCreated:    &cursor,
 			http.StatusBadRequest: &errorResult,
 			http.StatusForbidden:  &errorResult,
 			http.StatusNotFound:   &errorResult,
 		},
-	)
+	})
 
 	if err != nil {
 		return nil, err
@@ -82,17 +80,15 @@ func (s *SimpleEndpoint) FirstExample(collection string, example interface{}, re
 
 	response.Document = result
 
-	h, err := s.client.Put(
-		"/first-example",
-		nil,
-		nil,
-		body,
-		gr.UnmarshalMap{
+	h, err := s.client.Put(&gr.Request{
+		Path: "/first-example",
+		Body: body,
+		UnmarshalMap: gr.UnmarshalMap{
 			http.StatusOK:         &response,
 			http.StatusBadRequest: &errorResult,
 			http.StatusNotFound:   &errorResult,
 		},
-	)
+	})
 
 	if err != nil {
 		return err

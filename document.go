@@ -218,11 +218,11 @@ func (doc *DocumentEndpoint) HeadDocument(documentHandle string, options *HeadDo
 		}
 	}
 
-	h, err := doc.client.Head(
-		fmt.Sprintf("/%s", documentHandle),
-		headers,
-		query,
-	)
+	h, err := doc.client.Head(&gr.Request{
+		Path:    fmt.Sprintf("/%s", documentHandle),
+		Headers: headers,
+		Query:   query,
+	})
 
 	if err != nil {
 		return "", err
@@ -281,19 +281,19 @@ func (doc *DocumentEndpoint) PutDocument(documentHandle string, document interfa
 
 	var errorResult = ArangoError{}
 
-	h, err := doc.client.Put(
-		fmt.Sprintf("/%s", documentHandle),
-		headers,
-		query,
-		document, //document is the body
-		gr.UnmarshalMap{
+	h, err := doc.client.Put(&gr.Request{
+		Path:    fmt.Sprintf("/%s", documentHandle),
+		Headers: headers,
+		Query:   query,
+		Body:    document, //document is the body
+		UnmarshalMap: gr.UnmarshalMap{
 			http.StatusCreated:            document,
 			http.StatusAccepted:           document,
 			http.StatusBadRequest:         &errorResult,
 			http.StatusNotFound:           &errorResult,
 			http.StatusPreconditionFailed: &errorResult,
 		},
-	)
+	})
 
 	if err != nil {
 		return err
@@ -354,13 +354,13 @@ func (doc *DocumentEndpoint) PatchDocument(documentHandle string, document inter
 
 	var errorResult = ArangoError{}
 
-	h, err := doc.client.Patch(
-		fmt.Sprintf("/%s", documentHandle),
-		headers,
-		query,
+	h, err := doc.client.Patch(&gr.Request{
+		Path:    fmt.Sprintf("/%s", documentHandle),
+		Headers: headers,
+		Query:   query,
 		//document is the body
-		document,
-		gr.UnmarshalMap{
+		Body: document,
+		UnmarshalMap: gr.UnmarshalMap{
 			//document is used as the successResult so it gets
 			//populated with the new revision info
 			http.StatusCreated:            document,
@@ -369,7 +369,7 @@ func (doc *DocumentEndpoint) PatchDocument(documentHandle string, document inter
 			http.StatusNotFound:           &errorResult,
 			http.StatusPreconditionFailed: &errorResult,
 		},
-	)
+	})
 
 	if err != nil {
 		return err
@@ -417,16 +417,16 @@ func (doc *DocumentEndpoint) DeleteDocument(documentHandle string, options *Dele
 
 	var errorResult = ArangoError{}
 
-	h, err := doc.client.Delete(
-		fmt.Sprintf("/%s", documentHandle),
-		headers,
-		query,
-		gr.UnmarshalMap{
+	h, err := doc.client.Delete(&gr.Request{
+		Path:    fmt.Sprintf("/%s", documentHandle),
+		Headers: headers,
+		Query:   query,
+		UnmarshalMap: gr.UnmarshalMap{
 			http.StatusBadRequest:         &errorResult,
 			http.StatusNotFound:           &errorResult,
 			http.StatusPreconditionFailed: &errorResult,
 		},
-	)
+	})
 
 	if err != nil {
 		return err

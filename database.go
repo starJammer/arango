@@ -247,15 +247,13 @@ func (d *Database) Delete(name string) error {
 
 	var errorResult = ArangoError{}
 
-	h, err := d.client.Delete(
-		DatabasePath+"/"+name,
-		nil,
-		nil,
-		gr.UnmarshalMap{
+	h, err := d.client.Delete(&gr.Request{
+		Path: DatabasePath + "/" + name,
+		UnmarshalMap: gr.UnmarshalMap{
 			http.StatusBadRequest: &errorResult,
 			http.StatusNotFound:   &errorResult,
 		},
-	)
+	})
 
 	if err != nil {
 		return err
