@@ -44,7 +44,7 @@ func (doc *DocumentEndpoint) GetDocuments(
 		Documents []string `json:"documents"`
 	}
 
-	h, err := doc.client.Get(&gr.Request{
+	h, err := doc.client.Get(&gr.Params{
 		Path: "",
 		Query: url.Values{
 			"collection": []string{collection},
@@ -92,7 +92,7 @@ func (doc *DocumentEndpoint) PostDocument(
 		query.Add("waitForSync", fmt.Sprintf("%t", options.WaitForSync))
 	}
 
-	h, err := doc.client.Post(&gr.Request{
+	h, err := doc.client.Post(&gr.Params{
 		Path:    "",
 		Headers: nil,
 		Query:   query,
@@ -168,7 +168,7 @@ func (doc *DocumentEndpoint) GetDocument(
 
 	var errorResult = ArangoError{}
 
-	h, err := doc.client.Get(&gr.Request{
+	h, err := doc.client.Get(&gr.Params{
 		Path:    fmt.Sprintf("/%s", documentHandle),
 		Headers: headers,
 		Query:   query,
@@ -218,7 +218,7 @@ func (doc *DocumentEndpoint) HeadDocument(documentHandle string, options *HeadDo
 		}
 	}
 
-	h, err := doc.client.Head(&gr.Request{
+	h, err := doc.client.Head(&gr.Params{
 		Path:    fmt.Sprintf("/%s", documentHandle),
 		Headers: headers,
 		Query:   query,
@@ -281,7 +281,7 @@ func (doc *DocumentEndpoint) PutDocument(documentHandle string, document interfa
 
 	var errorResult = ArangoError{}
 
-	h, err := doc.client.Put(&gr.Request{
+	h, err := doc.client.Put(&gr.Params{
 		Path:    fmt.Sprintf("/%s", documentHandle),
 		Headers: headers,
 		Query:   query,
@@ -354,7 +354,7 @@ func (doc *DocumentEndpoint) PatchDocument(documentHandle string, document inter
 
 	var errorResult = ArangoError{}
 
-	h, err := doc.client.Patch(&gr.Request{
+	h, err := doc.client.Patch(&gr.Params{
 		Path:    fmt.Sprintf("/%s", documentHandle),
 		Headers: headers,
 		Query:   query,
@@ -417,7 +417,7 @@ func (doc *DocumentEndpoint) DeleteDocument(documentHandle string, options *Dele
 
 	var errorResult = ArangoError{}
 
-	h, err := doc.client.Delete(&gr.Request{
+	h, err := doc.client.Delete(&gr.Params{
 		Path:    fmt.Sprintf("/%s", documentHandle),
 		Headers: headers,
 		Query:   query,

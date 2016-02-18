@@ -111,7 +111,7 @@ func (d *Database) Get() ([]string, error) {
 	}
 	var errorResult = ArangoError{}
 
-	h, err := d.client.Get(&gr.Request{
+	h, err := d.client.Get(&gr.Params{
 		Path: DatabasePath,
 		UnmarshalMap: gr.UnmarshalMap{
 			http.StatusOK:         &result,
@@ -141,7 +141,7 @@ func (d *Database) GetUser() ([]string, error) {
 
 	var errorResult = ArangoError{}
 
-	h, err := d.client.Get(&gr.Request{
+	h, err := d.client.Get(&gr.Params{
 		Path: DatabasePath + "/user",
 		UnmarshalMap: gr.UnmarshalMap{
 			http.StatusOK:         &result,
@@ -176,7 +176,7 @@ func (d *Database) GetCurrent() (*DatabaseDescriptor, error) {
 	}
 	var errorResult = ArangoError{}
 
-	h, err := d.client.Get(&gr.Request{
+	h, err := d.client.Get(&gr.Params{
 		Path: DatabasePath + "/current",
 		UnmarshalMap: gr.UnmarshalMap{
 			http.StatusOK:         &result,
@@ -220,7 +220,7 @@ func (d *Database) Post(name string, opts *PostDatabaseOptions) error {
 	}
 	opts.Name = name
 
-	h, err := d.client.Post(&gr.Request{
+	h, err := d.client.Post(&gr.Params{
 		Path: DatabasePath,
 		Body: opts,
 		UnmarshalMap: gr.UnmarshalMap{
@@ -247,7 +247,7 @@ func (d *Database) Delete(name string) error {
 
 	var errorResult = ArangoError{}
 
-	h, err := d.client.Delete(&gr.Request{
+	h, err := d.client.Delete(&gr.Params{
 		Path: DatabasePath + "/" + name,
 		UnmarshalMap: gr.UnmarshalMap{
 			http.StatusBadRequest: &errorResult,

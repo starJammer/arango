@@ -42,7 +42,7 @@ func (e *EdgeEndpoint) GetEdges(
 		Edges []string `json:"documents"`
 	}
 
-	h, err := e.client.Get(&gr.Request{
+	h, err := e.client.Get(&gr.Params{
 		Path:    "",
 		Headers: nil,
 		Query: url.Values{
@@ -92,7 +92,7 @@ func (e *EdgeEndpoint) PostEdge(
 		query.Add("waitForSync", fmt.Sprintf("%t", options.WaitForSync))
 	}
 
-	h, err := e.client.Post(&gr.Request{
+	h, err := e.client.Post(&gr.Params{
 		Path:  "",
 		Query: query,
 		Body:  edge,
@@ -160,7 +160,7 @@ func (e *EdgeEndpoint) GetEdge(edgeHandle string, edgeReceiver interface{}, opti
 
 	var errorResult = ArangoError{}
 
-	h, err := e.client.Get(&gr.Request{
+	h, err := e.client.Get(&gr.Params{
 		Path:    fmt.Sprintf("/%s", edgeHandle),
 		Headers: headers,
 		Query:   query,
@@ -210,7 +210,7 @@ func (e *EdgeEndpoint) HeadEdge(edgeHandle string, options *HeadEdgeOptions) (st
 		}
 	}
 
-	h, err := e.client.Head(&gr.Request{
+	h, err := e.client.Head(&gr.Params{
 		Path:    fmt.Sprintf("/%s", edgeHandle),
 		Headers: headers,
 		Query:   query,
@@ -269,7 +269,7 @@ func (e *EdgeEndpoint) PutEdge(edgeHandle string, edge interface{}, options *Put
 
 	var errorResult = ArangoError{}
 
-	h, err := e.client.Put(&gr.Request{
+	h, err := e.client.Put(&gr.Params{
 		Path:    fmt.Sprintf("/%s", edgeHandle),
 		Headers: headers,
 		Query:   query,
@@ -334,7 +334,7 @@ func (e *EdgeEndpoint) PatchEdge(edgeHandle string, edge interface{}, options *P
 
 	var errorResult = ArangoError{}
 
-	h, err := e.client.Patch(&gr.Request{
+	h, err := e.client.Patch(&gr.Params{
 		Path:    fmt.Sprintf("/%s", edgeHandle),
 		Headers: headers,
 		Query:   query,
@@ -390,7 +390,7 @@ func (e *EdgeEndpoint) DeleteEdge(edgeHandle string, options *DeleteEdgeOptions)
 
 	var errorResult = ArangoError{}
 
-	h, err := e.client.Delete(&gr.Request{
+	h, err := e.client.Delete(&gr.Params{
 		Path:    fmt.Sprintf("/%s", edgeHandle),
 		Headers: headers,
 		Query:   query,

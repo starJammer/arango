@@ -43,7 +43,7 @@ func (s *SimpleEndpoint) ByExample(collection string, example interface{}, opts 
 
 	var cursor cursor
 
-	h, err := s.client.Put(&gr.Request{
+	h, err := s.client.Put(&gr.Params{
 		Path: "/by-example",
 		Body: body,
 		UnmarshalMap: gr.UnmarshalMap{
@@ -80,7 +80,7 @@ func (s *SimpleEndpoint) FirstExample(collection string, example interface{}, re
 
 	response.Document = result
 
-	h, err := s.client.Put(&gr.Request{
+	h, err := s.client.Put(&gr.Params{
 		Path: "/first-example",
 		Body: body,
 		UnmarshalMap: gr.UnmarshalMap{

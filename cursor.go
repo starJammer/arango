@@ -157,7 +157,7 @@ func (ce *CursorEndpoint) put(cursorIdentifier string, cursor *cursor) error {
 
 	var errorResult = ArangoError{}
 
-	h, err := ce.client.Put(&gr.Request{
+	h, err := ce.client.Put(&gr.Params{
 		Path: fmt.Sprintf("/%s", cursorIdentifier),
 		UnmarshalMap: gr.UnmarshalMap{
 			http.StatusOK:         cursor,
