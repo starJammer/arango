@@ -167,8 +167,8 @@ func TestPostEmptyEdge(t *testing.T) {
 		t.Fatal("Unexpected error when posting empty edge: ", err)
 	}
 
-	if edge.Id() == "" {
-		t.Fatal("Expected the Id of the document to be set.")
+	if edge.ID() == "" {
+		t.Fatal("Expected the ID of the document to be set.")
 	}
 
 	if edge.Key() == "" {
@@ -273,7 +273,7 @@ func TestDeleteEdge(t *testing.T) {
 
 	ee.PostEdge(&edge, opts.Name, "test/1", "test/1", nil)
 
-	err := ee.DeleteEdge(edge.Id(), &DeleteEdgeOptions{Rev: "1"})
+	err := ee.DeleteEdge(edge.ID(), &DeleteEdgeOptions{Rev: "1"})
 	verifyError(
 		err,
 		t,
@@ -281,7 +281,7 @@ func TestDeleteEdge(t *testing.T) {
 		"Expected 412 error with bad revision.",
 	)
 
-	err = ee.DeleteEdge(edge.Id(), &DeleteEdgeOptions{IfMatch: "1"})
+	err = ee.DeleteEdge(edge.ID(), &DeleteEdgeOptions{IfMatch: "1"})
 	verifyError(
 		err,
 		t,
@@ -289,14 +289,14 @@ func TestDeleteEdge(t *testing.T) {
 		"Expected 412 error with bad IfMatch",
 	)
 
-	err = ee.DeleteEdge(edge.Id(), nil)
+	err = ee.DeleteEdge(edge.ID(), nil)
 
 	if err != nil {
 		t.Fatal("Unexpected error when deleting document.")
 	}
 
 	ee.PostEdge(&edge, opts.Name, "test/1", "test/1", nil)
-	err = ee.DeleteEdge(edge.Id(), &DeleteEdgeOptions{Rev: "1", Policy: "last"})
+	err = ee.DeleteEdge(edge.ID(), &DeleteEdgeOptions{Rev: "1", Policy: "last"})
 	if err != nil {
 		t.Fatal("Unexpected error when deleting with policy = last: ", err)
 	}
@@ -332,8 +332,8 @@ func TestGetEdgesAfterPost(t *testing.T) {
 		t.Fatal("Expected only one document in collection \"test\": ", documents)
 	}
 
-	if documents[0] != edge.Id() {
-		t.Fatal("Could not fetch the ids properly. Actual(%s), Expected(%s)")
+	if documents[0] != edge.ID() {
+		t.Fatal("Could not fetch the IDs properly. Actual(%s), Expected(%s)")
 	}
 }
 
@@ -423,12 +423,12 @@ func TestGetEdgeAfterPost(t *testing.T) {
 	edge.Name = "name"
 
 	ee.PostEdge(&edge, opts.Name, "test/1", "test/1", nil)
-	defer ee.DeleteEdge(edge.Id(), nil)
+	defer ee.DeleteEdge(edge.ID(), nil)
 
 	var fetcher document
 
 	err := ee.GetEdge(
-		edge.Id(),
+		edge.ID(),
 		&fetcher,
 		nil,
 	)
@@ -437,11 +437,11 @@ func TestGetEdgeAfterPost(t *testing.T) {
 		t.Fatal("Unexpected error when fetching a posted document: ", err)
 	}
 
-	if fetcher.Id() != edge.Id() {
+	if fetcher.ID() != edge.ID() {
 		t.Fatalf(
-			"Fetched document has wrong id: Actual(%s), Expected(%s)",
-			fetcher.Id(),
-			edge.Id(),
+			"Fetched document has wrong ID: Actual(%s), Expected(%s)",
+			fetcher.ID(),
+			edge.ID(),
 		)
 	}
 
@@ -560,9 +560,9 @@ func TestEdgeHeadAfterPost(t *testing.T) {
 	edge.Name = "name"
 
 	ee.PostEdge(&edge, opts.Name, "test/1", "test/1", nil)
-	defer ee.DeleteEdge(edge.Id(), nil)
+	defer ee.DeleteEdge(edge.ID(), nil)
 
-	rev, err := ee.HeadEdge(edge.Id(), nil)
+	rev, err := ee.HeadEdge(edge.ID(), nil)
 	if err != nil {
 		t.Fatal("Uexpected error")
 	}
@@ -570,7 +570,7 @@ func TestEdgeHeadAfterPost(t *testing.T) {
 		t.Fatal("Expected rev to equal edge's rev.")
 	}
 
-	rev, err = ee.HeadEdge(edge.Id(), &HeadEdgeOptions{Rev: edge.Rev()})
+	rev, err = ee.HeadEdge(edge.ID(), &HeadEdgeOptions{Rev: edge.Rev()})
 	if err != nil {
 		t.Fatal("Uexpected error")
 	}
@@ -578,7 +578,7 @@ func TestEdgeHeadAfterPost(t *testing.T) {
 		t.Fatal("Expected rev to equal edge's rev.")
 	}
 
-	rev, err = ee.HeadEdge(edge.Id(), &HeadEdgeOptions{IfMatch: edge.Rev()})
+	rev, err = ee.HeadEdge(edge.ID(), &HeadEdgeOptions{IfMatch: edge.Rev()})
 	if err != nil {
 		t.Fatal("Uexpected error")
 	}
@@ -586,7 +586,7 @@ func TestEdgeHeadAfterPost(t *testing.T) {
 		t.Fatal("Expected rev to equal edge's rev.")
 	}
 
-	rev, err = ee.HeadEdge(edge.Id(), &HeadEdgeOptions{IfMatch: "12341234"})
+	rev, err = ee.HeadEdge(edge.ID(), &HeadEdgeOptions{IfMatch: "12341234"})
 	verifyError(
 		err,
 		t,
@@ -597,7 +597,7 @@ func TestEdgeHeadAfterPost(t *testing.T) {
 		t.Fatal("Expected rev to equal edge's rev.")
 	}
 
-	rev, err = ee.HeadEdge(edge.Id(), &HeadEdgeOptions{IfNoneMatch: edge.Rev()})
+	rev, err = ee.HeadEdge(edge.ID(), &HeadEdgeOptions{IfNoneMatch: edge.Rev()})
 	verifyError(
 		err,
 		t,
@@ -608,7 +608,7 @@ func TestEdgeHeadAfterPost(t *testing.T) {
 		t.Fatal("Expected rev to equal edge's rev.")
 	}
 
-	rev, err = ee.HeadEdge(edge.Id(), &HeadEdgeOptions{IfNoneMatch: "12341234123412341234"})
+	rev, err = ee.HeadEdge(edge.ID(), &HeadEdgeOptions{IfNoneMatch: "12341234123412341234"})
 	if err != nil {
 		t.Fatal("Uexpected error")
 	}
@@ -695,9 +695,9 @@ func TestPutEdgeNilEdge(t *testing.T) {
 	edge.Name = "test"
 
 	ee.PostEdge(&edge, opts.Name, "test/1", "test/1", nil)
-	defer ee.DeleteEdge(edge.Id(), nil)
+	defer ee.DeleteEdge(edge.ID(), nil)
 
-	err := ee.PutEdge(edge.Id(), nil, nil)
+	err := ee.PutEdge(edge.ID(), nil, nil)
 
 	verifyError(
 		err,
@@ -722,12 +722,12 @@ func TestPutEdge(t *testing.T) {
 	edge.Name = "test"
 
 	ee.PostEdge(&edge, opts.Name, "test/1", "test/1", nil)
-	defer ee.DeleteEdge(edge.Id(), nil)
+	defer ee.DeleteEdge(edge.ID(), nil)
 
 	var other *document = new(document)
 	other.Address = "other"
 
-	err := ee.PutEdge(edge.Id(), other, &PutEdgeOptions{Rev: "1"})
+	err := ee.PutEdge(edge.ID(), other, &PutEdgeOptions{Rev: "1"})
 	verifyError(
 		err,
 		t,
@@ -735,7 +735,7 @@ func TestPutEdge(t *testing.T) {
 		"Expected error if Rev doesn't match.",
 	)
 
-	err = ee.PutEdge(edge.Id(), other, &PutEdgeOptions{IfMatch: "1"})
+	err = ee.PutEdge(edge.ID(), other, &PutEdgeOptions{IfMatch: "1"})
 	verifyError(
 		err,
 		t,
@@ -743,7 +743,7 @@ func TestPutEdge(t *testing.T) {
 		"Expected error if IfMatch doesn't match.",
 	)
 
-	err = ee.PutEdge(edge.Id(), other, nil)
+	err = ee.PutEdge(edge.ID(), other, nil)
 	if err != nil {
 		t.Fatal("Unexpected error when putting: ", err)
 	}
@@ -757,7 +757,7 @@ func TestPutEdge(t *testing.T) {
 	}
 
 	var fetcher *document = new(document)
-	ee.GetEdge(other.Id(), fetcher, nil)
+	ee.GetEdge(other.ID(), fetcher, nil)
 
 	if fetcher.Name != "" {
 		t.Fatal("Put failed to remove name.")
@@ -771,7 +771,7 @@ func TestPutEdge(t *testing.T) {
 		)
 	}
 
-	err = ee.PutEdge(other.Id(), edge, &PutEdgeOptions{Rev: "12341234", Policy: "last"})
+	err = ee.PutEdge(other.ID(), edge, &PutEdgeOptions{Rev: "12341234", Policy: "last"})
 	if err != nil {
 		t.Fatal("Unexpected error when putting with policy = last: ", err)
 	}
@@ -855,9 +855,9 @@ func TestPatchEdgeNilEdge(t *testing.T) {
 	edge.Name = "test"
 
 	ee.PostEdge(&edge, opts.Name, "test/1", "test/1", nil)
-	defer ee.DeleteEdge(edge.Id(), nil)
+	defer ee.DeleteEdge(edge.ID(), nil)
 
-	err := ee.PatchEdge(edge.Id(), nil, nil)
+	err := ee.PatchEdge(edge.ID(), nil, nil)
 
 	verifyError(
 		err,
@@ -882,12 +882,12 @@ func TestPatchEdge(t *testing.T) {
 	edge.Name = "test"
 
 	ee.PostEdge(&edge, opts.Name, "test/1", "test/1", nil)
-	defer ee.DeleteEdge(edge.Id(), nil)
+	defer ee.DeleteEdge(edge.ID(), nil)
 
 	var other *document = new(document)
 	other.Address = "other"
 
-	err := ee.PatchEdge(edge.Id(), other, &PatchEdgeOptions{Rev: "1111111"})
+	err := ee.PatchEdge(edge.ID(), other, &PatchEdgeOptions{Rev: "1111111"})
 	verifyError(
 		err,
 		t,
@@ -895,7 +895,7 @@ func TestPatchEdge(t *testing.T) {
 		"Expected error if Rev doesn't match.",
 	)
 
-	err = ee.PatchEdge(edge.Id(), other, &PatchEdgeOptions{IfMatch: "1111111"})
+	err = ee.PatchEdge(edge.ID(), other, &PatchEdgeOptions{IfMatch: "1111111"})
 	verifyError(
 		err,
 		t,
@@ -903,7 +903,7 @@ func TestPatchEdge(t *testing.T) {
 		"Expected error if IfMatch doesn't match.",
 	)
 
-	err = ee.PatchEdge(edge.Id(), other, nil)
+	err = ee.PatchEdge(edge.ID(), other, nil)
 	if err != nil {
 		t.Fatal("Unexpected error when putting: ", err)
 	}
@@ -917,7 +917,7 @@ func TestPatchEdge(t *testing.T) {
 	}
 
 	var fetcher *document = new(document)
-	ee.GetEdge(other.Id(), fetcher, nil)
+	ee.GetEdge(other.ID(), fetcher, nil)
 
 	if fetcher.Name != edge.Name {
 		t.Fatal("Patch failed to preserve  name.")
@@ -933,12 +933,12 @@ func TestPatchEdge(t *testing.T) {
 
 	edge.Name = "secondpatch"
 	edge.Address = "secondpatch"
-	err = ee.PatchEdge(other.Id(), edge, &PatchEdgeOptions{Rev: "12341234", Policy: "last"})
+	err = ee.PatchEdge(other.ID(), edge, &PatchEdgeOptions{Rev: "12341234", Policy: "last"})
 	if err != nil {
 		t.Fatal("Unexpected error when putting with policy = last: ", err)
 	}
 
-	ee.GetEdge(edge.Id(), fetcher, nil)
+	ee.GetEdge(edge.ID(), fetcher, nil)
 
 	if fetcher.Name != edge.Name {
 		t.Fatal("Patch failed to preserve  name.")

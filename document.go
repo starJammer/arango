@@ -450,11 +450,11 @@ type DocumentImplementation struct {
 	ArangoKey string `json:"_key,omitempty"`
 }
 
-func (d *DocumentImplementation) Id() string {
+func (d *DocumentImplementation) ID() string {
 	return d.ArangoId
 }
 
-func (d *DocumentImplementation) SetId(id string) {
+func (d *DocumentImplementation) SetID(id string) {
 	d.ArangoId = id
 }
 

@@ -89,7 +89,7 @@ func TestPostEmptyDoc(t *testing.T) {
 		t.Fatal("Unexpected error when posting empty doc: ", err)
 	}
 
-	if doc.Id() == "" {
+	if doc.ID() == "" {
 		t.Fatal("Expected the Id of the document to be set.")
 	}
 
@@ -172,7 +172,7 @@ func TestDeleteDocument(t *testing.T) {
 
 	de.PostDocument(&doc, opts.Name, nil)
 
-	err := de.DeleteDocument(doc.Id(), &DeleteDocumentOptions{Rev: "1"})
+	err := de.DeleteDocument(doc.ID(), &DeleteDocumentOptions{Rev: "1"})
 	verifyError(
 		err,
 		t,
@@ -180,7 +180,7 @@ func TestDeleteDocument(t *testing.T) {
 		"Expected 412 error with bad revision.",
 	)
 
-	err = de.DeleteDocument(doc.Id(), &DeleteDocumentOptions{IfMatch: "1"})
+	err = de.DeleteDocument(doc.ID(), &DeleteDocumentOptions{IfMatch: "1"})
 	verifyError(
 		err,
 		t,
@@ -188,14 +188,14 @@ func TestDeleteDocument(t *testing.T) {
 		"Expected 412 error with bad IfMatch",
 	)
 
-	err = de.DeleteDocument(doc.Id(), nil)
+	err = de.DeleteDocument(doc.ID(), nil)
 
 	if err != nil {
 		t.Fatal("Unexpected error when deleting document.")
 	}
 
 	de.PostDocument(&doc, opts.Name, nil)
-	err = de.DeleteDocument(doc.Id(), &DeleteDocumentOptions{Rev: "1", Policy: "last"})
+	err = de.DeleteDocument(doc.ID(), &DeleteDocumentOptions{Rev: "1", Policy: "last"})
 	if err != nil {
 		t.Fatal("Unexpected error when deleting with policy = last: ", err)
 	}
@@ -229,8 +229,8 @@ func TestGetDocumentsAfterPost(t *testing.T) {
 		t.Fatal("Expected only one document in collection \"test\": ", documents)
 	}
 
-	if documents[0] != doc.Id() {
-		t.Fatal("Could not fetch the ids properly. Actual(%s), Expected(%s)")
+	if documents[0] != doc.ID() {
+		t.Fatal("Could not fetch the IDs properly. Actual(%s), Expected(%s)")
 	}
 }
 
@@ -312,12 +312,12 @@ func TestGetDocumentAfterPost(t *testing.T) {
 	doc.Name = "name"
 
 	de.PostDocument(&doc, opts.Name, nil)
-	defer de.DeleteDocument(doc.Id(), nil)
+	defer de.DeleteDocument(doc.ID(), nil)
 
 	var fetcher document
 
 	err := de.GetDocument(
-		doc.Id(),
+		doc.ID(),
 		&fetcher,
 		nil,
 	)
@@ -326,11 +326,11 @@ func TestGetDocumentAfterPost(t *testing.T) {
 		t.Fatal("Unexpected error when fetching a posted document: ", err)
 	}
 
-	if fetcher.Id() != doc.Id() {
+	if fetcher.ID() != doc.ID() {
 		t.Fatalf(
-			"Fetched document has wrong id: Actual(%s), Expected(%s)",
-			fetcher.Id(),
-			doc.Id(),
+			"Fetched document has wrong ID: Actual(%s), Expected(%s)",
+			fetcher.ID(),
+			doc.ID(),
 		)
 	}
 
@@ -441,9 +441,9 @@ func TestHeadAfterPost(t *testing.T) {
 	doc.Name = "name"
 
 	de.PostDocument(&doc, opts.Name, nil)
-	defer de.DeleteDocument(doc.Id(), nil)
+	defer de.DeleteDocument(doc.ID(), nil)
 
-	rev, err := de.HeadDocument(doc.Id(), nil)
+	rev, err := de.HeadDocument(doc.ID(), nil)
 	if err != nil {
 		t.Fatal("Uexpected error")
 	}
@@ -451,7 +451,7 @@ func TestHeadAfterPost(t *testing.T) {
 		t.Fatal("Expected rev to equal doc's rev.")
 	}
 
-	rev, err = de.HeadDocument(doc.Id(), &HeadDocumentOptions{Rev: doc.Rev()})
+	rev, err = de.HeadDocument(doc.ID(), &HeadDocumentOptions{Rev: doc.Rev()})
 	if err != nil {
 		t.Fatal("Uexpected error")
 	}
@@ -459,7 +459,7 @@ func TestHeadAfterPost(t *testing.T) {
 		t.Fatal("Expected rev to equal doc's rev.")
 	}
 
-	rev, err = de.HeadDocument(doc.Id(), &HeadDocumentOptions{IfMatch: doc.Rev()})
+	rev, err = de.HeadDocument(doc.ID(), &HeadDocumentOptions{IfMatch: doc.Rev()})
 	if err != nil {
 		t.Fatal("Uexpected error")
 	}
@@ -467,7 +467,7 @@ func TestHeadAfterPost(t *testing.T) {
 		t.Fatal("Expected rev to equal doc's rev.")
 	}
 
-	rev, err = de.HeadDocument(doc.Id(), &HeadDocumentOptions{IfMatch: "12341234"})
+	rev, err = de.HeadDocument(doc.ID(), &HeadDocumentOptions{IfMatch: "12341234"})
 	verifyError(
 		err,
 		t,
@@ -478,7 +478,7 @@ func TestHeadAfterPost(t *testing.T) {
 		t.Fatal("Expected rev to equal doc's rev.")
 	}
 
-	rev, err = de.HeadDocument(doc.Id(), &HeadDocumentOptions{IfNoneMatch: doc.Rev()})
+	rev, err = de.HeadDocument(doc.ID(), &HeadDocumentOptions{IfNoneMatch: doc.Rev()})
 	verifyError(
 		err,
 		t,
@@ -489,7 +489,7 @@ func TestHeadAfterPost(t *testing.T) {
 		t.Fatal("Expected rev to equal doc's rev.")
 	}
 
-	rev, err = de.HeadDocument(doc.Id(), &HeadDocumentOptions{IfNoneMatch: "12341234123412341234"})
+	rev, err = de.HeadDocument(doc.ID(), &HeadDocumentOptions{IfNoneMatch: "12341234123412341234"})
 	if err != nil {
 		t.Fatal("Uexpected error")
 	}
@@ -568,9 +568,9 @@ func TestPutDocumentNilDocument(t *testing.T) {
 	doc.Name = "test"
 
 	de.PostDocument(&doc, opts.Name, nil)
-	defer de.DeleteDocument(doc.Id(), nil)
+	defer de.DeleteDocument(doc.ID(), nil)
 
-	err := de.PutDocument(doc.Id(), nil, nil)
+	err := de.PutDocument(doc.ID(), nil, nil)
 
 	verifyError(
 		err,
@@ -593,12 +593,12 @@ func TestPutDocument(t *testing.T) {
 	doc.Name = "test"
 
 	de.PostDocument(&doc, opts.Name, nil)
-	defer de.DeleteDocument(doc.Id(), nil)
+	defer de.DeleteDocument(doc.ID(), nil)
 
 	var other *document = new(document)
 	other.Address = "other"
 
-	err := de.PutDocument(doc.Id(), other, &PutDocumentOptions{Rev: "1"})
+	err := de.PutDocument(doc.ID(), other, &PutDocumentOptions{Rev: "1"})
 	verifyError(
 		err,
 		t,
@@ -606,7 +606,7 @@ func TestPutDocument(t *testing.T) {
 		"Expected error if Rev doesn't match.",
 	)
 
-	err = de.PutDocument(doc.Id(), other, &PutDocumentOptions{IfMatch: "1"})
+	err = de.PutDocument(doc.ID(), other, &PutDocumentOptions{IfMatch: "1"})
 	verifyError(
 		err,
 		t,
@@ -614,7 +614,7 @@ func TestPutDocument(t *testing.T) {
 		"Expected error if IfMatch doesn't match.",
 	)
 
-	err = de.PutDocument(doc.Id(), other, nil)
+	err = de.PutDocument(doc.ID(), other, nil)
 	if err != nil {
 		t.Fatal("Unexpected error when putting: ", err)
 	}
@@ -628,7 +628,7 @@ func TestPutDocument(t *testing.T) {
 	}
 
 	var fetcher *document = new(document)
-	de.GetDocument(other.Id(), fetcher, nil)
+	de.GetDocument(other.ID(), fetcher, nil)
 
 	if fetcher.Name != "" {
 		t.Fatal("Put failed to remove name.")
@@ -642,7 +642,7 @@ func TestPutDocument(t *testing.T) {
 		)
 	}
 
-	err = de.PutDocument(other.Id(), doc, &PutDocumentOptions{Rev: "12341234", Policy: "last"})
+	err = de.PutDocument(other.ID(), doc, &PutDocumentOptions{Rev: "12341234", Policy: "last"})
 	if err != nil {
 		t.Fatal("Unexpected error when putting with policy = last: ", err)
 	}
@@ -718,9 +718,9 @@ func TestPatchDocumentNilDocument(t *testing.T) {
 	doc.Name = "test"
 
 	de.PostDocument(&doc, opts.Name, nil)
-	defer de.DeleteDocument(doc.Id(), nil)
+	defer de.DeleteDocument(doc.ID(), nil)
 
-	err := de.PatchDocument(doc.Id(), nil, nil)
+	err := de.PatchDocument(doc.ID(), nil, nil)
 
 	verifyError(
 		err,
@@ -743,12 +743,12 @@ func TestPatchDocument(t *testing.T) {
 	doc.Name = "test"
 
 	de.PostDocument(&doc, opts.Name, nil)
-	defer de.DeleteDocument(doc.Id(), nil)
+	defer de.DeleteDocument(doc.ID(), nil)
 
 	var other *document = new(document)
 	other.Address = "other"
 
-	err := de.PatchDocument(doc.Id(), other, &PatchDocumentOptions{Rev: "1111111"})
+	err := de.PatchDocument(doc.ID(), other, &PatchDocumentOptions{Rev: "1111111"})
 	verifyError(
 		err,
 		t,
@@ -756,7 +756,7 @@ func TestPatchDocument(t *testing.T) {
 		"Expected error if Rev doesn't match.",
 	)
 
-	err = de.PatchDocument(doc.Id(), other, &PatchDocumentOptions{IfMatch: "1111111"})
+	err = de.PatchDocument(doc.ID(), other, &PatchDocumentOptions{IfMatch: "1111111"})
 	verifyError(
 		err,
 		t,
@@ -764,7 +764,7 @@ func TestPatchDocument(t *testing.T) {
 		"Expected error if IfMatch doesn't match.",
 	)
 
-	err = de.PatchDocument(doc.Id(), other, nil)
+	err = de.PatchDocument(doc.ID(), other, nil)
 	if err != nil {
 		t.Fatal("Unexpected error when putting: ", err)
 	}
@@ -778,7 +778,7 @@ func TestPatchDocument(t *testing.T) {
 	}
 
 	var fetcher *document = new(document)
-	de.GetDocument(other.Id(), fetcher, nil)
+	de.GetDocument(other.ID(), fetcher, nil)
 
 	if fetcher.Name != doc.Name {
 		t.Fatal("Patch failed to preserve  name.")
@@ -794,12 +794,12 @@ func TestPatchDocument(t *testing.T) {
 
 	doc.Name = "secondpatch"
 	doc.Address = "secondpatch"
-	err = de.PatchDocument(other.Id(), doc, &PatchDocumentOptions{Rev: "12341234", Policy: "last"})
+	err = de.PatchDocument(other.ID(), doc, &PatchDocumentOptions{Rev: "12341234", Policy: "last"})
 	if err != nil {
 		t.Fatal("Unexpected error when putting with policy = last: ", err)
 	}
 
-	de.GetDocument(doc.Id(), fetcher, nil)
+	de.GetDocument(doc.ID(), fetcher, nil)
 
 	if fetcher.Name != doc.Name {
 		t.Fatal("Patch failed to preserve  name.")
