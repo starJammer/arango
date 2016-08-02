@@ -2,6 +2,7 @@ package arango
 
 import (
 	"net/url"
+	"regexp"
 	"testing"
 )
 
@@ -39,7 +40,7 @@ func TestGetVersion(t *testing.T) {
 		t.Fatal("Unexpected server value: ", v.Server)
 	}
 
-	if v.Version != "3.0.3" {
+	if ok, err := regexp.Match("3\\.0\\..", []byte(v.Version)); !ok || err != nil {
 		t.Fatal("Unexpected version value: ", v.Version)
 	}
 

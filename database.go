@@ -146,7 +146,6 @@ func (d *Database) GetUser() ([]string, error) {
 		UnmarshalMap: gr.UnmarshalMap{
 			http.StatusOK:         &result,
 			http.StatusBadRequest: &errorResult,
-			http.StatusNotFound:   &errorResult,
 		},
 	})
 
@@ -212,13 +211,12 @@ type User struct {
 }
 
 //Post -> POST on /_api/database
-func (d *Database) Post(name string, opts *PostDatabaseOptions) error {
+func (d *Database) Post(opts *PostDatabaseOptions) error {
 
 	var errorResult = ArangoError{}
 	if opts == nil {
 		opts = new(PostDatabaseOptions)
 	}
-	opts.Name = name
 
 	h, err := d.client.Post(&gr.Params{
 		Path: DatabasePath,
@@ -252,6 +250,7 @@ func (d *Database) Delete(name string) error {
 		UnmarshalMap: gr.UnmarshalMap{
 			http.StatusBadRequest: &errorResult,
 			http.StatusNotFound:   &errorResult,
+			http.StatusForbidden:  &errorResult,
 		},
 	})
 

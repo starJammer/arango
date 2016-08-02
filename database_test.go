@@ -86,7 +86,9 @@ func TestPostWithBlankName(t *testing.T) {
 	var db = getDatabase("_system")
 	var err error
 
-	err = db.Post("", nil)
+	err = db.Post(&PostDatabaseOptions{
+		Name: "",
+	})
 
 	verifyError(
 		err,
@@ -101,7 +103,9 @@ func TestPostWithExistingDb(t *testing.T) {
 	var db = getDatabase("_system")
 	var err error
 
-	err = db.Post("_system", nil)
+	err = db.Post(&PostDatabaseOptions{
+		Name: "_system",
+	})
 
 	verifyError(
 		err,
@@ -111,12 +115,38 @@ func TestPostWithExistingDb(t *testing.T) {
 	)
 }
 
+func TestCantPostOutsideSystem(t *testing.T) {
+
+	var db = getDatabase("_system")
+	var err error
+
+	db.Post(&PostDatabaseOptions{
+		Name: "test",
+	})
+	defer db.Delete("test")
+
+	testDb := getDatabase("test")
+
+	err = testDb.Post(&PostDatabaseOptions{
+		Name: "fail",
+	})
+
+	verifyError(
+		err,
+		t,
+		http.StatusForbidden,
+		"Expected to receive error when posting database outside of _system",
+	)
+}
+
 func TestPostGoodNameThenDelete(t *testing.T) {
 
 	var db = getDatabase("_system")
 	var err error
 
-	err = db.Post("test", nil)
+	err = db.Post(&PostDatabaseOptions{
+		Name: "test",
+	})
 
 	if err != nil {
 		t.Fatal("Unexpected error when creating new database: ", err)
@@ -129,31 +159,13 @@ func TestPostGoodNameThenDelete(t *testing.T) {
 	}
 }
 
-func TestCantPostOutsideSystem(t *testing.T) {
-
-	var db = getDatabase("_system")
-	var err error
-
-	db.Post("test", nil)
-	defer db.Delete("test")
-
-	testDb := getDatabase("test")
-
-	err = testDb.Post("fail", nil)
-
-	verifyError(
-		err,
-		t,
-		http.StatusForbidden,
-		"Expected to receive error when posting database outside of _system",
-	)
-}
-
 func TestPostGetCurrent(t *testing.T) {
 
 	var system = getDatabase("_system")
 
-	system.Post("test", nil)
+	system.Post(&PostDatabaseOptions{
+		Name: "test",
+	})
 	defer system.Delete("test")
 
 	var test = getDatabase("test")
@@ -181,11 +193,14 @@ func TestPostDuplicateDatabaseName(t *testing.T) {
 
 	var db = getDatabase("_system")
 	var err error
+	var opts = &PostDatabaseOptions{
+		Name: "test",
+	}
 
-	_ = db.Post("test", nil)
+	_ = db.Post(opts)
 	defer db.Delete("test")
 
-	err = db.Post("test", nil)
+	err = db.Post(opts)
 	verifyError(
 		err,
 		t,
@@ -221,4 +236,25 @@ func TestDeleteBadName(t *testing.T) {
 		"Expected error when deleting database with a bad name.",
 	)
 
+}
+
+func TestDeleteOutsideOfSystem(t *testing.T) {
+	var db = getDatabase("_system")
+	var err error
+
+	db.Post(&PostDatabaseOptions{
+		Name: "test",
+	})
+	defer db.Delete("test")
+
+	testDb := getDatabase("test")
+
+	err = testDb.Delete("test")
+
+	verifyError(
+		err,
+		t,
+		http.StatusForbidden,
+		"Expected to receive error when posting database outside of _system",
+	)
 }
