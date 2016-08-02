@@ -1,13 +1,17 @@
 package arango
 
 import (
+	"fmt"
 	"net/url"
 	"testing"
 )
 
 func setupConnection() *Connection {
 	u, _ := url.Parse("http://root@localhost:8529")
-	c, _ := NewConnection(u)
+	c, err := NewConnection(u)
+	if err != nil {
+		fmt.Print(err)
+	}
 	return c
 }
 

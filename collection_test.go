@@ -561,7 +561,7 @@ func TestPutLoadBlankName(t *testing.T) {
 	verifyError(
 		err,
 		t,
-		http.StatusNotFound,
+		http.StatusBadRequest,
 		"Expected error when putLoading of blank named collection.",
 	)
 
@@ -616,7 +616,7 @@ func TestPutUnloadBlankName(t *testing.T) {
 	verifyError(
 		err,
 		t,
-		http.StatusNotFound,
+		http.StatusBadRequest,
 		"Expected error when putunloading of blank named collection.",
 	)
 

@@ -90,7 +90,7 @@ func (c *CollectionEndpoint) Database() *Database {
 func (c *CollectionEndpoint) GetCollections(excludeSystemCollections bool) (CollectionDescriptors, error) {
 
 	var result struct {
-		Collections []CollectionDescriptor `json:"collections"`
+		Collections []CollectionDescriptor `json:"result"`
 	}
 
 	var errorResult = ArangoError{}
