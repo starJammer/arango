@@ -19,36 +19,40 @@ func (c CollectionDescriptors) Find(name string) *CollectionDescriptor {
 }
 
 type CollectionDescriptor struct {
-	Id             string           `json:"id"`
-	Name           string           `json:"name"`
-	IsSystem       bool             `json:"isSystem"`
-	Status         CollectionStatus `json:"status"`
-	Type           CollectionType   `json:"type"`
-	WaitForSync    bool             `json:"waitForSync"`
-	DoCompact      bool             `json:"doCompact"`
-	JournalSize    int              `json:"journalSize"`
-	KeyOptions     *KeyOptions      `json:"keyOptions"`
-	IsVolatile     bool             `json:"isVolatile"`
-	NumberOfShards int              `json:"numberOfShards"`
-	ShardKeys      []string         `json:"shardKeys"`
-	Count          int              `json:"count"`
-	Figures        *Figures         `json:"figures"`
-	Revision       string           `json:"revision"`
-	Checksum       int              `json:"checksum"`
+	Id       string           `json:"id"`
+	Name     string           `json:"name"`
+	IsSystem bool             `json:"isSystem"`
+	Status   CollectionStatus `json:"status"`
+	Type     CollectionType   `json:"type"`
+
+	WaitForSync    bool        `json:"waitForSync"`
+	DoCompact      bool        `json:"doCompact"`
+	JournalSize    int         `json:"journalSize"`
+	KeyOptions     *KeyOptions `json:"keyOptions"`
+	IsVolatile     bool        `json:"isVolatile"`
+	NumberOfShards int         `json:"numberOfShards"`
+	ShardKeys      []string    `json:"shardKeys"`
+	Count          int         `json:"count"`
+	Figures        *Figures    `json:"figures"`
+	Revision       string      `json:"revision"`
+	Checksum       int         `json:"checksum"`
 }
 
 type Figures struct {
-	Alive                     Alive      `json:"alive"`
-	Dead                      Dead       `json:"dead"`
-	Datafiles                 Datafiles  `json:"datafiles"`
-	Journals                  Journals   `json:"journals"`
-	Compactors                Compactors `json:"compactors"`
-	Shapefiles                Shapefiles `json:"shapefiles"`
-	Shapes                    Shapes     `json:"shapes"`
-	Attributes                Attributes `json:"attributes"`
-	Indexes                   Indexes    `json:"indexes"`
-	LastTick                  string     `json:"lastTick"`
-	UncollectedLogfileEntries int        `json:"uncollectedLogfileEntries"`
+	Alive                     Alive            `json:"alive"`
+	Dead                      Dead             `json:"dead"`
+	Datafiles                 Datafiles        `json:"datafiles"`
+	Journals                  Journals         `json:"journals"`
+	Compactors                Compactors       `json:"compactors"`
+	CompactionStatus          CompactionStatus `json:"compactionStatus"`
+	WaitingFor                string           `json:"waitingFor"`
+	Shapefiles                Shapefiles       `json:"shapefiles"`
+	Shapes                    Shapes           `json:"shapes"`
+	Attributes                Attributes       `json:"attributes"`
+	Indexes                   Indexes          `json:"indexes"`
+	LastTick                  string           `json:"lastTick"`
+	UncollectedLogfileEntries int              `json:"uncollectedLogfileEntries"`
+	DocumentReferences        int              `json:"documentReferences"`
 }
 
 type StatHolder struct {
@@ -67,6 +71,11 @@ type Shapefiles StatHolder
 type Shapes StatHolder
 type Attributes StatHolder
 type Indexes StatHolder
+
+type CompactionStatus struct {
+	Message string `json:"message"`
+	Time    string `json:"time"`
+}
 
 type KeyOptions struct {
 	Type          string `json:"type,omitempty"`
@@ -118,6 +127,8 @@ func (c *CollectionEndpoint) GetCollections(excludeSystemCollections bool) (Coll
 //Look at the documentation for the POST to /_api/collection
 //for information on the default, optional, and required
 //attributes.
+//It's recommended you use DefaultPostCollectionOptions() to
+//create this.
 type PostCollectionOptions struct {
 	Name               string              `json:"name"`
 	WaitForSync        bool                `json:"waitForSync,omitempty"`
@@ -129,6 +140,7 @@ type PostCollectionOptions struct {
 	Type               CollectionType      `json:"type,omitempty"`
 	NumberOfShards     int                 `json:"numberOfShards,omitempty"`
 	ShardKeys          []string            `json:"shardKeys,omitempty"`
+	IndexBuckets       int                 `json:"indexBuckets,omitempty"`
 }
 
 //KeyOptions stores information about how a collection's key is configured.
@@ -150,7 +162,7 @@ func DefaultPostCollectionOptions() *PostCollectionOptions {
 }
 
 //PostCollection -> POST on /_api/collection
-func (c *CollectionEndpoint) PostCollection(name string, options *PostCollectionOptions) error {
+func (c *CollectionEndpoint) PostCollection(options *PostCollectionOptions) (*CollectionDescriptor, error) {
 
 	var descriptor = &CollectionDescriptor{}
 	var errorResult = ArangoError{}
@@ -158,7 +170,6 @@ func (c *CollectionEndpoint) PostCollection(name string, options *PostCollection
 	if options == nil {
 		options = DefaultPostCollectionOptions()
 	}
-	options.Name = name
 
 	h, err := c.client.Post(&gr.Params{
 		Path: "",
@@ -171,14 +182,14 @@ func (c *CollectionEndpoint) PostCollection(name string, options *PostCollection
 	})
 
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if h.StatusCode != http.StatusOK {
-		return errorResult
+		return nil, errorResult
 	}
 
-	return nil
+	return descriptor, nil
 }
 
 //Get -> GET on /_api/collection/{name}
@@ -314,12 +325,13 @@ func (c *CollectionEndpoint) GetRevision(name string) (*CollectionDescriptor, er
 }
 
 type GetChecksumOptions struct {
+	Name          string
 	WithRevisions bool
 	WithData      bool
 }
 
 //GetChecksum -> GET on /_api/collection/{name}/checksum
-func (c *CollectionEndpoint) GetChecksum(name string, opts *GetChecksumOptions) (*CollectionDescriptor, error) {
+func (c *CollectionEndpoint) GetChecksum(opts *GetChecksumOptions) (*CollectionDescriptor, error) {
 	var descriptor = &CollectionDescriptor{}
 	var errorResult = ArangoError{}
 
@@ -331,7 +343,7 @@ func (c *CollectionEndpoint) GetChecksum(name string, opts *GetChecksumOptions) 
 	}
 
 	h, err := c.client.Get(&gr.Params{
-		Path:  fmt.Sprintf("/%s/checksum", name),
+		Path:  fmt.Sprintf("/%s/checksum", opts.Name),
 		Query: query,
 		UnmarshalMap: gr.UnmarshalMap{
 			http.StatusOK:         descriptor,
@@ -351,15 +363,20 @@ func (c *CollectionEndpoint) GetChecksum(name string, opts *GetChecksumOptions) 
 	return descriptor, nil
 }
 
+type PutLoadOptions struct {
+	Name  string
+	Count bool
+}
+
 //PutLoad -> PUT on /_api/collection/{name}/load
-func (c *CollectionEndpoint) PutLoad(name string, includeCount bool) (*CollectionDescriptor, error) {
+func (c *CollectionEndpoint) PutLoad(opts *PutLoadOptions) (*CollectionDescriptor, error) {
 
 	var descriptor = &CollectionDescriptor{}
 	var errorResult = ArangoError{}
 
 	h, err := c.client.Put(&gr.Params{
-		Path: fmt.Sprintf("/%s/load", name),
-		Body: map[string]string{"count": fmt.Sprintf("%t", includeCount)},
+		Path: fmt.Sprintf("/%s/load", opts.Name),
+		Body: map[string]string{"count": fmt.Sprintf("%t", opts.Count)},
 		UnmarshalMap: gr.UnmarshalMap{
 			http.StatusOK:         descriptor,
 			http.StatusBadRequest: &errorResult,
@@ -431,6 +448,8 @@ func (c *CollectionEndpoint) PutTruncate(name string) (*CollectionDescriptor, er
 }
 
 type PutPropertiesOptions struct {
+	//The collection name
+	Name string `json:"name"`
 	//If the WaitForSync of your collection is true,
 	//make sure to set this to true if you're only
 	//setting JournalSize, otherwise you will
@@ -443,14 +462,14 @@ type PutPropertiesOptions struct {
 }
 
 //PutProperties -> PUT on /_api/collection/{name}/properties
-func (c *CollectionEndpoint) PutProperties(name string, properties PutPropertiesOptions) (*CollectionDescriptor, error) {
+func (c *CollectionEndpoint) PutProperties(opts *PutPropertiesOptions) (*CollectionDescriptor, error) {
 
 	var descriptor = &CollectionDescriptor{}
 	var errorResult = ArangoError{}
 
 	h, err := c.client.Put(&gr.Params{
-		Path: fmt.Sprintf("/%s/properties", name),
-		Body: &properties,
+		Path: fmt.Sprintf("/%s/properties", opts.Name),
+		Body: &opts,
 		UnmarshalMap: gr.UnmarshalMap{
 			http.StatusOK:         descriptor,
 			http.StatusBadRequest: &errorResult,
@@ -523,26 +542,28 @@ func (c *CollectionEndpoint) PutRotate(name string) error {
 }
 
 //Delete -> DELETE on /_api/collection/{name}
-func (c *CollectionEndpoint) Delete(name string) error {
+func (c *CollectionEndpoint) Delete(name string) (*CollectionDescriptor, error) {
 
+	var descriptor = &CollectionDescriptor{}
 	var errorResult = ArangoError{}
 
 	h, err := c.client.Delete(&gr.Params{
 		Path: fmt.Sprintf("/%s", name),
 		UnmarshalMap: gr.UnmarshalMap{
+			http.StatusOK:         descriptor,
 			http.StatusBadRequest: &errorResult,
 			http.StatusNotFound:   &errorResult,
 		},
 	})
 
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if h.StatusCode != http.StatusOK {
-		return errorResult
+		return nil, errorResult
 	}
 
-	return nil
+	return descriptor, nil
 
 }

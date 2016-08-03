@@ -72,7 +72,13 @@ func TestGetCollections(t *testing.T) {
 func TestPostBlankNameCollection(t *testing.T) {
 	var ce = getCE("_system")
 
-	err := ce.PostCollection("", nil)
+	co, err := ce.PostCollection(&PostCollectionOptions{
+		Name: "",
+	})
+
+	if co != nil {
+		t.Fatal("Unexpected collection descriptor")
+	}
 
 	verifyError(
 		err,
@@ -85,7 +91,13 @@ func TestPostBlankNameCollection(t *testing.T) {
 func TestPostBadName(t *testing.T) {
 	var ce = getCE("_system")
 
-	err := ce.PostCollection("_fakesystem", nil)
+	co, err := ce.PostCollection(&PostCollectionOptions{
+		Name: "_fakesystem",
+	})
+
+	if co != nil {
+		t.Fatal("Unexpected collection descriptor")
+	}
 
 	verifyError(
 		err,
@@ -98,7 +110,12 @@ func TestPostBadName(t *testing.T) {
 func TestDeleteBlankNameCollection(t *testing.T) {
 	var ce = getCE("_system")
 
-	err := ce.Delete("")
+	co, err := ce.Delete("")
+
+	if co != nil {
+		t.Fatal("Unexpected collection descriptor on delete")
+	}
+
 	verifyError(
 		err,
 		t,
@@ -110,7 +127,12 @@ func TestDeleteBlankNameCollection(t *testing.T) {
 func TestDeleteNonExistingCollection(t *testing.T) {
 	var ce = getCE("_system")
 
-	err := ce.Delete("non-existent")
+	co, err := ce.Delete("non-existent")
+
+	if co != nil {
+		t.Fatal("Unexpected collection descriptor on delete")
+	}
+
 	verifyError(
 		err,
 		t,
@@ -124,17 +146,42 @@ func TestPostDeleteCollection(t *testing.T) {
 
 	opts := DefaultPostCollectionOptions()
 	opts.Name = "test"
+	opts.WaitForSync = true
 
-	err := ce.PostCollection(opts.Name, nil)
+	co, err := ce.PostCollection(opts)
+
+	if co == nil {
+		t.Fatal("Expected a collection descriptor after creation: ", err)
+	}
+
+	if co.Id == "" {
+		t.Fatal("Expected collection descriptor to have the Id")
+	}
+
+	if co.Name == "" {
+		t.Fatal("Expected collection descriptor to have the Name")
+	}
+
+	if !co.WaitForSync {
+		t.Fatal("Expected collection description to have a true WaitForSync value")
+	}
+
+	if co.Status != LOADED_STATUS {
+		t.Fatal("Expected collection description to have a loaded status of", LOADED_STATUS, "but it had", co.Status)
+	}
 
 	if err != nil {
 		t.Fatal("Unexpected error when creating collection: ", err)
 	}
 
-	err = ce.Delete(opts.Name)
+	co2, err := ce.Delete(opts.Name)
 
 	if err != nil {
 		t.Fatal("Unexpected error when deleting collection: ", err)
+	}
+
+	if co.Id != co2.Id {
+		t.Fatal("Unexpectedly deleted a different collection: Expected = ", co.Id, "Actual = ", co2.Id)
 	}
 
 }
@@ -178,7 +225,7 @@ func TestIncludedInGetCollections(t *testing.T) {
 
 	opts := DefaultPostCollectionOptions()
 	opts.Name = "test"
-	ce.PostCollection(opts.Name, nil)
+	ce.PostCollection(opts)
 	defer ce.Delete("test")
 
 	colls, _ := ce.GetCollections(true)
@@ -193,7 +240,7 @@ func TestGetCollection(t *testing.T) {
 
 	opts := DefaultPostCollectionOptions()
 	opts.Name = "test"
-	ce.PostCollection(opts.Name, nil)
+	ce.PostCollection(opts)
 	defer ce.Delete("test")
 
 	descriptor, err := ce.Get(opts.Name)
@@ -230,7 +277,7 @@ func TestPostGetEdgeCollection(t *testing.T) {
 	opts.Type = EDGE_COLLECTION
 	opts.Name = "edge-test"
 
-	ce.PostCollection(opts.Name, opts)
+	ce.PostCollection(opts)
 	defer ce.Delete(opts.Name)
 
 	descriptor, err := ce.Get(opts.Name)
@@ -289,7 +336,7 @@ func TestGetCollectionProperties(t *testing.T) {
 	opts.WaitForSync = true
 	opts.DoCompact = false
 
-	err := ce.PostCollection(opts.Name, opts)
+	_, err := ce.PostCollection(opts)
 	defer ce.Delete(opts.Name)
 
 	descriptor, err := ce.GetProperties(opts.Name)
@@ -373,7 +420,7 @@ func TestGetCollectionCount(t *testing.T) {
 	opts := DefaultPostCollectionOptions()
 	opts.Name = "test"
 
-	err := ce.PostCollection(opts.Name, opts)
+	_, err := ce.PostCollection(opts)
 	defer ce.Delete(opts.Name)
 
 	descriptor, err := ce.GetCount(opts.Name)
@@ -427,7 +474,7 @@ func TestGetCollectionFigures(t *testing.T) {
 
 	opts := DefaultPostCollectionOptions()
 	opts.Name = "test"
-	err := ce.PostCollection(opts.Name, opts)
+	_, err := ce.PostCollection(opts)
 	defer ce.Delete(opts.Name)
 
 	descriptor, err := ce.GetFigures(opts.Name)
@@ -481,7 +528,7 @@ func TestGetCollectionRevision(t *testing.T) {
 
 	opts := DefaultPostCollectionOptions()
 	opts.Name = "test"
-	err := ce.PostCollection(opts.Name, opts)
+	_, err := ce.PostCollection(opts)
 	defer ce.Delete(opts.Name)
 
 	descriptor, err := ce.GetRevision(opts.Name)
@@ -499,7 +546,9 @@ func TestGetCollectionRevision(t *testing.T) {
 func TestGetCollectionChecksumBlankName(t *testing.T) {
 	var ce = getCE("_system")
 
-	d, err := ce.GetChecksum("", nil)
+	d, err := ce.GetChecksum(&GetChecksumOptions{
+		Name: "",
+	})
 
 	verifyError(
 		err,
@@ -516,7 +565,9 @@ func TestGetCollectionChecksumBlankName(t *testing.T) {
 func TestGetCollectionChecksumNonExistent(t *testing.T) {
 	var ce = getCE("_system")
 
-	d, err := ce.GetChecksum("non-existent", nil)
+	d, err := ce.GetChecksum(&GetChecksumOptions{
+		Name: "non-existent",
+	})
 
 	verifyError(
 		err,
@@ -535,10 +586,12 @@ func TestGetCollectionChecksum(t *testing.T) {
 
 	opts := DefaultPostCollectionOptions()
 	opts.Name = "test"
-	err := ce.PostCollection(opts.Name, opts)
+	_, err := ce.PostCollection(opts)
 	defer ce.Delete(opts.Name)
 
-	descriptor, err := ce.GetChecksum(opts.Name, nil)
+	descriptor, err := ce.GetChecksum(&GetChecksumOptions{
+		Name: opts.Name,
+	})
 
 	if err != nil {
 		t.Fatal("Unexpected error when getting collection descriptor: ", err)
@@ -556,7 +609,10 @@ func TestGetCollectionChecksum(t *testing.T) {
 func TestPutLoadBlankName(t *testing.T) {
 	var ce = getCE("_system")
 
-	d, err := ce.PutLoad("", false)
+	d, err := ce.PutLoad(&PutLoadOptions{
+		Name:  "",
+		Count: false,
+	})
 
 	verifyError(
 		err,
@@ -573,7 +629,10 @@ func TestPutLoadBlankName(t *testing.T) {
 func PutLoadNonExistent(t *testing.T) {
 	var ce = getCE("_system")
 
-	d, err := ce.PutLoad("non-existent", false)
+	d, err := ce.PutLoad(&PutLoadOptions{
+		Name:  "non-existent",
+		Count: false,
+	})
 
 	verifyError(
 		err,
@@ -593,10 +652,13 @@ func TestPutLoad(t *testing.T) {
 	opts := DefaultPostCollectionOptions()
 	opts.Name = "test"
 
-	ce.PostCollection(opts.Name, opts)
+	ce.PostCollection(opts)
 	defer ce.Delete(opts.Name)
 
-	descriptor, err := ce.PutLoad(opts.Name, false)
+	descriptor, err := ce.PutLoad(&PutLoadOptions{
+		Name:  opts.Name,
+		Count: false,
+	})
 
 	if err != nil {
 		t.Fatal("Unexpected error when getting collection descriptor: ", err)
@@ -647,7 +709,7 @@ func TestPutUnload(t *testing.T) {
 
 	opts := DefaultPostCollectionOptions()
 	opts.Name = "test"
-	ce.PostCollection(opts.Name, opts)
+	ce.PostCollection(opts)
 
 	defer ce.Delete(opts.Name)
 
@@ -670,7 +732,7 @@ func TestPutTruncateBlankName(t *testing.T) {
 	verifyError(
 		err,
 		t,
-		http.StatusNotFound,
+		http.StatusBadRequest,
 		"Expected error when putTruncateing of blank named collection.",
 	)
 
@@ -701,7 +763,7 @@ func TestPutTruncate(t *testing.T) {
 	opts := DefaultPostCollectionOptions()
 	opts.Name = "test"
 
-	ce.PostCollection(opts.Name, opts)
+	ce.PostCollection(opts)
 	defer ce.Delete(opts.Name)
 
 	d, err := ce.PutTruncate(opts.Name)
@@ -719,12 +781,14 @@ func TestPutTruncate(t *testing.T) {
 func TestPutPropertiesBlankNameNilProps(t *testing.T) {
 	var ce = getCE("_system")
 
-	d, err := ce.PutProperties("", PutPropertiesOptions{})
+	d, err := ce.PutProperties(&PutPropertiesOptions{
+		Name: "",
+	})
 
 	verifyError(
 		err,
 		t,
-		http.StatusNotFound,
+		http.StatusBadRequest,
 		"Expected error when putProperties of blank named collection.",
 	)
 
@@ -736,7 +800,9 @@ func TestPutPropertiesBlankNameNilProps(t *testing.T) {
 func TestPutPropertiesNonExistentNilProps(t *testing.T) {
 	var ce = getCE("_system")
 
-	d, err := ce.PutProperties("non-existent", PutPropertiesOptions{})
+	d, err := ce.PutProperties(&PutPropertiesOptions{
+		Name: "non-existent",
+	})
 
 	verifyError(
 		err,
@@ -755,7 +821,7 @@ func TestPutProperties(t *testing.T) {
 	opts := DefaultPostCollectionOptions()
 	opts.Name = "test"
 	opts.WaitForSync = true
-	ce.PostCollection(opts.Name, opts)
+	ce.PostCollection(opts)
 	defer ce.Delete(opts.Name)
 
 	descriptor, _ := ce.GetProperties(opts.Name)
@@ -764,7 +830,10 @@ func TestPutProperties(t *testing.T) {
 		t.Fatal("Expected waitforsync to be true upon creation.")
 	}
 
-	descriptor, err := ce.PutProperties(opts.Name, PutPropertiesOptions{WaitForSync: false})
+	descriptor, err := ce.PutProperties(&PutPropertiesOptions{
+		Name:        opts.Name,
+		WaitForSync: false,
+	})
 
 	if err != nil {
 		t.Fatal("Unexpected error when putting prorties.")
@@ -784,7 +853,7 @@ func TestPutRenameBlankNameNilProps(t *testing.T) {
 	verifyError(
 		err,
 		t,
-		http.StatusNotFound,
+		http.StatusBadRequest,
 		"Expected error when PutRename of blank named collection.",
 	)
 
@@ -818,7 +887,7 @@ func TestPutRename(t *testing.T) {
 	opts := DefaultPostCollectionOptions()
 	opts.Name = "test"
 
-	err := ce.PostCollection(opts.Name, opts)
+	_, err := ce.PostCollection(opts)
 
 	descriptor, err := ce.PutRename(opts.Name, newName)
 
@@ -849,9 +918,13 @@ func TestPutRename(t *testing.T) {
 		t.Fatal("Getting properties rename failed: ", descriptor.Name)
 	}
 
-	err = ce.Delete(newName)
+	co, err := ce.Delete(newName)
 
 	if err != nil {
 		t.Fatal("Error deleting newly renamed collection: ", err)
+	}
+
+	if co.Id == "" {
+
 	}
 }
