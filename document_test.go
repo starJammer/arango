@@ -28,7 +28,7 @@ func TestGetDocumentsEmptyCollection(t *testing.T) {
 
 	opts := DefaultPostCollectionOptions()
 	opts.Name = "test"
-	ce.PostCollection(opts.Name, nil)
+	ce.PostCollection(opts)
 	defer ce.Delete(opts.Name)
 
 	docs, err := de.GetDocuments(opts.Name, nil)
@@ -54,7 +54,7 @@ func TestPostNilDocument(t *testing.T) {
 
 	opts := DefaultPostCollectionOptions()
 	opts.Name = "test"
-	ce.PostCollection(opts.Name, nil)
+	ce.PostCollection(opts)
 	defer ce.Delete(opts.Name)
 
 	var doc document
@@ -76,7 +76,7 @@ func TestPostEmptyDoc(t *testing.T) {
 
 	opts := DefaultPostCollectionOptions()
 	opts.Name = "test"
-	ce.PostCollection(opts.Name, nil)
+	ce.PostCollection(opts)
 	defer ce.Delete(opts.Name)
 
 	var doc struct {
@@ -109,7 +109,7 @@ func TestDeleteDocumentBlankName(t *testing.T) {
 
 	opts := DefaultPostCollectionOptions()
 	opts.Name = "test"
-	ce.PostCollection(opts.Name, nil)
+	ce.PostCollection(opts)
 	defer ce.Delete(opts.Name)
 
 	err := de.DeleteDocument("", nil)
@@ -127,7 +127,7 @@ func TestDeleteDocumentNonExistent(t *testing.T) {
 
 	opts := DefaultPostCollectionOptions()
 	opts.Name = "test"
-	ce.PostCollection(opts.Name, nil)
+	ce.PostCollection(opts)
 	defer ce.Delete(opts.Name)
 
 	err := de.DeleteDocument("non/1", nil)
@@ -145,7 +145,7 @@ func TestDeleteDocumentBadName(t *testing.T) {
 
 	opts := DefaultPostCollectionOptions()
 	opts.Name = "test"
-	ce.PostCollection(opts.Name, nil)
+	ce.PostCollection(opts)
 	defer ce.Delete(opts.Name)
 
 	err := de.DeleteDocument("bad", nil)
@@ -163,7 +163,7 @@ func TestDeleteDocument(t *testing.T) {
 
 	opts := DefaultPostCollectionOptions()
 	opts.Name = "test"
-	ce.PostCollection(opts.Name, nil)
+	ce.PostCollection(opts)
 	defer ce.Delete(opts.Name)
 
 	var doc struct {
@@ -207,7 +207,7 @@ func TestGetDocumentsAfterPost(t *testing.T) {
 
 	opts := DefaultPostCollectionOptions()
 	opts.Name = "test"
-	ce.PostCollection(opts.Name, nil)
+	ce.PostCollection(opts)
 	defer ce.Delete(opts.Name)
 
 	var doc struct {
@@ -240,7 +240,7 @@ func TestGetDocumentBlankName(t *testing.T) {
 
 	opts := DefaultPostCollectionOptions()
 	opts.Name = "test"
-	ce.PostCollection(opts.Name, nil)
+	ce.PostCollection(opts)
 	defer ce.Delete(opts.Name)
 
 	err := de.GetDocument("", nil, nil)
@@ -259,7 +259,7 @@ func TestGetDocumentNonExistent(t *testing.T) {
 
 	opts := DefaultPostCollectionOptions()
 	opts.Name = "test"
-	ce.PostCollection(opts.Name, nil)
+	ce.PostCollection(opts)
 	defer ce.Delete(opts.Name)
 
 	var doc document
@@ -282,7 +282,7 @@ func TestGetDocumentBadName(t *testing.T) {
 
 	opts := DefaultPostCollectionOptions()
 	opts.Name = "test"
-	ce.PostCollection(opts.Name, nil)
+	ce.PostCollection(opts)
 	defer ce.Delete(opts.Name)
 
 	var doc document
@@ -305,7 +305,7 @@ func TestGetDocumentAfterPost(t *testing.T) {
 
 	opts := DefaultPostCollectionOptions()
 	opts.Name = "test"
-	ce.PostCollection(opts.Name, nil)
+	ce.PostCollection(opts)
 	defer ce.Delete(opts.Name)
 
 	var doc document
@@ -365,7 +365,7 @@ func TestHeadForBlankName(t *testing.T) {
 
 	opts := DefaultPostCollectionOptions()
 	opts.Name = "test"
-	ce.PostCollection(opts.Name, nil)
+	ce.PostCollection(opts)
 	defer ce.Delete(opts.Name)
 
 	rev, err := de.HeadDocument("", nil)
@@ -388,7 +388,7 @@ func TestHeadForNonExistent(t *testing.T) {
 
 	opts := DefaultPostCollectionOptions()
 	opts.Name = "test"
-	ce.PostCollection(opts.Name, nil)
+	ce.PostCollection(opts)
 	defer ce.Delete(opts.Name)
 
 	rev, err := de.HeadDocument("none/123434", nil)
@@ -411,7 +411,7 @@ func TestHeadForBadName(t *testing.T) {
 
 	opts := DefaultPostCollectionOptions()
 	opts.Name = "test"
-	ce.PostCollection(opts.Name, nil)
+	ce.PostCollection(opts)
 	defer ce.Delete(opts.Name)
 
 	rev, err := de.HeadDocument("bad", nil)
@@ -434,7 +434,7 @@ func TestHeadAfterPost(t *testing.T) {
 
 	opts := DefaultPostCollectionOptions()
 	opts.Name = "test"
-	ce.PostCollection(opts.Name, nil)
+	ce.PostCollection(opts)
 	defer ce.Delete(opts.Name)
 
 	var doc document
@@ -504,7 +504,7 @@ func TestPutDocumentBlankName(t *testing.T) {
 
 	opts := DefaultPostCollectionOptions()
 	opts.Name = "test"
-	ce.PostCollection(opts.Name, nil)
+	ce.PostCollection(opts)
 	defer ce.Delete(opts.Name)
 
 	err := de.PutDocument("", nil, nil)
@@ -523,7 +523,7 @@ func TestPutDocumentNonExistent(t *testing.T) {
 
 	opts := DefaultPostCollectionOptions()
 	opts.Name = "test"
-	ce.PostCollection(opts.Name, nil)
+	ce.PostCollection(opts)
 	defer ce.Delete(opts.Name)
 
 	err := de.PutDocument("non/1234", &struct{}{}, nil)
@@ -542,7 +542,7 @@ func TestPutDocumentBadHandler(t *testing.T) {
 
 	opts := DefaultPostCollectionOptions()
 	opts.Name = "test"
-	ce.PostCollection(opts.Name, nil)
+	ce.PostCollection(opts)
 	defer ce.Delete(opts.Name)
 
 	err := de.PutDocument("bad", nil, nil)
@@ -561,7 +561,7 @@ func TestPutDocumentNilDocument(t *testing.T) {
 
 	opts := DefaultPostCollectionOptions()
 	opts.Name = "test"
-	ce.PostCollection(opts.Name, nil)
+	ce.PostCollection(opts)
 	defer ce.Delete(opts.Name)
 
 	var doc *document = new(document)
@@ -586,7 +586,7 @@ func TestPutDocument(t *testing.T) {
 
 	opts := DefaultPostCollectionOptions()
 	opts.Name = "test"
-	ce.PostCollection(opts.Name, nil)
+	ce.PostCollection(opts)
 	defer ce.Delete(opts.Name)
 
 	var doc *document = new(document)
@@ -654,7 +654,7 @@ func TestPatchDocumentBlankName(t *testing.T) {
 
 	opts := DefaultPostCollectionOptions()
 	opts.Name = "test"
-	ce.PostCollection(opts.Name, nil)
+	ce.PostCollection(opts)
 	defer ce.Delete(opts.Name)
 
 	err := de.PatchDocument("", nil, nil)
@@ -673,7 +673,7 @@ func TestPatchDocumentNonExistent(t *testing.T) {
 
 	opts := DefaultPostCollectionOptions()
 	opts.Name = "test"
-	ce.PostCollection(opts.Name, nil)
+	ce.PostCollection(opts)
 	defer ce.Delete(opts.Name)
 
 	err := de.PatchDocument("non/1234", &struct{}{}, nil)
@@ -692,7 +692,7 @@ func TestPatchDocumentBadHandler(t *testing.T) {
 
 	opts := DefaultPostCollectionOptions()
 	opts.Name = "test"
-	ce.PostCollection(opts.Name, nil)
+	ce.PostCollection(opts)
 	defer ce.Delete(opts.Name)
 
 	err := de.PatchDocument("bad", nil, nil)
@@ -711,7 +711,7 @@ func TestPatchDocumentNilDocument(t *testing.T) {
 
 	opts := DefaultPostCollectionOptions()
 	opts.Name = "test"
-	ce.PostCollection(opts.Name, nil)
+	ce.PostCollection(opts)
 	defer ce.Delete(opts.Name)
 
 	var doc *document = new(document)
@@ -736,7 +736,7 @@ func TestPatchDocument(t *testing.T) {
 
 	opts := DefaultPostCollectionOptions()
 	opts.Name = "test"
-	ce.PostCollection(opts.Name, nil)
+	ce.PostCollection(opts)
 	defer ce.Delete(opts.Name)
 
 	var doc *document = new(document)

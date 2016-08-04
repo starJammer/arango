@@ -29,7 +29,7 @@ func TestGetEdgesEmptyCollection(t *testing.T) {
 	opts := DefaultPostCollectionOptions()
 	opts.Name = "test"
 	opts.Type = EDGE_COLLECTION
-	ce.PostCollection(opts.Name, opts)
+	ce.PostCollection(opts)
 	defer ce.Delete(opts.Name)
 
 	docs, err := ee.GetEdges(opts.Name, nil)
@@ -55,7 +55,7 @@ func TestPostNilEdge(t *testing.T) {
 
 	opts := DefaultPostCollectionOptions()
 	opts.Name = "test"
-	ce.PostCollection(opts.Name, opts)
+	ce.PostCollection(opts)
 	defer ce.Delete(opts.Name)
 
 	var edge document
@@ -79,7 +79,7 @@ func TestPostBadFromCollection(t *testing.T) {
 	opts.Name = "test"
 	opts.Type = EDGE_COLLECTION
 
-	ce.PostCollection(opts.Name, opts)
+	ce.PostCollection(opts)
 	defer ce.Delete(opts.Name)
 
 	var edge struct {
@@ -104,7 +104,7 @@ func TestPostBadToCollection(t *testing.T) {
 	opts.Name = "test"
 	opts.Type = EDGE_COLLECTION
 
-	ce.PostCollection(opts.Name, opts)
+	ce.PostCollection(opts)
 	defer ce.Delete(opts.Name)
 
 	var edge struct {
@@ -129,7 +129,7 @@ func TestPostBlankFrom(t *testing.T) {
 	opts.Name = "test"
 	opts.Type = EDGE_COLLECTION
 
-	ce.PostCollection(opts.Name, opts)
+	ce.PostCollection(opts)
 	defer ce.Delete(opts.Name)
 
 	var edge struct {
@@ -154,7 +154,7 @@ func TestPostEmptyEdge(t *testing.T) {
 	opts.Name = "test"
 	opts.Type = EDGE_COLLECTION
 
-	ce.PostCollection(opts.Name, opts)
+	ce.PostCollection(opts)
 	defer ce.Delete(opts.Name)
 
 	var edge struct {
@@ -204,7 +204,7 @@ func TestDeleteEdgeBlankName(t *testing.T) {
 	opts.Name = "test"
 	opts.Type = EDGE_COLLECTION
 
-	ce.PostCollection(opts.Name, opts)
+	ce.PostCollection(opts)
 	defer ce.Delete(opts.Name)
 
 	err := ee.DeleteEdge("", nil)
@@ -224,7 +224,7 @@ func TestDeleteEdgeNonExistent(t *testing.T) {
 	opts.Name = "test"
 	opts.Type = EDGE_COLLECTION
 
-	ce.PostCollection(opts.Name, opts)
+	ce.PostCollection(opts)
 	defer ce.Delete(opts.Name)
 
 	err := ee.DeleteEdge("non/1", nil)
@@ -244,7 +244,7 @@ func TestDeleteEdgeBadName(t *testing.T) {
 	opts.Name = "test"
 	opts.Type = EDGE_COLLECTION
 
-	ce.PostCollection(opts.Name, opts)
+	ce.PostCollection(opts)
 	defer ce.Delete(opts.Name)
 
 	err := ee.DeleteEdge("bad", nil)
@@ -264,7 +264,7 @@ func TestDeleteEdge(t *testing.T) {
 	opts.Name = "test"
 	opts.Type = EDGE_COLLECTION
 
-	ce.PostCollection(opts.Name, opts)
+	ce.PostCollection(opts)
 	defer ce.Delete(opts.Name)
 
 	var edge struct {
@@ -310,7 +310,7 @@ func TestGetEdgesAfterPost(t *testing.T) {
 	opts.Name = "test"
 	opts.Type = EDGE_COLLECTION
 
-	ce.PostCollection(opts.Name, opts)
+	ce.PostCollection(opts)
 	defer ce.Delete(opts.Name)
 
 	var edge struct {
@@ -345,7 +345,7 @@ func TestGetEdgeBlankName(t *testing.T) {
 	opts.Name = "test"
 	opts.Type = EDGE_COLLECTION
 
-	ce.PostCollection(opts.Name, opts)
+	ce.PostCollection(opts)
 	defer ce.Delete(opts.Name)
 
 	err := ee.GetEdge("", nil, nil)
@@ -366,7 +366,7 @@ func TestGetEdgeNonExistent(t *testing.T) {
 	opts.Name = "test"
 	opts.Type = EDGE_COLLECTION
 
-	ce.PostCollection(opts.Name, opts)
+	ce.PostCollection(opts)
 	defer ce.Delete(opts.Name)
 
 	var edge document
@@ -391,7 +391,7 @@ func TestGetEdgeBadName(t *testing.T) {
 	opts.Name = "test"
 	opts.Type = EDGE_COLLECTION
 
-	ce.PostCollection(opts.Name, opts)
+	ce.PostCollection(opts)
 	defer ce.Delete(opts.Name)
 
 	var edge document
@@ -416,7 +416,7 @@ func TestGetEdgeAfterPost(t *testing.T) {
 	opts.Name = "test"
 	opts.Type = EDGE_COLLECTION
 
-	ce.PostCollection(opts.Name, opts)
+	ce.PostCollection(opts)
 	defer ce.Delete(opts.Name)
 
 	var edge document
@@ -478,7 +478,7 @@ func TestEdgeHeadForBlankName(t *testing.T) {
 	opts.Name = "test"
 	opts.Type = EDGE_COLLECTION
 
-	ce.PostCollection(opts.Name, opts)
+	ce.PostCollection(opts)
 	defer ce.Delete(opts.Name)
 
 	rev, err := ee.HeadEdge("", nil)
@@ -503,7 +503,7 @@ func TestEdgeHeadForNonExistent(t *testing.T) {
 	opts.Name = "test"
 	opts.Type = EDGE_COLLECTION
 
-	ce.PostCollection(opts.Name, opts)
+	ce.PostCollection(opts)
 	defer ce.Delete(opts.Name)
 
 	rev, err := ee.HeadEdge("none/123434", nil)
@@ -528,7 +528,7 @@ func TestEdgeHeadForBadName(t *testing.T) {
 	opts.Name = "test"
 	opts.Type = EDGE_COLLECTION
 
-	ce.PostCollection(opts.Name, opts)
+	ce.PostCollection(opts)
 	defer ce.Delete(opts.Name)
 
 	rev, err := ee.HeadEdge("bad", nil)
@@ -553,7 +553,7 @@ func TestEdgeHeadAfterPost(t *testing.T) {
 	opts.Name = "test"
 	opts.Type = EDGE_COLLECTION
 
-	ce.PostCollection(opts.Name, opts)
+	ce.PostCollection(opts)
 	defer ce.Delete(opts.Name)
 
 	var edge document
@@ -625,7 +625,7 @@ func TestPutEdgeBlankName(t *testing.T) {
 	opts.Name = "test"
 	opts.Type = EDGE_COLLECTION
 
-	ce.PostCollection(opts.Name, opts)
+	ce.PostCollection(opts)
 	defer ce.Delete(opts.Name)
 
 	err := ee.PutEdge("", nil, nil)
@@ -646,7 +646,7 @@ func TestPutEdgeNonExistent(t *testing.T) {
 	opts.Name = "test"
 	opts.Type = EDGE_COLLECTION
 
-	ce.PostCollection(opts.Name, opts)
+	ce.PostCollection(opts)
 	defer ce.Delete(opts.Name)
 
 	err := ee.PutEdge("non/1234", &struct{}{}, nil)
@@ -667,7 +667,7 @@ func TestPutEdgeBadHandler(t *testing.T) {
 	opts.Name = "test"
 	opts.Type = EDGE_COLLECTION
 
-	ce.PostCollection(opts.Name, opts)
+	ce.PostCollection(opts)
 	defer ce.Delete(opts.Name)
 
 	err := ee.PutEdge("bad", nil, nil)
@@ -688,7 +688,7 @@ func TestPutEdgeNilEdge(t *testing.T) {
 	opts.Name = "test"
 	opts.Type = EDGE_COLLECTION
 
-	ce.PostCollection(opts.Name, opts)
+	ce.PostCollection(opts)
 	defer ce.Delete(opts.Name)
 
 	var edge *document = new(document)
@@ -715,7 +715,7 @@ func TestPutEdge(t *testing.T) {
 	opts.Name = "test"
 	opts.Type = EDGE_COLLECTION
 
-	ce.PostCollection(opts.Name, opts)
+	ce.PostCollection(opts)
 	defer ce.Delete(opts.Name)
 
 	var edge *document = new(document)
@@ -785,7 +785,7 @@ func TestPatchEdgeBlankName(t *testing.T) {
 	opts.Name = "test"
 	opts.Type = EDGE_COLLECTION
 
-	ce.PostCollection(opts.Name, opts)
+	ce.PostCollection(opts)
 	defer ce.Delete(opts.Name)
 
 	err := ee.PatchEdge("", nil, nil)
@@ -806,7 +806,7 @@ func TestPatchEdgeNonExistent(t *testing.T) {
 	opts.Name = "test"
 	opts.Type = EDGE_COLLECTION
 
-	ce.PostCollection(opts.Name, opts)
+	ce.PostCollection(opts)
 	defer ce.Delete(opts.Name)
 
 	err := ee.PatchEdge("non/1234", &struct{}{}, nil)
@@ -827,7 +827,7 @@ func TestPatchEdgeBadHandler(t *testing.T) {
 	opts.Name = "test"
 	opts.Type = EDGE_COLLECTION
 
-	ce.PostCollection(opts.Name, opts)
+	ce.PostCollection(opts)
 	defer ce.Delete(opts.Name)
 
 	err := ee.PatchEdge("bad", nil, nil)
@@ -848,7 +848,7 @@ func TestPatchEdgeNilEdge(t *testing.T) {
 	opts.Name = "test"
 	opts.Type = EDGE_COLLECTION
 
-	ce.PostCollection(opts.Name, opts)
+	ce.PostCollection(opts)
 	defer ce.Delete(opts.Name)
 
 	var edge *document = new(document)
@@ -875,7 +875,7 @@ func TestPatchEdge(t *testing.T) {
 	opts.Name = "test"
 	opts.Type = EDGE_COLLECTION
 
-	ce.PostCollection(opts.Name, opts)
+	ce.PostCollection(opts)
 	defer ce.Delete(opts.Name)
 
 	var edge *document = new(document)

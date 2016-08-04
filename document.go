@@ -41,7 +41,7 @@ func (doc *DocumentEndpoint) GetDocuments(
 
 	var errorResult = ArangoError{}
 	var result struct {
-		Documents []string `json:"documents"`
+		Documents []string `json:"result"`
 	}
 
 	h, err := doc.client.Get(&gr.Params{
