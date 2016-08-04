@@ -488,17 +488,22 @@ func (c *CollectionEndpoint) PutProperties(opts *PutPropertiesOptions) (*Collect
 	return descriptor, nil
 }
 
+type PutRenameOptions struct {
+	OldName string
+	NewName string
+}
+
 //PutRename -> PUT on /_api/collection/{name}/rename
-func (c *CollectionEndpoint) PutRename(name string, newName string) (*CollectionDescriptor, error) {
+func (c *CollectionEndpoint) PutRename(opts *PutRenameOptions) (*CollectionDescriptor, error) {
 
 	var descriptor = &CollectionDescriptor{}
 	var errorResult = ArangoError{}
 
 	h, err := c.client.Put(&gr.Params{
-		fmt.Sprintf("/%s/rename", name),
+		fmt.Sprintf("/%s/rename", opts.OldName),
 		nil,
 		nil,
-		map[string]string{"name": newName},
+		map[string]string{"name": opts.NewName},
 		gr.UnmarshalMap{
 			http.StatusOK:         descriptor,
 			http.StatusBadRequest: &errorResult,

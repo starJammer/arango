@@ -848,7 +848,10 @@ func TestPutRenameBlankNameNilProps(t *testing.T) {
 	var ce = getCE("_system")
 	var newName = "newtestname"
 
-	d, err := ce.PutRename("", newName)
+	d, err := ce.PutRename(&PutRenameOptions{
+		OldName: "",
+		NewName: newName,
+	})
 
 	verifyError(
 		err,
@@ -866,7 +869,10 @@ func TestPutRenameNonExistentNilProps(t *testing.T) {
 	var ce = getCE("_system")
 	var newName = "newtestname"
 
-	d, err := ce.PutRename("non-existent", newName)
+	d, err := ce.PutRename(&PutRenameOptions{
+		OldName: "non-existent",
+		NewName: newName,
+	})
 
 	verifyError(
 		err,
@@ -889,7 +895,10 @@ func TestPutRename(t *testing.T) {
 
 	_, err := ce.PostCollection(opts)
 
-	descriptor, err := ce.PutRename(opts.Name, newName)
+	descriptor, err := ce.PutRename(&PutRenameOptions{
+		OldName: opts.Name,
+		NewName: newName,
+	})
 
 	if err != nil {
 		t.Fatal("Error during rename: ", err)
