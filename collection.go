@@ -162,18 +162,18 @@ func DefaultPostCollectionOptions() *PostCollectionOptions {
 }
 
 //PostCollection -> POST on /_api/collection
-func (c *CollectionEndpoint) PostCollection(options *PostCollectionOptions) (*CollectionDescriptor, error) {
+func (c *CollectionEndpoint) PostCollection(opts *PostCollectionOptions) (*CollectionDescriptor, error) {
 
 	var descriptor = &CollectionDescriptor{}
 	var errorResult = ArangoError{}
 
-	if options == nil {
-		options = DefaultPostCollectionOptions()
+	if opts == nil {
+		opts = DefaultPostCollectionOptions()
 	}
 
 	h, err := c.client.Post(&gr.Params{
 		Path: "",
-		Body: options,
+		Body: opts,
 		UnmarshalMap: gr.UnmarshalMap{
 			http.StatusOK:         descriptor,
 			http.StatusBadRequest: &errorResult,
