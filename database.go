@@ -13,7 +13,6 @@ type Database struct {
 	ce   *CollectionEndpoint
 	de   *DocumentEndpoint
 	se   *SimpleEndpoint
-	ee   *EdgeEndpoint
 	curE *CursorEndpoint
 }
 
@@ -52,21 +51,6 @@ func (d *Database) DocumentEndpoint() *DocumentEndpoint {
 	d.de = doc
 
 	return d.de
-}
-
-//EdgeEndPoint gets the document endpoint
-func (d *Database) EdgeEndpoint() *EdgeEndpoint {
-	if d.ee != nil {
-		return d.ee
-	}
-
-	edge := &EdgeEndpoint{}
-	edge.client = d.client.Clone()
-	edge.client.BaseUrl().Path += EdgePath
-	edge.database = d
-	d.ee = edge
-
-	return d.ee
 }
 
 //SimpleEndPoint gets the simple endpoint for simple queries
