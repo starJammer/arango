@@ -65,6 +65,48 @@ func (s *SimpleEndpoint) ByExample(collection string, example interface{}, opts 
 	return &Cursor{cursor: cursor, ce: s.Database().CursorEndpoint()}, nil
 }
 
+//PutSimpleAllKeys -> GET on /_api/simple/all-keys
+//If opts.returnType is "" then the default should be used.
+//Default is "path"
+func (doc *SimpleEndpoint) PutSimpleAllKeys(opts *PutSimpleAllKeysOptions) ([]string, error) {
+
+	var returnType string
+
+	if opts != nil {
+		returnType = opts.ReturnType
+	}
+
+	if returnType == "" {
+		returnType = "path"
+	}
+
+	var errorResult = ArangoError{}
+	var result struct {
+		Documents []string `json:"result"`
+	}
+
+	h, err := doc.client.Put(&gr.Params{
+		Path: "/all-keys",
+		Body: opts,
+		UnmarshalMap: gr.UnmarshalMap{
+			http.StatusOK:         &result,
+			http.StatusCreated:    &result,
+			http.StatusBadRequest: &errorResult,
+			http.StatusNotFound:   &errorResult,
+		},
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	if h.StatusCode != http.StatusOK {
+		return nil, errorResult
+	}
+
+	return nil, nil
+}
+
 //FirstExample -> PUT on /_api/simple/first-example
 //result is where the returned document will be unmarshalled into
 func (s *SimpleEndpoint) FirstExample(collection string, example interface{}, result interface{}) error {

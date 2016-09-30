@@ -29,13 +29,16 @@ func getDE(database string) *DocumentEndpoint {
 	return getDatabase(database).DocumentEndpoint()
 }
 
+/*
 func getEE(database string) *EdgeEndpoint {
 	return getDatabase(database).EdgeEndpoint()
 }
-
+*/
+/*
 func getSE(database string) *SimpleEndpoint {
 	return getDatabase(database).SimpleEndpoint()
 }
+*/
 
 func verifyError(err error, t *testing.T, code int, message string) {
 	if err == nil {

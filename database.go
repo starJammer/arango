@@ -10,9 +10,9 @@ type Database struct {
 	client     *gr.Client
 	name       string
 
-	ce   *CollectionEndpoint
-	de   *DocumentEndpoint
-	se   *SimpleEndpoint
+	ce *CollectionEndpoint
+	de *DocumentEndpoint
+	//se   *SimpleEndpoint
 	curE *CursorEndpoint
 }
 
@@ -53,6 +53,7 @@ func (d *Database) DocumentEndpoint() *DocumentEndpoint {
 	return d.de
 }
 
+/*
 //SimpleEndPoint gets the simple endpoint for simple queries
 func (d *Database) SimpleEndpoint() *SimpleEndpoint {
 	if d.se != nil {
@@ -66,6 +67,7 @@ func (d *Database) SimpleEndpoint() *SimpleEndpoint {
 
 	return d.se
 }
+*/
 
 //CursorEndpoint gets the cursor endpoint
 func (d *Database) CursorEndpoint() *CursorEndpoint {
