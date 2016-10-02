@@ -29,6 +29,27 @@ func getDE(database string) *DocumentEndpoint {
 	return getDatabase(database).DocumentEndpoint()
 }
 
+func createTestCollection() (*CollectionEndpoint, string) {
+	var ce = getCE("_system")
+	opts := DefaultPostCollectionOptions()
+	opts.Name = "test"
+
+	ce.PostCollection(opts)
+
+	return ce, opts.Name
+}
+
+func createTestEdgeCollection() (*CollectionEndpoint, string) {
+	var ce = getCE("_system")
+	opts := DefaultPostCollectionOptions()
+	opts.Type = EDGE_COLLECTION
+	opts.Name = "test-edge"
+
+	ce.PostCollection(opts)
+
+	return ce, opts.Name
+}
+
 /*
 func getEE(database string) *EdgeEndpoint {
 	return getDatabase(database).EdgeEndpoint()
