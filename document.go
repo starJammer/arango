@@ -154,6 +154,12 @@ func (de *DocumentEndpoint) PostDocuments(opts *PostDocumentOptions) error {
 
 }
 
+//used to receive the old Values
+//when ReturnOld params are set to true
+type receiver struct {
+	OldReceiver interface{} `json:"old"`
+}
+
 type DeleteDocumentOptions struct {
 	Handle      string
 	WaitForSync bool
@@ -191,6 +197,12 @@ func (de *DocumentEndpoint) DeleteDocument(opts *DeleteDocumentOptions) error {
 
 	if opts.OldReceiver != nil {
 		if opts.ReturnOld {
+			var t = &receiver{
+				OldReceiver: opts.OldReceiver,
+			}
+			unmarshalMap[http.StatusOK] = t
+			unmarshalMap[http.StatusAccepted] = t
+		} else {
 			unmarshalMap[http.StatusOK] = opts.OldReceiver
 			unmarshalMap[http.StatusAccepted] = opts.OldReceiver
 		}
@@ -203,7 +215,7 @@ func (de *DocumentEndpoint) DeleteDocument(opts *DeleteDocumentOptions) error {
 		UnmarshalMap: unmarshalMap,
 	}
 
-	h, err := de.client.Get(params)
+	h, err := de.client.Delete(params)
 
 	if err != nil {
 		return err
@@ -217,10 +229,65 @@ func (de *DocumentEndpoint) DeleteDocument(opts *DeleteDocumentOptions) error {
 	return nil
 }
 
-func HeadDocument() {
-
+type DeleteMultiDocumentsOptions struct {
+	Handles     []interface{}
+	Collection  string
+	WaitForSync bool
+	ReturnOld   bool
+	IgnoreRevs  bool
+	OldReceiver []interface{}
 }
 
-func PatchDocument() {
+func (de *DocumentEndpoint) DeleteMultiDocuments(opts *DeleteMultiDocumentsOptions) error {
+	var errorResult = ArangoError{}
+	var query = make(url.Values)
 
+	if opts == nil {
+		opts = &DeleteMultiDocumentsOptions{}
+	}
+
+	var unmarshalMap = gr.UnmarshalMap{
+		http.StatusBadRequest:         &errorResult,
+		http.StatusNotFound:           &errorResult,
+		http.StatusConflict:           &errorResult,
+		http.StatusPreconditionFailed: &errorResult,
+	}
+
+	query.Add("waitForSync", fmt.Sprintf("%t", opts.WaitForSync))
+	query.Add("returnOld", fmt.Sprintf("%t", opts.ReturnOld))
+	query.Add("ignoreRevs", fmt.Sprintf("%t", opts.IgnoreRevs))
+
+	if opts.OldReceiver != nil {
+		if opts.ReturnOld {
+			// for i, v := range opts.OldReceiver {
+			// 	opts.OldReceiver[i] = receiver{
+			// 		OldReceiver: v,
+			// 	}
+			// }
+		}
+
+		unmarshalMap[http.StatusOK] = opts.OldReceiver
+		unmarshalMap[http.StatusAccepted] = opts.OldReceiver
+
+	}
+
+	var params = &gr.Params{
+		Path:         "/" + opts.Collection,
+		Body:         opts.Handles,
+		Query:        query,
+		UnmarshalMap: unmarshalMap,
+	}
+
+	h, err := de.client.Delete(params)
+
+	if err != nil {
+		return err
+	}
+
+	if h.StatusCode != http.StatusOK &&
+		h.StatusCode != http.StatusAccepted {
+		return errorResult
+	}
+
+	return nil
 }

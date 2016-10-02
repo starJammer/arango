@@ -445,4 +445,92 @@ func TestDeleteDocument(t *testing.T) {
 		t.Fatal(msg, receiver, doc)
 	}
 
+	err = de.GetDocument(&GetDocumentOptions{
+		Handle: doc.ArangoId,
+	})
+
+	verifyError(
+		err,
+		t,
+		http.StatusNotFound,
+		"Expected the document to be deleted",
+	)
+}
+
+func TestDeleteMultiDocuments(t *testing.T) {
+	ce, testName := createTestCollection()
+	defer ce.Delete(testName)
+
+	de := getDE("_system")
+
+	var doc1 = simpleDoc{
+		Text: "1",
+	}
+	var doc2 = simpleDoc{
+		Text: "2",
+	}
+
+	var doc3 simpleDoc
+	var doc4 simpleDoc
+	var receiver = []interface{}{
+		&doc3,
+		&doc4,
+	}
+
+	de.PostDocuments(&PostDocumentOptions{
+		Document:   &doc1,
+		Collection: testName,
+	})
+
+	de.PostDocuments(&PostDocumentOptions{
+		Document:   &doc2,
+		Collection: testName,
+	})
+
+	err := de.DeleteMultiDocuments(&DeleteMultiDocumentsOptions{
+		Handles: []interface{}{
+			doc1.ArangoId,
+			doc2.ArangoKey,
+		},
+		ReturnOld:   true,
+		OldReceiver: receiver,
+	})
+
+	verifyError(
+		err,
+		t,
+		http.StatusBadRequest,
+		"Expected error when deleting multi with no collection name",
+	)
+
+	err = de.DeleteMultiDocuments(&DeleteMultiDocumentsOptions{
+		Collection: testName,
+		Handles: []interface{}{
+			doc1.ArangoId,
+			doc2.ArangoKey,
+		},
+		ReturnOld:   true,
+		OldReceiver: receiver,
+	})
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	msg := "ReturnOld failed to fetch old documents"
+
+	if doc1.ArangoId != doc3.ArangoId {
+		t.Fatal(msg, doc1, doc3)
+	}
+	if doc2.ArangoId != doc4.ArangoId {
+		t.Fatal(msg, doc2, doc4)
+	}
+
+	if doc1.Text != doc3.Text {
+		t.Fatal(msg, doc1, doc3)
+	}
+	if doc2.Text != doc4.Text {
+		t.Fatal(msg, doc2, doc4)
+	}
+
 }
