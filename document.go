@@ -154,8 +154,67 @@ func (de *DocumentEndpoint) PostDocuments(opts *PostDocumentOptions) error {
 
 }
 
-func DeleteDocument() {
+type DeleteDocumentOptions struct {
+	Handle      string
+	WaitForSync bool
+	ReturnOld   bool
+	IfMatch     string
 
+	OldReceiver interface{}
+}
+
+func (de *DocumentEndpoint) DeleteDocument(opts *DeleteDocumentOptions) error {
+	var errorResult = ArangoError{}
+	var headers http.Header
+	var query = make(url.Values)
+
+	if opts == nil {
+		opts = &DeleteDocumentOptions{}
+	}
+
+	var unmarshalMap = gr.UnmarshalMap{
+		http.StatusBadRequest:         &errorResult,
+		http.StatusNotFound:           &errorResult,
+		http.StatusConflict:           &errorResult,
+		http.StatusPreconditionFailed: &errorResult,
+	}
+
+	if opts.IfMatch != "" {
+		headers = make(http.Header)
+		if opts.IfMatch != "" {
+			headers.Add("If-Match", opts.IfMatch)
+		}
+	}
+
+	query.Add("waitForSync", fmt.Sprintf("%t", opts.WaitForSync))
+	query.Add("returnOld", fmt.Sprintf("%t", opts.ReturnOld))
+
+	if opts.OldReceiver != nil {
+		if opts.ReturnOld {
+			unmarshalMap[http.StatusOK] = opts.OldReceiver
+			unmarshalMap[http.StatusAccepted] = opts.OldReceiver
+		}
+	}
+
+	var params = &gr.Params{
+		Path:         "/" + opts.Handle,
+		Query:        query,
+		Headers:      headers,
+		UnmarshalMap: unmarshalMap,
+	}
+
+	h, err := de.client.Get(params)
+
+	if err != nil {
+		return err
+	}
+
+	if h.StatusCode != http.StatusOK &&
+		h.StatusCode != http.StatusAccepted {
+		return errorResult
+	}
+
+	return nil
 }
 
 func HeadDocument() {

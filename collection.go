@@ -500,11 +500,9 @@ func (c *CollectionEndpoint) PutRename(opts *PutRenameOptions) (*CollectionDescr
 	var errorResult = ArangoError{}
 
 	h, err := c.client.Put(&gr.Params{
-		fmt.Sprintf("/%s/rename", opts.OldName),
-		nil,
-		nil,
-		map[string]string{"name": opts.NewName},
-		gr.UnmarshalMap{
+		Path: fmt.Sprintf("/%s/rename", opts.OldName),
+		Body: map[string]string{"name": opts.NewName},
+		UnmarshalMap: gr.UnmarshalMap{
 			http.StatusOK:         descriptor,
 			http.StatusBadRequest: &errorResult,
 			http.StatusNotFound:   &errorResult,

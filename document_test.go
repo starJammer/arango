@@ -356,3 +356,93 @@ func TestPostDocumentThenGetIt(t *testing.T) {
 		t.Fatal(msg, receiver, doc)
 	}
 }
+
+func TestPostToEdgeCollection(t *testing.T) {
+	docC, testName := createTestCollection()
+	defer docC.Delete(testName)
+	edgeC, testEdge := createTestEdgeCollection()
+	defer edgeC.Delete(testEdge)
+	de := getDE("_system")
+
+	var doc simpleDoc
+	var edge simpleDoc
+
+	de.PostDocuments(&PostDocumentOptions{
+		Document:   &doc,
+		Collection: testName,
+	})
+
+	err := de.PostDocuments(&PostDocumentOptions{
+		Document:   &edge,
+		Collection: testEdge,
+	})
+
+	if err == nil {
+		t.Fatal("Expected error when creating an edge with no _from and _to attributes")
+	}
+
+	edge.ArangoFrom = doc.ArangoId
+	edge.ArangoTo = doc.ArangoId
+
+	err = de.PostDocuments(&PostDocumentOptions{
+		Document:   &edge,
+		Collection: testEdge,
+	})
+
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestDeleteDocument(t *testing.T) {
+	ce, testName := createTestCollection()
+	defer ce.Delete(testName)
+
+	de := getDE("_system")
+
+	var doc = simpleDoc{
+		Text: "test",
+	}
+
+	var receiver simpleDoc
+
+	de.PostDocuments(&PostDocumentOptions{
+		Document:   &doc,
+		Collection: testName,
+	})
+
+	err := de.DeleteDocument(&DeleteDocumentOptions{
+		Handle:      doc.ArangoId,
+		ReturnOld:   true,
+		IfMatch:     doc.ArangoRev + "1",
+		OldReceiver: &receiver,
+	})
+
+	verifyError(
+		err,
+		t,
+		http.StatusPreconditionFailed,
+		"Expected error because of bad revision during a delete",
+	)
+
+	err = de.DeleteDocument(&DeleteDocumentOptions{
+		Handle:      doc.ArangoId,
+		ReturnOld:   true,
+		IfMatch:     doc.ArangoRev,
+		OldReceiver: &receiver,
+	})
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	msg := "ReceiveOld failed to retrieve the old document during a delete"
+	if receiver.ArangoId != doc.ArangoId {
+		t.Fatal(msg, receiver, doc)
+	}
+
+	if receiver.Text != doc.Text {
+		t.Fatal(msg, receiver, doc)
+	}
+
+}
