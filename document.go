@@ -258,17 +258,20 @@ func (de *DocumentEndpoint) DeleteMultiDocuments(opts *DeleteMultiDocumentsOptio
 	query.Add("ignoreRevs", fmt.Sprintf("%t", opts.IgnoreRevs))
 
 	if opts.OldReceiver != nil {
+		fmt.Println("Here")
 		if opts.ReturnOld {
-			// for i, v := range opts.OldReceiver {
-			// 	opts.OldReceiver[i] = receiver{
-			// 		OldReceiver: v,
-			// 	}
-			// }
+			var t = make([]interface{}, len(opts.OldReceiver))
+			for i, v := range opts.OldReceiver {
+				t[i] = &receiver{
+					OldReceiver: v,
+				}
+			}
+			unmarshalMap[http.StatusOK] = &t
+			unmarshalMap[http.StatusAccepted] = &t
+		} else {
+			unmarshalMap[http.StatusOK] = &opts.OldReceiver
+			unmarshalMap[http.StatusAccepted] = &opts.OldReceiver
 		}
-
-		unmarshalMap[http.StatusOK] = opts.OldReceiver
-		unmarshalMap[http.StatusAccepted] = opts.OldReceiver
-
 	}
 
 	var params = &gr.Params{
