@@ -156,17 +156,30 @@ func (de *DocumentEndpoint) PostDocuments(opts *PostDocumentOptions) error {
 
 //used to receive the old Values
 //when ReturnOld params are set to true
-type receiver struct {
+type oldReceiver struct {
 	OldReceiver interface{} `json:"old"`
+}
+
+//used to receive the new Values
+//when ReturnNew params ar set to true
+type newReceiver struct {
+	NewReceiver interface{} `json:"new"`
+}
+
+type oldNewReceiver struct {
+	OldReceiver interface{} `json:"old"`
+	NewReceiver interface{} `json:"new"`
 }
 
 type DeleteDocumentOptions struct {
 	Handle      string
 	WaitForSync bool
-	ReturnOld   bool
-	IfMatch     string
+
+	IfMatch string
 
 	OldReceiver interface{}
+
+	returnOld bool
 }
 
 func (de *DocumentEndpoint) DeleteDocument(opts *DeleteDocumentOptions) error {
@@ -192,20 +205,22 @@ func (de *DocumentEndpoint) DeleteDocument(opts *DeleteDocumentOptions) error {
 		}
 	}
 
-	query.Add("waitForSync", fmt.Sprintf("%t", opts.WaitForSync))
-	query.Add("returnOld", fmt.Sprintf("%t", opts.ReturnOld))
-
 	if opts.OldReceiver != nil {
-		if opts.ReturnOld {
-			var t = &receiver{
-				OldReceiver: opts.OldReceiver,
-			}
-			unmarshalMap[http.StatusOK] = t
-			unmarshalMap[http.StatusAccepted] = t
-		} else {
-			unmarshalMap[http.StatusOK] = opts.OldReceiver
-			unmarshalMap[http.StatusAccepted] = opts.OldReceiver
+		opts.returnOld = true
+	}
+
+	query.Add("waitForSync", fmt.Sprintf("%t", opts.WaitForSync))
+	query.Add("returnOld", fmt.Sprintf("%t", opts.returnOld))
+
+	if opts.returnOld {
+		var t = &oldReceiver{
+			OldReceiver: opts.OldReceiver,
 		}
+		unmarshalMap[http.StatusOK] = t
+		unmarshalMap[http.StatusAccepted] = t
+	} else {
+		unmarshalMap[http.StatusOK] = opts.OldReceiver
+		unmarshalMap[http.StatusAccepted] = opts.OldReceiver
 	}
 
 	var params = &gr.Params{
@@ -258,11 +273,10 @@ func (de *DocumentEndpoint) DeleteMultiDocuments(opts *DeleteMultiDocumentsOptio
 	query.Add("ignoreRevs", fmt.Sprintf("%t", opts.IgnoreRevs))
 
 	if opts.OldReceiver != nil {
-		fmt.Println("Here")
 		if opts.ReturnOld {
 			var t = make([]interface{}, len(opts.OldReceiver))
 			for i, v := range opts.OldReceiver {
-				t[i] = &receiver{
+				t[i] = &oldReceiver{
 					OldReceiver: v,
 				}
 			}
@@ -288,6 +302,118 @@ func (de *DocumentEndpoint) DeleteMultiDocuments(opts *DeleteMultiDocumentsOptio
 	}
 
 	if h.StatusCode != http.StatusOK &&
+		h.StatusCode != http.StatusAccepted {
+		return errorResult
+	}
+
+	return nil
+}
+
+type PatchDocumentOptions struct {
+	Handle   string
+	Document interface{}
+
+	KeepNull     bool
+	MergeObjects bool
+	WaitForSync  bool
+	IfMatch      string
+	IgnoreRevs   bool
+
+	//OldReiver specifies that old should be return
+	OldReceiver interface{}
+	//NewReceiver specifies that new should be return
+	NewReceiver interface{}
+
+	returnOld bool
+	returnNew bool
+}
+
+func DefaultPatchDocumentOptions() *PatchDocumentOptions {
+	return &PatchDocumentOptions{
+		KeepNull:     true,
+		IgnoreRevs:   true,
+		MergeObjects: true,
+	}
+}
+
+func (de *DocumentEndpoint) PatchDocument(opts *PatchDocumentOptions) error {
+
+	if opts == nil {
+		opts = DefaultPatchDocumentOptions()
+	}
+
+	var errorResult = ArangoError{}
+	var query = make(url.Values)
+	var headers http.Header
+
+	if opts.OldReceiver != nil {
+		opts.returnOld = true
+	} else {
+		opts.returnOld = false
+	}
+
+	if opts.NewReceiver != nil {
+		opts.returnNew = true
+	} else {
+		opts.returnNew = false
+	}
+
+	query.Add("waitForSync", fmt.Sprintf("%t", opts.WaitForSync))
+	query.Add("ignoreRevs", fmt.Sprintf("%t", opts.IgnoreRevs))
+	query.Add("mergeObjects", fmt.Sprintf("%t", opts.MergeObjects))
+	query.Add("keepNull", fmt.Sprintf("%t", opts.KeepNull))
+	query.Add("returnOld", fmt.Sprintf("%t", opts.returnOld))
+	query.Add("returnNew", fmt.Sprintf("%t", opts.returnNew))
+
+	if opts.IfMatch != "" {
+		headers = make(http.Header)
+		if opts.IfMatch != "" {
+			headers.Add("If-Match", opts.IfMatch)
+		}
+	}
+
+	var unmarshalMap = gr.UnmarshalMap{
+		http.StatusBadRequest:         &errorResult,
+		http.StatusNotFound:           &errorResult,
+		http.StatusPreconditionFailed: &errorResult,
+	}
+
+	if opts.returnOld && opts.returnNew {
+		var t = &oldNewReceiver{
+			OldReceiver: opts.OldReceiver,
+			NewReceiver: opts.NewReceiver,
+		}
+		unmarshalMap[http.StatusCreated] = t
+		unmarshalMap[http.StatusAccepted] = t
+	} else if opts.returnOld {
+		var t = &oldReceiver{
+			OldReceiver: opts.OldReceiver,
+		}
+		unmarshalMap[http.StatusCreated] = t
+		unmarshalMap[http.StatusAccepted] = t
+	} else if opts.returnNew {
+		var t = &newReceiver{
+			NewReceiver: opts.NewReceiver,
+		}
+		unmarshalMap[http.StatusCreated] = t
+		unmarshalMap[http.StatusAccepted] = t
+	}
+
+	params := &gr.Params{
+		Path:         "/" + opts.Handle,
+		Body:         opts.Document,
+		Query:        query,
+		Headers:      headers,
+		UnmarshalMap: unmarshalMap,
+	}
+
+	h, err := de.client.Patch(params)
+
+	if err != nil {
+		return err
+	}
+
+	if h.StatusCode != http.StatusCreated &&
 		h.StatusCode != http.StatusAccepted {
 		return errorResult
 	}

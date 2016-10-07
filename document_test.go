@@ -7,7 +7,8 @@ import (
 
 type simpleDoc struct {
 	EdgeImplementation
-	Text string `json:"text"`
+	Text   string `json:"text"`
+	Number int    `json:"number"`
 }
 
 func TestDEHasDatabase(t *testing.T) {
@@ -413,7 +414,6 @@ func TestDeleteDocument(t *testing.T) {
 
 	err := de.DeleteDocument(&DeleteDocumentOptions{
 		Handle:      doc.ArangoId,
-		ReturnOld:   true,
 		IfMatch:     doc.ArangoRev + "1",
 		OldReceiver: &receiver,
 	})
@@ -427,7 +427,6 @@ func TestDeleteDocument(t *testing.T) {
 
 	err = de.DeleteDocument(&DeleteDocumentOptions{
 		Handle:      doc.ArangoId,
-		ReturnOld:   true,
 		IfMatch:     doc.ArangoRev,
 		OldReceiver: &receiver,
 	})
@@ -531,6 +530,58 @@ func TestDeleteMultiDocuments(t *testing.T) {
 	}
 	if doc2.Text != doc4.Text {
 		t.Fatal(msg, doc2, doc4)
+	}
+}
+
+func TestPatchDocument(t *testing.T) {
+	ce, testName := createTestCollection()
+	defer ce.Delete(testName)
+
+	de := getDE("_system")
+
+	var doc1 = simpleDoc{
+		Text: "1",
+	}
+
+	var oldReceiver simpleDoc
+	var newReceiver simpleDoc
+
+	de.PostDocuments(&PostDocumentOptions{
+		Document:   &doc1,
+		Collection: testName,
+	})
+
+	var patcher = simpleDoc{
+		Text:   "",
+		Number: 10,
+	}
+
+	patch := DefaultPatchDocumentOptions()
+	patch.Handle = doc1.ArangoId
+	patch.Document = &patcher
+	//patch.ReturnOld = true
+	patch.OldReceiver = &oldReceiver
+
+	//patch.ReturnNew = true
+	patch.NewReceiver = &newReceiver
+
+	err := de.PatchDocument(patch)
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if oldReceiver.Text != "1" {
+		t.Fatal("Expected old document to have correct text", oldReceiver)
+	}
+	if oldReceiver.Number != 0 {
+		t.Fatal("Expected old document to have correct number", oldReceiver)
+	}
+	if newReceiver.Text != "" {
+		t.Fatal("Expected new document to have correct text", newReceiver)
+	}
+	if newReceiver.Number != 10 {
+		t.Fatal("Expected new document to have correct number", newReceiver)
 	}
 
 }
