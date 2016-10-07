@@ -248,9 +248,11 @@ type DeleteMultiDocumentsOptions struct {
 	Handles     []interface{}
 	Collection  string
 	WaitForSync bool
-	ReturnOld   bool
+
 	IgnoreRevs  bool
 	OldReceiver []interface{}
+
+	returnOld bool
 }
 
 func (de *DocumentEndpoint) DeleteMultiDocuments(opts *DeleteMultiDocumentsOptions) error {
@@ -268,24 +270,23 @@ func (de *DocumentEndpoint) DeleteMultiDocuments(opts *DeleteMultiDocumentsOptio
 		http.StatusPreconditionFailed: &errorResult,
 	}
 
+	if opts.OldReceiver != nil {
+		opts.returnOld = true
+	} else {
+		opts.returnOld = false
+	}
+
 	query.Add("waitForSync", fmt.Sprintf("%t", opts.WaitForSync))
-	query.Add("returnOld", fmt.Sprintf("%t", opts.ReturnOld))
+	query.Add("returnOld", fmt.Sprintf("%t", opts.returnOld))
 	query.Add("ignoreRevs", fmt.Sprintf("%t", opts.IgnoreRevs))
 
-	if opts.OldReceiver != nil {
-		if opts.ReturnOld {
-			var t = make([]interface{}, len(opts.OldReceiver))
-			for i, v := range opts.OldReceiver {
-				t[i] = &oldReceiver{
-					OldReceiver: v,
-				}
-			}
-			unmarshalMap[http.StatusOK] = &t
-			unmarshalMap[http.StatusAccepted] = &t
-		} else {
-			unmarshalMap[http.StatusOK] = &opts.OldReceiver
-			unmarshalMap[http.StatusAccepted] = &opts.OldReceiver
-		}
+	if opts.returnOld {
+		t := makeOldReceiverSplice(opts.OldReceiver)
+		unmarshalMap[http.StatusOK] = &t
+		unmarshalMap[http.StatusAccepted] = &t
+	} else {
+		unmarshalMap[http.StatusOK] = &opts.OldReceiver
+		unmarshalMap[http.StatusAccepted] = &opts.OldReceiver
 	}
 
 	var params = &gr.Params{
@@ -419,4 +420,133 @@ func (de *DocumentEndpoint) PatchDocument(opts *PatchDocumentOptions) error {
 	}
 
 	return nil
+}
+
+type PatchMultiDocumentsOptions struct {
+	Documents  []interface{}
+	Collection string
+
+	KeepNull     bool
+	MergeObjects bool
+	WaitForSync  bool
+	IgnoreRevs   bool
+
+	//OldReiver specifies that old should be return
+	OldReceiver []interface{}
+	//NewReceiver specifies that new should be return
+	NewReceiver []interface{}
+
+	returnOld bool
+	returnNew bool
+}
+
+func DefaultPatchMultiDocumentsOptions() *PatchMultiDocumentsOptions {
+	return &PatchMultiDocumentsOptions{
+		KeepNull:     true,
+		IgnoreRevs:   true,
+		MergeObjects: true,
+	}
+}
+
+func (de *DocumentEndpoint) PatchMultiDocuments(opts *PatchMultiDocumentsOptions) error {
+
+	if opts == nil {
+		opts = DefaultPatchMultiDocumentsOptions()
+	}
+
+	var errorResult = ArangoError{}
+	var query = make(url.Values)
+
+	if opts.OldReceiver != nil {
+		opts.returnOld = true
+	} else {
+		opts.returnOld = false
+	}
+
+	if opts.NewReceiver != nil {
+		opts.returnNew = true
+	} else {
+		opts.returnNew = false
+	}
+
+	query.Add("waitForSync", fmt.Sprintf("%t", opts.WaitForSync))
+	query.Add("ignoreRevs", fmt.Sprintf("%t", opts.IgnoreRevs))
+	query.Add("mergeObjects", fmt.Sprintf("%t", opts.MergeObjects))
+	query.Add("keepNull", fmt.Sprintf("%t", opts.KeepNull))
+	query.Add("returnOld", fmt.Sprintf("%t", opts.returnOld))
+	query.Add("returnNew", fmt.Sprintf("%t", opts.returnNew))
+
+	var unmarshalMap = gr.UnmarshalMap{
+		http.StatusBadRequest:         &errorResult,
+		http.StatusNotFound:           &errorResult,
+		http.StatusPreconditionFailed: &errorResult,
+	}
+
+	if opts.returnOld && opts.returnNew {
+		t := makeOldNewReceiverSplice(opts.OldReceiver, opts.NewReceiver)
+		unmarshalMap[http.StatusCreated] = &t
+		unmarshalMap[http.StatusAccepted] = &t
+	} else if opts.returnOld {
+		t := makeOldReceiverSplice(opts.OldReceiver)
+		unmarshalMap[http.StatusCreated] = &t
+		unmarshalMap[http.StatusAccepted] = &t
+	} else if opts.returnNew {
+		t := makeNewReceiverSplice(opts.NewReceiver)
+		unmarshalMap[http.StatusCreated] = &t
+		unmarshalMap[http.StatusAccepted] = &t
+	}
+
+	params := &gr.Params{
+		Path:         "/" + opts.Collection,
+		Body:         opts.Documents,
+		Query:        query,
+		UnmarshalMap: unmarshalMap,
+	}
+
+	h, err := de.client.Patch(params)
+
+	if err != nil {
+		return err
+	}
+
+	if h.StatusCode != http.StatusCreated &&
+		h.StatusCode != http.StatusAccepted {
+		return errorResult
+	}
+
+	return nil
+}
+
+func makeOldReceiverSplice(receivers []interface{}) []interface{} {
+	var t = make([]interface{}, len(receivers))
+	for i, v := range receivers {
+		t[i] = &oldReceiver{
+			OldReceiver: v,
+		}
+	}
+
+	return t
+}
+
+func makeNewReceiverSplice(receivers []interface{}) []interface{} {
+	var t = make([]interface{}, len(receivers))
+	for i, v := range receivers {
+		t[i] = &newReceiver{
+			NewReceiver: v,
+		}
+	}
+
+	return t
+}
+
+func makeOldNewReceiverSplice(old, new []interface{}) []interface{} {
+	var t = make([]interface{}, len(old))
+	for i, _ := range old {
+		t[i] = &oldNewReceiver{
+			OldReceiver: old[i],
+			NewReceiver: new[i],
+		}
+	}
+
+	return t
 }

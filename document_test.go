@@ -491,7 +491,6 @@ func TestDeleteMultiDocuments(t *testing.T) {
 			doc1.ArangoId,
 			doc2.ArangoKey,
 		},
-		ReturnOld:   true,
 		OldReceiver: receiver,
 	})
 
@@ -508,7 +507,6 @@ func TestDeleteMultiDocuments(t *testing.T) {
 			doc1.ArangoId,
 			doc2.ArangoKey,
 		},
-		ReturnOld:   true,
 		OldReceiver: receiver,
 	})
 
