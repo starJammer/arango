@@ -192,7 +192,7 @@ func TestPostTwiceWithNoKeyGeneratesNewId(t *testing.T) {
 	}
 }
 
-func TestPostMultipleDocuments(t *testing.T) {
+func TestPostpleDocuments(t *testing.T) {
 	ce, testName := createTestCollection()
 	defer ce.Delete(testName)
 
@@ -207,8 +207,8 @@ func TestPostMultipleDocuments(t *testing.T) {
 	}
 
 	postOpts := &PostDocumentOptions{
-		MultiDocuments: []interface{}{&doc1, &doc2},
-		Collection:     testName,
+		Documents:  []interface{}{&doc1, &doc2},
+		Collection: testName,
 	}
 
 	err := de.PostDocuments(postOpts)
@@ -240,7 +240,7 @@ func TestPostMultipleDocuments(t *testing.T) {
 		},
 	}
 
-	postOpts.MultiDocuments = docs
+	postOpts.Documents = docs
 	err = de.PostDocuments(postOpts)
 
 	if err != nil {
@@ -456,7 +456,7 @@ func TestDeleteDocument(t *testing.T) {
 	)
 }
 
-func TestDeleteMultiDocuments(t *testing.T) {
+func TestDeleteDocuments(t *testing.T) {
 	ce, testName := createTestCollection()
 	defer ce.Delete(testName)
 
@@ -477,16 +477,11 @@ func TestDeleteMultiDocuments(t *testing.T) {
 	}
 
 	de.PostDocuments(&PostDocumentOptions{
-		Document:   &doc1,
+		Documents:  []interface{}{&doc1, &doc2},
 		Collection: testName,
 	})
 
-	de.PostDocuments(&PostDocumentOptions{
-		Document:   &doc2,
-		Collection: testName,
-	})
-
-	err := de.DeleteMultiDocuments(&DeleteMultiDocumentsOptions{
+	err := de.DeleteDocuments(&DeleteDocumentsOptions{
 		Handles: []interface{}{
 			doc1.ArangoId,
 			doc2.ArangoKey,
@@ -498,10 +493,10 @@ func TestDeleteMultiDocuments(t *testing.T) {
 		err,
 		t,
 		http.StatusBadRequest,
-		"Expected error when deleting multi with no collection name",
+		"Expected error when deleting  with no collection name",
 	)
 
-	err = de.DeleteMultiDocuments(&DeleteMultiDocumentsOptions{
+	err = de.DeleteDocuments(&DeleteDocumentsOptions{
 		Collection: testName,
 		Handles: []interface{}{
 			doc1.ArangoId,
@@ -580,6 +575,85 @@ func TestPatchDocument(t *testing.T) {
 	}
 	if newReceiver.Number != 10 {
 		t.Fatal("Expected new document to have correct number", newReceiver)
+	}
+
+}
+
+func TestPatchDocuments(t *testing.T) {
+	ce, testName := createTestCollection()
+	defer ce.Delete(testName)
+
+	de := getDE("_system")
+
+	var doc1 = simpleDoc{
+		Text: "1",
+	}
+	var doc2 = simpleDoc{
+		Text: "2",
+	}
+
+	var oldDoc1 simpleDoc
+	var oldDoc2 simpleDoc
+	var newDoc1 simpleDoc
+	var newDoc2 simpleDoc
+
+	var oldReceiver = []interface{}{
+		&oldDoc1,
+		&oldDoc2,
+	}
+
+	var newReceiver = []interface{}{
+		&newDoc1,
+		&newDoc2,
+	}
+
+	de.PostDocuments(&PostDocumentOptions{
+		Documents:  []interface{}{&doc1, &doc2},
+		Collection: testName,
+	})
+
+	doc1.Text = ""
+	doc1.Number = 1
+
+	doc2.Number = 2
+
+	patch := DefaultPatchDocumentsOptions()
+	patch.Collection = testName
+	patch.Documents = []interface{}{&doc1, &doc2}
+
+	patch.OldReceiver = oldReceiver
+	patch.NewReceiver = newReceiver
+
+	err := de.PatchDocuments(patch)
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if oldDoc1.Text != "1" {
+		t.Fatal("Expected old document to have correct text", oldDoc1)
+	}
+	if oldDoc1.Number != 0 {
+		t.Fatal("Expected old document to have correct number", oldDoc1)
+	}
+	if oldDoc2.Text != "2" {
+		t.Fatal("Expected old document to have correct text", oldDoc2)
+	}
+	if oldDoc2.Number != 0 {
+		t.Fatal("Expected old document to have correct number", oldDoc2)
+	}
+
+	if newDoc1.Text != "" {
+		t.Fatal("Expected new document to have correct text", newDoc1)
+	}
+	if newDoc1.Number != 1 {
+		t.Fatal("Expected new document to have correct number", newDoc1)
+	}
+	if newDoc2.Text != "2" {
+		t.Fatal("Expected new document to have correct text", newDoc2)
+	}
+	if newDoc2.Number != 2 {
+		t.Fatal("Expected new document to have correct number", newDoc2)
 	}
 
 }

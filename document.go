@@ -95,9 +95,9 @@ type PostDocumentOptions struct {
 	Document interface{}
 	//Use this if you want to post multiple documents
 	//This takes precedence over the single document
-	MultiDocuments []interface{}
-	Collection     string
-	WaitForSync    bool
+	Documents   []interface{}
+	Collection  string
+	WaitForSync bool
 
 	//ReturnNew doesn't currently do anything because
 	//the same object you pass is used in the json.Unmarshal
@@ -130,10 +130,10 @@ func (de *DocumentEndpoint) PostDocuments(opts *PostDocumentOptions) error {
 	query.Add("waitForSync", fmt.Sprintf("%t", opts.WaitForSync))
 	query.Add("returnNew", fmt.Sprintf("%t", opts.ReturnNew))
 
-	if opts.MultiDocuments != nil {
-		params.Body = opts.MultiDocuments
-		unmarshalMap[http.StatusCreated] = &opts.MultiDocuments
-		unmarshalMap[http.StatusAccepted] = &opts.MultiDocuments
+	if opts.Documents != nil {
+		params.Body = opts.Documents
+		unmarshalMap[http.StatusCreated] = &opts.Documents
+		unmarshalMap[http.StatusAccepted] = &opts.Documents
 	} else if opts.Document != nil {
 		params.Body = opts.Document
 		unmarshalMap[http.StatusCreated] = opts.Document
@@ -244,7 +244,7 @@ func (de *DocumentEndpoint) DeleteDocument(opts *DeleteDocumentOptions) error {
 	return nil
 }
 
-type DeleteMultiDocumentsOptions struct {
+type DeleteDocumentsOptions struct {
 	Handles     []interface{}
 	Collection  string
 	WaitForSync bool
@@ -255,12 +255,12 @@ type DeleteMultiDocumentsOptions struct {
 	returnOld bool
 }
 
-func (de *DocumentEndpoint) DeleteMultiDocuments(opts *DeleteMultiDocumentsOptions) error {
+func (de *DocumentEndpoint) DeleteDocuments(opts *DeleteDocumentsOptions) error {
 	var errorResult = ArangoError{}
 	var query = make(url.Values)
 
 	if opts == nil {
-		opts = &DeleteMultiDocumentsOptions{}
+		opts = &DeleteDocumentsOptions{}
 	}
 
 	var unmarshalMap = gr.UnmarshalMap{
@@ -422,7 +422,7 @@ func (de *DocumentEndpoint) PatchDocument(opts *PatchDocumentOptions) error {
 	return nil
 }
 
-type PatchMultiDocumentsOptions struct {
+type PatchDocumentsOptions struct {
 	Documents  []interface{}
 	Collection string
 
@@ -440,18 +440,18 @@ type PatchMultiDocumentsOptions struct {
 	returnNew bool
 }
 
-func DefaultPatchMultiDocumentsOptions() *PatchMultiDocumentsOptions {
-	return &PatchMultiDocumentsOptions{
+func DefaultPatchDocumentsOptions() *PatchDocumentsOptions {
+	return &PatchDocumentsOptions{
 		KeepNull:     true,
 		IgnoreRevs:   true,
 		MergeObjects: true,
 	}
 }
 
-func (de *DocumentEndpoint) PatchMultiDocuments(opts *PatchMultiDocumentsOptions) error {
+func (de *DocumentEndpoint) PatchDocuments(opts *PatchDocumentsOptions) error {
 
 	if opts == nil {
-		opts = DefaultPatchMultiDocumentsOptions()
+		opts = DefaultPatchDocumentsOptions()
 	}
 
 	var errorResult = ArangoError{}
