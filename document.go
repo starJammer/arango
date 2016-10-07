@@ -398,6 +398,9 @@ func (de *DocumentEndpoint) PatchDocument(opts *PatchDocumentOptions) error {
 		}
 		unmarshalMap[http.StatusCreated] = t
 		unmarshalMap[http.StatusAccepted] = t
+	} else {
+		unmarshalMap[http.StatusCreated] = opts.Document
+		unmarshalMap[http.StatusAccepted] = opts.Document
 	}
 
 	params := &gr.Params{
@@ -494,6 +497,9 @@ func (de *DocumentEndpoint) PatchDocuments(opts *PatchDocumentsOptions) error {
 		t := makeNewReceiverSplice(opts.NewReceiver)
 		unmarshalMap[http.StatusCreated] = &t
 		unmarshalMap[http.StatusAccepted] = &t
+	} else {
+		unmarshalMap[http.StatusCreated] = &opts.Documents
+		unmarshalMap[http.StatusAccepted] = &opts.Documents
 	}
 
 	params := &gr.Params{

@@ -536,6 +536,49 @@ func TestPatchDocument(t *testing.T) {
 		Text: "1",
 	}
 
+	de.PostDocuments(&PostDocumentOptions{
+		Document:   &doc1,
+		Collection: testName,
+	})
+
+	doc1.Text = ""
+	doc1.Number = 10
+	oldRev := doc1.ArangoRev
+
+	patch := DefaultPatchDocumentOptions()
+	patch.Handle = doc1.ArangoId
+	patch.Document = &doc1
+
+	err := de.PatchDocument(patch)
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if doc1.ArangoRev == oldRev {
+		t.Fatal("Expected new revision number", doc1, oldRev)
+	}
+
+	if doc1.Text != "" {
+		t.Fatal("Expected document to have correct text", doc1)
+	}
+
+	if doc1.Number != 10 {
+		t.Fatal("Expected document to have correct number", doc1)
+	}
+
+}
+
+func TestPatchDocumentWithReceivers(t *testing.T) {
+	ce, testName := createTestCollection()
+	defer ce.Delete(testName)
+
+	de := getDE("_system")
+
+	var doc1 = simpleDoc{
+		Text: "1",
+	}
+
 	var oldReceiver simpleDoc
 	var newReceiver simpleDoc
 
@@ -580,6 +623,67 @@ func TestPatchDocument(t *testing.T) {
 }
 
 func TestPatchDocuments(t *testing.T) {
+	ce, testName := createTestCollection()
+	defer ce.Delete(testName)
+
+	de := getDE("_system")
+
+	var doc1 = simpleDoc{
+		Text: "1",
+	}
+	var doc2 = simpleDoc{
+		Text: "2",
+	}
+
+	de.PostDocuments(&PostDocumentOptions{
+		Documents:  []interface{}{&doc1, &doc2},
+		Collection: testName,
+	})
+
+	oldDoc1Rev := doc1.ArangoRev
+	doc1.Text = ""
+	doc1.Number = 1
+
+	oldDoc2Rev := doc2.ArangoRev
+	doc2.Number = 2
+
+	patch := DefaultPatchDocumentsOptions()
+	patch.Collection = testName
+	patch.Documents = []interface{}{&doc1, &doc2}
+
+	err := de.PatchDocuments(patch)
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if doc1.ArangoRev == oldDoc1Rev {
+		t.Fatal("Expected new revision number", doc1, oldDoc1Rev)
+	}
+
+	if doc1.Text != "" {
+		t.Fatal("Expected document to have correct text", doc1)
+	}
+
+	if doc1.Number != 1 {
+		t.Fatal("Expected document to have correct number", doc1)
+	}
+
+	if doc2.ArangoRev == oldDoc2Rev {
+		t.Fatal("Expected new revision number", doc2, oldDoc2Rev)
+	}
+
+	if doc2.Text != "2" {
+		t.Fatal("Expected document to have correct text", doc2)
+	}
+
+	if doc2.Number != 2 {
+		t.Fatal("Expected document to have correct number", doc2)
+	}
+
+}
+
+func TestPatchDocumentsWithReceivers(t *testing.T) {
 	ce, testName := createTestCollection()
 	defer ce.Delete(testName)
 
