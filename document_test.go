@@ -20,7 +20,7 @@ func TestDEHasDatabase(t *testing.T) {
 	}
 
 	if de.Database().Name() != db.Name() {
-		t.Fatal(
+		t.Fatalf(
 			"DE database name(%s), Expected database name (%s)",
 			de.Database().Name(),
 			db.Name(),
@@ -184,11 +184,11 @@ func TestPostTwiceWithNoKeyGeneratesNewId(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	firstId := doc.ArangoId
+	firstID := doc.ArangoId
 	doc.ArangoKey = ""
 	err = de.PostDocuments(postOpts)
-	if firstId == doc.ArangoId {
-		t.Fatal("Expected id from first post to be different from second posting", firstId, doc)
+	if firstID == doc.ArangoId {
+		t.Fatal("Expected id from first post to be different from second posting", firstID, doc)
 	}
 }
 
@@ -358,6 +358,38 @@ func TestPostDocumentThenGetIt(t *testing.T) {
 	}
 }
 
+func TestPostDuplicateDocument(t *testing.T) {
+	var err error
+	ce, testName := createTestCollection()
+	defer ce.Delete(testName)
+
+	de := getDE("_system")
+
+	var doc = simpleDoc{
+		Text: "test",
+	}
+
+	err = de.PostDocuments(&PostDocumentOptions{
+		Document:   &doc,
+		Collection: testName,
+	})
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = de.PostDocuments(&PostDocumentOptions{
+		Document:   &doc,
+		Collection: testName,
+	})
+	verifyError(
+		err,
+		t,
+		http.StatusConflict,
+		"Expected to receive error when posting duplicate documents",
+	)
+}
+
 func TestPostToEdgeCollection(t *testing.T) {
 	docC, testName := createTestCollection()
 	defer docC.Delete(testName)
@@ -396,6 +428,7 @@ func TestPostToEdgeCollection(t *testing.T) {
 }
 
 func TestDeleteDocument(t *testing.T) {
+	var err error
 	ce, testName := createTestCollection()
 	defer ce.Delete(testName)
 
@@ -412,9 +445,17 @@ func TestDeleteDocument(t *testing.T) {
 		Collection: testName,
 	})
 
-	err := de.DeleteDocument(&DeleteDocumentOptions{
+	badRev := doc.ArangoRev
+	doc.ClearArangoAttributes()
+
+	de.PostDocuments(&PostDocumentOptions{
+		Document:   &doc,
+		Collection: testName,
+	})
+
+	err = de.DeleteDocument(&DeleteDocumentOptions{
 		Handle:      doc.ArangoId,
-		IfMatch:     doc.ArangoRev + "1",
+		IfMatch:     badRev,
 		OldReceiver: &receiver,
 	})
 
