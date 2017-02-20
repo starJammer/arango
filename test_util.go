@@ -73,10 +73,10 @@ func verifyError(err error, t *testing.T, code int, message string) {
 	}
 
 	if !ae.IsError {
-		t.Fatalf("Actual ae.IsError() == %t, Expected true. ArangoError = %s, Message = %s", ae.IsError, ae, message)
+		t.Fatalf("Actual ae.IsError() == %t, Expected true. %#v, Message = %s", ae.IsError, ae, message)
 	}
 
 	if ae.Code != code {
-		t.Fatalf("Actual ae.Code() == %d, Expected %d. ArangoError = %s, Message = %s", ae.Code, code, ae, message)
+		t.Fatalf("Actual ae.Code() == %d, Expected %d. %#v, Message = %s", ae.Code, code, ae, message)
 	}
 }
