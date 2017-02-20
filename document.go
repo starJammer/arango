@@ -29,6 +29,18 @@ type EdgeImplementation struct {
 	ArangoTo   string `json:"_to,omitempty"`
 }
 
+func (di *DocumentImplementation) clear() {
+	di.ArangoId = ""
+	di.ArangoKey = ""
+	di.ArangoRev = ""
+}
+
+func (ei *EdgeImplementation) clear() {
+	ei.DocumentImplementation.clear()
+	ei.ArangoFrom = ""
+	ei.ArangoTo = ""
+}
+
 type DocumentEndpoint struct {
 	client   *gr.Client
 	database *Database
