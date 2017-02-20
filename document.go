@@ -29,14 +29,21 @@ type EdgeImplementation struct {
 	ArangoTo   string `json:"_to,omitempty"`
 }
 
-func (di *DocumentImplementation) clear() {
+//ClearArangoAttributes clears any attributes this document
+//has that correspond to arango meta data like the id, key, and revision.
+//It sets them all to the empty string.
+func (di *DocumentImplementation) ClearArangoAttributes() {
 	di.ArangoId = ""
 	di.ArangoKey = ""
 	di.ArangoRev = ""
 }
 
-func (ei *EdgeImplementation) clear() {
-	ei.DocumentImplementation.clear()
+//ClearArangoAttributes clears any attributes this document
+//has that correspond to arango meta data like the id, key,
+//revision, _from, and _to.
+//It sets them all to the empty string.
+func (ei *EdgeImplementation) ClearArangoAttributes() {
+	ei.DocumentImplementation.ClearArangoAttributes()
 	ei.ArangoFrom = ""
 	ei.ArangoTo = ""
 }
